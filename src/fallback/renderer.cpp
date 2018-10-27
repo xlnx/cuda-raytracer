@@ -1,3 +1,4 @@
+#include <fstream>
 #include "renderer.hpp"
 #include "scene.hpp"
 
@@ -12,7 +13,8 @@ Renderer::Renderer( uint w, uint h ) :
 
 void Renderer::render( const std::string &path, uint spp )
 {
-	Scene scene( path );
+	Scene scene;
+	std::ifstream( path ) >> scene;
 	if ( !scene.camera.size() )
 	{
 		throw "no camera in the scene.";
@@ -36,7 +38,6 @@ void Renderer::render( const std::string &path, uint spp )
 														sin( radians( 30. + k * 360. / spp ) ),
 														cos( radians( 30. + k * 360. / spp ) ), 0 } );
 			}
-			// ray[ k ].v = normalize( ray[ i ].v );
 		}
 	}
 }
