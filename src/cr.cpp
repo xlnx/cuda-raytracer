@@ -1,7 +1,10 @@
-#include "vmath.hpp"
+#include <fallback/renderer.hpp>
 
-int main()
+using namespace koishi;
+
+int main( int argc, char **argv )
 {
-	float2 a, b;
-	a += b;
+	fallback::Renderer r{ 1024, 768 };
+
+	r.render( "./cornell_box.json", 4 );
 }
