@@ -1,4 +1,6 @@
 #include <fstream>
+#include <util/mesh.hpp>
+#include "buffer.hpp"
 #include "renderer.hpp"
 #include "camera.hpp"
 
@@ -41,6 +43,18 @@ void Renderer::render( const std::string &path )
 		throw util::Exception( "No valid camera in this scene." );
 	}
 	Camera camera( w, h, scene.camera[ 0 ] );
+	std::vector<util::SubMesh> mesh;
+	for ( auto &obj : scene.object )
+	{
+		if ( obj.type == "polyMesh" )
+		{
+			for ( auto &e : util::PolyMesh( obj.path ).mesh )
+			{
+				mesh.emplace_back( e );
+			}
+		}
+	}
+
 	// for (auto )
 	// Scene scene;
 
@@ -52,9 +66,15 @@ void Renderer::render( const std::string &path )
 		auto curr = glfwGetTime();
 		auto detMillis = curr - prev;
 
-		// for ( auto &object : scene )
+		// for ( au to &object : scene )
 		// {
 		// 	object.render();
+		// }
+
+		// for ( auto &m : mesh )
+		// {
+		// 	m.vao.bind();
+		// 	m.vao.unbind();
 		// }
 
 		glfwPollEvents();

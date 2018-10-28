@@ -21,6 +21,14 @@ struct PolyMesh
 	std::vector<SubMesh> mesh;
 };
 
+struct BVHNode
+{
+	float3 vmax, vmin;
+	uint begin, end;
+};
+
+using BVHTree = std::vector<BVHNode>;
+
 }  // namespace util
 
 }  // namespace koishi
