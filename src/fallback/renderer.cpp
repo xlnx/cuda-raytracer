@@ -1,19 +1,19 @@
 #include <fstream>
 #include "renderer.hpp"
-#include "scene.hpp"
+#include <util/config.hpp>
 
 namespace koishi
 {
 namespace fallback
 {
 Renderer::Renderer( uint w, uint h ) :
-  w( w ), h( h ), buffer( w * h )
+  buffer( w * h ), w( w ), h( h )
 {
 }
 
 void Renderer::render( const std::string &path, uint spp )
 {
-	Scene scene;
+	jsel::Scene scene;
 	std::ifstream( path ) >> scene;
 	if ( !scene.camera.size() )
 	{

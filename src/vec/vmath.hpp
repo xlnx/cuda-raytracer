@@ -2,7 +2,7 @@
 
 #include "trait.hpp"
 #include "vec.hpp"
-// #if !defined( CUDA )
+// #if !defined( KOISHI_USE_CUDA )
 #include <cmath>
 // #endif
 
@@ -10,7 +10,7 @@ namespace koishi
 {
 namespace vm
 {
-#if defined( CUDA )
+#if defined( KOISHI_USE_CUDA )
 
 #define KOISHI_HOST_DEVICE \
 	__host__ __device__
@@ -51,7 +51,7 @@ KOISHI_HOST_DEVICE T degrees( T deg )
 	return deg * T( 180. ) / T( M_PI );
 }
 
-#if !defined( CUDA )
+#if !defined( KOISHI_USE_CUDA )
 template <typename T>
 KOISHI_HOST_DEVICE T rsqrt( T a )
 {
@@ -444,7 +444,7 @@ KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::log2, log2, KOISHI_VEC_FLOAT, KOISHI_VEC
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::sqrt, sqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 KOISHI_COMPWISE_OP( __func::radians, radians, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 KOISHI_COMPWISE_OP( __func::degrees, degrees, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
-#if defined( CUDA )
+#if defined( KOISHI_USE_CUDA )
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::rsqrt, rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 #else
 KOISHI_COMPWISE_OP( __func::rsqrt, rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
@@ -463,7 +463,7 @@ KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::ceil, ceil, KOISHI_VEC_FLOAT, KOISHI_VEC
 
 KOISHI_COMPWISE_OP( __func::radians, radians, float, double )
 KOISHI_COMPWISE_OP( __func::degrees, degrees, float, double )
-#if !defined( CUDA )
+#if !defined( KOISHI_USE_CUDA )
 KOISHI_COMPWISE_OP( __func::rsqrt, rsqrt, float, double )
 #endif
 
@@ -547,7 +547,7 @@ KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::sqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBL
 	}                                                                                               \
 	}
 
-#if defined( CUDA )
+#if defined( KOISHI_USE_CUDA )
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 #else
 KOISHI_COMPWISE_OP( __func::rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )

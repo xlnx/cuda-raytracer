@@ -2,7 +2,7 @@
 
 #include <iostream>
 #include "trait.hpp"
-#if !defined( CUDA )
+#if !defined( KOISHI_USE_CUDA )
 #include "vmath.hpp"
 #endif
 

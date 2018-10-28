@@ -9,6 +9,8 @@
 
 namespace koishi
 {
+namespace jsel
+{
 namespace __flag
 {
 struct IsSerializable
@@ -103,5 +105,7 @@ inline std::istream &operator>>( std::istream &is, T &t )
 	is >> data, t = data;
 	return is;
 }
+
+}  // namespace jsel
 
 }  // namespace koishi

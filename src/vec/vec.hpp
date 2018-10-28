@@ -4,7 +4,7 @@ namespace koishi
 {
 namespace vec
 {
-#if !defined( CUDA )
+#if !defined( KOISHI_USE_CUDA )
 
 #define KOISHI_DEF_VEC( type )        \
 	struct type##1 { type x; };       \
