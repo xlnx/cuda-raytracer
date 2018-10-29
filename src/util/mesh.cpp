@@ -52,13 +52,14 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 			s += iter->area;
 		}
 		node.begin = begin - info.begin();
-		node.end = end - info.end();
+		node.end = end - info.begin();
+		node.isleaf = end - begin <= KOISHI_TRIANGLE_STRIPE;
 		if ( index >= res.size() )
 		{
 			res.resize( index + 1 );
 		}
 		res[ index ] = node;
-		if ( end - begin > KOISHI_TRIANGLE_STRIPE )
+		if ( !node.isleaf )
 		{
 			s /= 2;
 			auto w = node.vmax - node.vmin;
@@ -88,6 +89,16 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 	return res;
 }
 
+static void printBVH( const BVHTree &tr, uint index = 1 )
+{
+	std::cout << index << " ";
+	if ( !tr[ index ].isleaf )
+	{
+		printBVH( tr, index << 1 );
+		printBVH( tr, ( index << 1 ) + 1 );
+	}
+}
+
 PolyMesh::PolyMesh( const std::string &path )
 {
 	Assimp::Importer importer;
@@ -101,6 +112,7 @@ PolyMesh::PolyMesh( const std::string &path )
 		mesh.resize( scene->mNumMeshes );
 		for ( uint i = 0; i != scene->mNumMeshes; ++i )
 		{
+			auto &m = mesh[ i ];
 			auto &aimesh = scene->mMeshes[ i ];
 			std::vector<float3> vertices;
 			if ( aimesh->HasPositions() )
@@ -129,21 +141,21 @@ PolyMesh::PolyMesh( const std::string &path )
 					indices[ j ].area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
 				}
 			}
-			auto bvh = createBVH( indices );
-			std::cout << "Successfully buit BVH: " << bvh.size() << std::endl;
-			mesh[ i ].vertices.resize( vertices.size() * 3 );
-			for ( uint i = 0; i != vertices.size(); ++i )
+			m.bvh = createBVH( indices );
+			std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
+			m.vertices.resize( vertices.size() * 3 );
+			for ( uint j = 0; j != vertices.size(); ++j )
 			{
-				mesh[ i ].vertices[ 3 * i ] = vertices[ i ].x;
-				mesh[ i ].vertices[ 3 * i + 1 ] = vertices[ i ].y;
-				mesh[ i ].vertices[ 3 * i + 2 ] = vertices[ i ].z;
+				m.vertices[ 3 * j ] = vertices[ j ].x;
+				m.vertices[ 3 * j + 1 ] = vertices[ j ].y;
+				m.vertices[ 3 * j + 2 ] = vertices[ j ].z;
 			}
-			mesh[ i ].indices.resize( indices.size() * 3 );
-			for ( uint i = 0; i != indices.size(); ++i )
+			m.indices.resize( indices.size() * 3 );
+			for ( uint j = 0; j != indices.size(); ++j )
 			{
-				mesh[ i ].indices[ 3 * i ] = indices[ i ].index.x;
-				mesh[ i ].indices[ 3 * i + 1 ] = indices[ i ].index.y;
-				mesh[ i ].indices[ 3 * i + 2 ] = indices[ i ].index.z;
+				m.indices[ 3 * j ] = indices[ j ].index.x;
+				m.indices[ 3 * j + 1 ] = indices[ j ].index.y;
+				m.indices[ 3 * j + 2 ] = indices[ j ].index.z;
 			}
 		}
 	}

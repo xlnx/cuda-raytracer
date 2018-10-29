@@ -1,6 +1,5 @@
 #include <fstream>
 #include <util/mesh.hpp>
-#include "buffer.hpp"
 #include "renderer.hpp"
 #include "camera.hpp"
 
@@ -34,6 +33,42 @@ Renderer::~Renderer()
 	glfwTerminate();
 }
 
+static void compileShader()
+{
+	auto vs = glCreateShader( GL_VERTEX_SHADER );
+	auto fs = glCreateShader( GL_FRAGMENT_SHADER );
+	const char *vsrc[] = {
+#include "vis.vert"
+	};
+	const char *fsrc[] = {
+#include "vis.frag"
+	};
+	glShaderSource( vs, 1, vsrc, nullptr );
+	glShaderSource( fs, 1, fsrc, nullptr );
+	GLint success;
+	glCompileShader( vs );
+	glGetShaderiv( vs, GL_COMPILE_STATUS, &success );
+	assert( success );
+	glCompileShader( fs );
+	glGetShaderiv( fs, GL_COMPILE_STATUS, &success );
+	assert( success );
+
+	auto prog = glCreateProgram();
+	glAttachShader( prog, vs );
+	glAttachShader( prog, fs );
+	glLinkProgram( prog );
+	glGetProgramiv( prog, GL_LINK_STATUS, &success );
+	assert( success );
+
+	glUseProgram( prog );
+}
+
+struct SubMesh
+{
+	GLuint vao;
+	util::BVHTree bvh;
+};
+
 void Renderer::render( const std::string &path )
 {
 	jsel::Scene scene;
@@ -43,39 +78,54 @@ void Renderer::render( const std::string &path )
 		throw util::Exception( "No valid camera in this scene." );
 	}
 	Camera camera( w, h, scene.camera[ 0 ] );
-	std::vector<util::SubMesh> mesh;
+	std::vector<SubMesh> mesh;
 	for ( auto &obj : scene.object )
 	{
 		if ( obj.type == "polyMesh" )
 		{
 			for ( auto &e : util::PolyMesh( obj.path ).mesh )
 			{
-				mesh.emplace_back( e );
+				GLuint vao, vbo, ebo;
+				glGenVertexArrays( 1, &vao );
+				glGenBuffers( 1, &vbo );
+				glGenBuffers( 1, &ebo );
+				glBindVertexArray( vao );
+				glBindBuffer( GL_ARRAY_BUFFER, vbo );
+				glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
+				glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
+				glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
+				glEnableVertexAttribArray( 0 );
+				glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, (const void *)( 0 ) );
+				glBindVertexArray( 0 );
+				glBindBuffer( GL_ARRAY_BUFFER, 0 );
+				glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+				mesh.emplace_back( SubMesh{ vao, e.bvh } );
 			}
 		}
 	}
 
-	// for (auto )
-	// Scene scene;
+	compileShader();
 
 	while ( !glfwWindowShouldClose( window ) )
 	{
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-		static auto prev = glfwGetTime();
-		auto curr = glfwGetTime();
-		auto detMillis = curr - prev;
+		// static auto prev = glfwGetTime();
+		// auto curr = glfwGetTime();
+		// auto detMillis = curr - prev;
 
-		// for ( au to &object : scene )
-		// {
-		// 	object.render();
-		// }
+		// auto mat = camera.getTrans();
+		// glUniformMatrix4fv( glGetUniformLocation( prog, "wvp" ), 1, GL_FALSE,
+		// 					reinterpret_cast<const float *>( &mat ) );
 
-		// for ( auto &m : mesh )
-		// {
-		// 	m.vao.bind();
-		// 	m.vao.unbind();
-		// }
+		auto k = 2;
+		for ( auto &m : mesh )
+		{
+			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+			glBindVertexArray( m.vao );
+			glDrawElements( GL_TRIANGLES, ( m.bvh[ k ].end - m.bvh[ k ].begin ) * 3, GL_UNSIGNED_INT, nullptr );
+			glBindVertexArray( 0 );
+		}
 
 		glfwPollEvents();
 		glfwSwapBuffers( window );
