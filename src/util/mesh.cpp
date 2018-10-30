@@ -10,7 +10,7 @@
 #include <vec/vmath.hpp>
 #include "mesh.hpp"
 
-#define KOISHI_TRIANGLE_STRIPE 16
+#define KOISHI_TRIANGLE_STRIPE 8
 
 namespace koishi
 {
