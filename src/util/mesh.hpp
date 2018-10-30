@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <vec/vec.hpp>
+#include <util/config.hpp>
 
 namespace koishi
 {
@@ -25,7 +26,7 @@ struct SubMesh
 
 struct PolyMesh
 {
-	PolyMesh( const std::string &path );
+	PolyMesh( const jsel::Mesh &config );
 
 	std::vector<SubMesh> mesh;
 };

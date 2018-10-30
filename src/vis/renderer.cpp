@@ -33,7 +33,7 @@ Renderer::~Renderer()
 	glfwTerminate();
 }
 
-static void compileShader()
+static GLuint compileShader()
 {
 	auto vs = glCreateShader( GL_VERTEX_SHADER );
 	auto fs = glCreateShader( GL_FRAGMENT_SHADER );
@@ -60,7 +60,7 @@ static void compileShader()
 	glGetProgramiv( prog, GL_LINK_STATUS, &success );
 	assert( success );
 
-	glUseProgram( prog );
+	return prog;
 }
 
 struct SubMesh
@@ -79,51 +79,57 @@ void Renderer::render( const std::string &path )
 	}
 	Camera camera( w, h, scene.camera[ 0 ] );
 	std::vector<SubMesh> mesh;
-	for ( auto &obj : scene.object )
+	for ( auto &m : scene.mesh )
 	{
-		if ( obj.type == "polyMesh" )
+		for ( auto &e : util::PolyMesh( m ).mesh )
 		{
-			for ( auto &e : util::PolyMesh( obj.path ).mesh )
-			{
-				GLuint vao, vbo, ebo;
-				glGenVertexArrays( 1, &vao );
-				glGenBuffers( 1, &vbo );
-				glGenBuffers( 1, &ebo );
-				glBindVertexArray( vao );
-				glBindBuffer( GL_ARRAY_BUFFER, vbo );
-				glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
-				glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
-				glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
-				glEnableVertexAttribArray( 0 );
-				glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, (const void *)( 0 ) );
-				glBindVertexArray( 0 );
-				glBindBuffer( GL_ARRAY_BUFFER, 0 );
-				glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-				mesh.emplace_back( SubMesh{ vao, e.bvh } );
-			}
+			GLuint vao, vbo, ebo;
+			glGenVertexArrays( 1, &vao );
+			glGenBuffers( 1, &vbo );
+			glGenBuffers( 1, &ebo );
+			glBindVertexArray( vao );
+			glBindBuffer( GL_ARRAY_BUFFER, vbo );
+			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
+			glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
+			glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
+			glEnableVertexAttribArray( 0 );
+			glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, (const void *)( 0 ) );
+			glBindVertexArray( 0 );
+			glBindBuffer( GL_ARRAY_BUFFER, 0 );
+			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+			mesh.emplace_back( SubMesh{ vao, e.bvh } );
 		}
 	}
 
-	compileShader();
+	auto prog = compileShader();
+	glUseProgram( prog );
 
 	while ( !glfwWindowShouldClose( window ) )
 	{
 		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
 
-		// static auto prev = glfwGetTime();
-		// auto curr = glfwGetTime();
-		// auto detMillis = curr - prev;
+		static auto prev = glfwGetTime();
+		auto curr = glfwGetTime();
+		auto detMillis = curr - prev;
 
-		// auto mat = camera.getTrans();
-		// glUniformMatrix4fv( glGetUniformLocation( prog, "wvp" ), 1, GL_FALSE,
-		// 					reinterpret_cast<const float *>( &mat ) );
+		auto mat = camera.getTrans();
+		glUniformMatrix4fv( glGetUniformLocation( prog, "wvp" ), 1, GL_FALSE,
+							reinterpret_cast<const float *>( &mat ) );
 
-		auto k = 2;
+		auto k = 4;
 		for ( auto &m : mesh )
 		{
 			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+			glUniform1i( glGetUniformLocation( prog, "mode" ), 0 );
 			glBindVertexArray( m.vao );
-			glDrawElements( GL_TRIANGLES, ( m.bvh[ k ].end - m.bvh[ k ].begin ) * 3, GL_UNSIGNED_INT, nullptr );
+			glDrawElements( GL_TRIANGLES, ( m.bvh[ 1 ].end - m.bvh[ 1 ].begin ) * 3, GL_UNSIGNED_INT, nullptr );
+			glBindVertexArray( 0 );
+
+			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+			glUniform1i( glGetUniformLocation( prog, "mode" ), 1 );
+			glBindVertexArray( m.vao );
+			glDrawElements( GL_TRIANGLES, ( m.bvh[ k ].end - m.bvh[ k ].begin ) * 3,
+							GL_UNSIGNED_INT, (uint *)nullptr + m.bvh[ k ].begin * 3 );
 			glBindVertexArray( 0 );
 		}
 

@@ -99,14 +99,14 @@ static void printBVH( const BVHTree &tr, uint index = 1 )
 	}
 }
 
-PolyMesh::PolyMesh( const std::string &path )
+PolyMesh::PolyMesh( const jsel::Mesh &config )
 {
 	Assimp::Importer importer;
-	auto scene = importer.ReadFile( path, aiProcess_Triangulate |
-											aiProcess_GenSmoothNormals |
-											aiProcess_FlipUVs |
-											aiProcess_JoinIdenticalVertices |
-											aiProcess_CalcTangentSpace );
+	auto scene = importer.ReadFile( config.path, aiProcess_Triangulate |
+												   aiProcess_GenSmoothNormals |
+												   aiProcess_FlipUVs |
+												   aiProcess_JoinIdenticalVertices |
+												   aiProcess_CalcTangentSpace );
 	if ( !( !scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode ) )
 	{
 		mesh.resize( scene->mNumMeshes );
@@ -122,7 +122,9 @@ PolyMesh::PolyMesh( const std::string &path )
 				{
 					vertices[ j ] = float3{ aimesh->mVertices[ j ].x,
 											aimesh->mVertices[ j ].y,
-											aimesh->mVertices[ j ].z };
+											aimesh->mVertices[ j ].z } *
+									config.scale;
+					vertices[ j ] += config.transform;
 				}
 			}
 			std::vector<TriangleInfo> indices;

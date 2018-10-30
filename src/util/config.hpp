@@ -11,21 +11,22 @@ namespace jsel
 {
 struct Serializable( Camera )
 {
-	Property( float, fovy );
-	Property( float3, position );
-	Property( float3, target );
+	Property( float, fovy, 60 );
+	Property( float3, position, { 1, 0, 0 } );
+	Property( float3, target, { -1, 0, 0 } );
 };
 
-struct Serializable( Object )
+struct Serializable( Mesh )
 {
-	Property( std::string, type );
 	Property( std::string, path );
+	Property( float3, transform, { 0, 0, 0 } );
+	Property( float, scale, 1 );
 };
 
 struct Serializable( Scene )
 {
-	Property( std::vector<Camera>, camera );
-	Property( std::vector<Object>, object );
+	Property( std::vector<Camera>, camera, {} );
+	Property( std::vector<Mesh>, mesh, {} );
 };
 
 }  // namespace jsel

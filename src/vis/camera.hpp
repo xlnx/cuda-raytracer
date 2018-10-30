@@ -14,10 +14,10 @@ public:
 	{
 		glViewport( 0, 0, w, h );
 		P = glm::vec3{ config.position.x, config.position.y, config.position.z };
-		N = glm::vec3{ config.target.x, config.target.y, config.target.z };
+		N = glm::normalize( glm::vec3{ config.target.x, config.target.y, config.target.z } );
 		Up = glm::vec3{ 0, 1, 0 };
 		const auto zNear = 1e-3f, zFar = 1e5f;
-		persTrans = glm::perspective( config.fovy,
+		persTrans = glm::perspective( glm::radians( config.fovy ),
 									  float( w ) / float( h ), zNear, zFar );
 	}
 	~Camera() = default;
@@ -40,33 +40,18 @@ public:
 		auto U = glm::normalize( glm::cross( N, Up ) );
 		auto V = glm::normalize( glm::cross( U, N ) );
 		P += dx * N + dy * U + dz * V;
-		// P += glm::vec3{ dx, dy, dz };
 	}
 	void rotate( float au, float av, float an )
 	{
 		auto U = glm::normalize( glm::cross( N, Up ) );
-		auto V = glm::cross( U, N );
+		// auto V = glm::cross( U, N );
 		N = glm::rotate( N, au, Up );
 		N = glm::rotate( N, av, U );
 		Up = glm::rotate( Up, an, N );
 	}
 	glm::mat4 getTrans() const
 	{
-		auto U = glm::normalize( glm::cross( N, Up ) );
-		auto V = glm::cross( U, N );
-		glm::mat4 rotTrans = {
-			U.x, V.x, -N.x, 0.f,
-			U.y, V.y, -N.y, 0.f,
-			U.z, V.z, -N.z, 0.f,
-			0.f, 0.f, 0.f, 1.f
-		};
-		glm::mat4 trTrans = {
-			1.f, 0.f, 0.f, 0.f,
-			0.f, 1.f, 0.f, 0.f,
-			0.f, 0.f, 1.f, 0.f,
-			-P.x, -P.y, -P.z, 1.f
-		};
-		return persTrans * rotTrans * trTrans;
+		return persTrans * glm::lookAt( P, P + N, Up );
 	}
 	glm::vec3 getPosition() const
 	{

@@ -63,7 +63,7 @@ struct Serializer : __flag::IsSerializable
 
 protected:
 	template <typename U>
-	static U init_metadata( const std::string &name, U T::*offset, const U &default_value = U() )
+	static U init_metadata( const std::string &name, U T::*offset, const U &default_value )
 	{
 		if ( get_state() == 1 )  // if this object is the first instance of this class
 		{
@@ -72,10 +72,39 @@ protected:
 				  j.at( name ) = t.*offset;
 			  },
 			  [=]( const nlohmann::json &j, T &t ) {
-				  j.at( name ).get_to( t.*offset );
+				  if ( j.find( name ) != j.end() )
+				  {
+					  j.at( name ).get_to( t.*offset );
+				  }
+				  else
+				  {
+					  t.*offset = default_value;
+				  }
 			  } );
 		}
 		return default_value;
+	}
+	template <typename U>
+	static U init_metadata( const std::string &name, U T::*offset )
+	{
+		if ( get_state() == 1 )  // if this object is the first instance of this class
+		{
+			get_components().emplace_back(
+			  [=]( nlohmann::json &j, const T &t ) {
+				  j.at( name ) = t.*offset;
+			  },
+			  [=]( const nlohmann::json &j, T &t ) {
+				  if ( j.find( name ) != j.end() )
+				  {
+					  j.at( name ).get_to( t.*offset );
+				  }
+				  else
+				  {
+					  throw "No such key named \"" + name + "\".";
+				  }
+			  } );
+		}
+		return U();
 	}
 
 private:
