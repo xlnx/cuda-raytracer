@@ -8,7 +8,7 @@ int main( int argc, char **argv )
 	// fallback::Renderer r{ 1024, 768 };
 
 	// r.render( "./cornell_box.json", 4 );
-	vis::Renderer r{ 1024, 768 };
+	fallback::Renderer r{ 1024, 768 };
 
-	r.render( "./cow.json" );
+	r.render( "./cow.json", 1 );
 }

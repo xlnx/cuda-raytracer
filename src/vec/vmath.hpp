@@ -27,32 +27,37 @@ namespace vm
 
 namespace __func
 {
-template <typename T>
+template <typename T, typename = typename std::enable_if<
+						trait::is_in<T, int, uint, float, double>::value>::type>
 KOISHI_HOST_DEVICE T min( T a, T b )
 {
 	return a < b ? a : b;
 }
 
-template <typename T>
+template <typename T, typename = typename std::enable_if<
+						trait::is_in<T, int, uint, float, double>::value>::type>
 KOISHI_HOST_DEVICE T max( T a, T b )
 {
 	return a > b ? a : b;
 }
 
-template <typename T>
+template <typename T, typename = typename std::enable_if<
+						trait::is_in<T, float, double>::value>::type>
 KOISHI_HOST_DEVICE T radians( T deg )
 {
 	return T( M_PI ) * deg / T( 180. );
 }
 
-template <typename T>
+template <typename T, typename = typename std::enable_if<
+						trait::is_in<T, float, double>::value>::type>
 KOISHI_HOST_DEVICE T degrees( T deg )
 {
 	return deg * T( 180. ) / T( M_PI );
 }
 
 #if !defined( KOISHI_USE_CUDA )
-template <typename T>
+template <typename T, typename = typename std::enable_if<
+						trait::is_in<T, float, double>::value>::type>
 KOISHI_HOST_DEVICE T rsqrt( T a )
 {
 	return T( 1.0 ) / KOISHI_MATH_NAMESP::sqrt( a );
@@ -453,19 +458,19 @@ KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::abs, abs, KOISHI_VEC_FLOAT, KOISHI_VEC_D
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::floor, floor, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::ceil, ceil, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 
-#undef KOISHI_COMPWISE_OP
-#define KOISHI_COMPWISE_OP( fn, name, ... )                                                              \
-	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value>::type> \
-	KOISHI_HOST_DEVICE T name( T a )                                                                     \
-	{                                                                                                    \
-		return fn( a );                                                                                  \
-	}
+// #undef KOISHI_COMPWISE_OP
+// #define KOISHI_COMPWISE_OP( fn, name, ... )                                                              \
+// 	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value>::type> \
+// 	KOISHI_HOST_DEVICE T name( T a )                                                                     \
+// 	{                                                                                                    \
+// 		return fn( a );                                                                                  \
+// 	}
 
-KOISHI_COMPWISE_OP( __func::radians, radians, float, double )
-KOISHI_COMPWISE_OP( __func::degrees, degrees, float, double )
-#if !defined( KOISHI_USE_CUDA )
-KOISHI_COMPWISE_OP( __func::rsqrt, rsqrt, float, double )
-#endif
+// KOISHI_COMPWISE_OP( __func::radians, radians, float, double )
+// KOISHI_COMPWISE_OP( __func::degrees, degrees, float, double )
+// #if !defined( KOISHI_USE_CUDA )
+// KOISHI_COMPWISE_OP( __func::rsqrt, rsqrt, float, double )
+// #endif
 
 #undef KOISHI_COMPWISE_OP
 #define KOISHI_COMPWISE_OP( sqrt, ... )                                                             \
@@ -568,3 +573,4 @@ using namespace vec4;
 }  // namespace koishi
 
 using namespace koishi::vm;
+using namespace koishi::vm::__func;
