@@ -121,6 +121,49 @@ KOISHI_COMPWISE_OP( >>, KOISHI_VEC_INT, KOISHI_VEC_UINT )
 	{                                                                                               \
 	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
 															 trait::is_vec1<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                  \
+	{                                                                                               \
+		return { op a.x };                                                                          \
+	}                                                                                               \
+	}                                                                                               \
+	namespace vec2                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec2<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                  \
+	{                                                                                               \
+		return { op a.x, op a.y };                                                                  \
+	}                                                                                               \
+	}                                                                                               \
+	namespace vec3                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec3<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                  \
+	{                                                                                               \
+		return { op a.x, op a.y, op a.z };                                                          \
+	}                                                                                               \
+	}                                                                                               \
+	namespace vec4                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec4<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                  \
+	{                                                                                               \
+		return { op a.x, op a.y, op a.z, op a.w };                                                  \
+	}                                                                                               \
+	}
+
+KOISHI_COMPWISE_OP( +, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE, KOISHI_VEC_INT, KOISHI_VEC_UINT )
+KOISHI_COMPWISE_OP( -, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE, KOISHI_VEC_INT, KOISHI_VEC_UINT )
+KOISHI_COMPWISE_OP( ~, KOISHI_VEC_INT, KOISHI_VEC_UINT )
+
+#undef KOISHI_COMPWISE_OP
+#define KOISHI_COMPWISE_OP( op, ... )                                                               \
+	namespace vec1                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec1<T>::value>::type>       \
 	KOISHI_HOST_DEVICE T &operator op( T &a, const T &b )                                           \
 	{                                                                                               \
 		return a.x op b.x, a;                                                                       \
@@ -392,6 +435,47 @@ KOISHI_COMPWISE_OP( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 	KOISHI_HOST_DEVICE T cross( const T &a, const T &b )                                            \
 	{                                                                                               \
 		return { a.y * b.z - b.y * a.z, a.z * b.x - b.z * a.x, a.x * b.y - b.x * a.y };             \
+	}                                                                                               \
+	}
+
+KOISHI_COMPWISE_OP( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
+
+#undef KOISHI_COMPWISE_OP
+#define KOISHI_COMPWISE_OP( ... )                                                                   \
+	namespace vec1                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec1<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T reflect( const T &I, const T &N )                                          \
+	{                                                                                               \
+		return I - N * dot( N, I ) * typename trait::com<T>::type( 2 );                             \
+	}                                                                                               \
+	}                                                                                               \
+	namespace vec2                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec2<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T reflect( const T &I, const T &N )                                          \
+	{                                                                                               \
+		return I - N * dot( N, I ) * typename trait::com<T>::type( 2 );                             \
+	}                                                                                               \
+	}                                                                                               \
+	namespace vec3                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec3<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T reflect( const T &I, const T &N )                                          \
+	{                                                                                               \
+		return I - N * dot( N, I ) * typename trait::com<T>::type( 2 );                             \
+	}                                                                                               \
+	}                                                                                               \
+	namespace vec4                                                                                  \
+	{                                                                                               \
+	template <typename T, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && \
+															 trait::is_vec4<T>::value>::type>       \
+	KOISHI_HOST_DEVICE T reflect( const T &I, const T &N )                                          \
+	{                                                                                               \
+		return I - N * dot( N, I ) * typename trait::com<T>::type( 2 );                             \
 	}                                                                                               \
 	}
 

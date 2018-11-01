@@ -8,24 +8,36 @@ namespace koishi
 {
 namespace util
 {
+struct Hit
+{
+	uint id;
+	double t = INFINITY;
+	float2 uv;
+
+	operator bool() const
+	{
+		return t != INFINITY;
+	}
+};
+
 struct Ray
 {
-	float3 o, v;
+	double3 o, v;
 
-	KOISHI_HOST_DEVICE bool intersect_bbox( const float3 &vmin, const float3 &vmax ) const
+	KOISHI_HOST_DEVICE bool intersect_bbox( const double3 &vmin, const double3 &vmax ) const
 	{
-		auto a = ( vmin - o ) / v, b = ( vmax - o ) / v;
+		auto invv = 1.0 / v;
+		auto a = ( vmin - o ) * invv, b = ( vmax - o ) * invv;
 		auto tmin = min( a, b ), tmax = max( a, b );
 		auto t0 = max( tmin.x, max( tmin.y, tmin.z ) ), t1 = min( tmax.x, min( tmax.y, tmax.z ) );
 		return t0 <= t1 && t1 >= 0;
 	}
-	KOISHI_HOST_DEVICE bool intersect_triangle( const float3 &v0, const float3 &v1, const float3 &v2,
-												float &t, float2 &uv ) const
+	KOISHI_HOST_DEVICE bool intersect_triangle( const double3 &v0, const double3 &v1, const double3 &v2, Hit &hit ) const
 	{
 		auto e1 = v1 - v0, e2 = v2 - v0;
 		auto P = cross( v, e2 );
 		auto det = dot( e1, P );
-		float3 T;
+		double3 T;
 		if ( det > 0 )
 		{
 			T = o - v0;
@@ -39,26 +51,27 @@ struct Ray
 		{
 			return false;
 		}
-		uv.x = dot( T, P );
-		if ( uv.x < 0.f || uv.x > det )
+		hit.uv.x = dot( T, P );
+		if ( hit.uv.x < 0.f || hit.uv.x > det )
 		{
 			return false;
 		}
 		auto Q = cross( T, e1 );
-		uv.y = dot( v, Q );
-		if ( uv.y < 0.f || uv.x + uv.y > det )
+		hit.uv.y = dot( v, Q );
+		if ( hit.uv.y < 0.f || hit.uv.x + hit.uv.y > det )
 		{
 			return false;
 		}
-		t = dot( e2, Q );
-		float invdet = 1.f / det;
-		t *= invdet;
-		uv *= invdet;
+		hit.t = dot( e2, Q );
+		double invdet = 1.f / det;
+		hit.t *= invdet;
+		hit.uv *= invdet;
 
-		return true;
+		constexpr double eps = 0.001f;
+		return hit.t > eps;
 	}
 
-	KOISHI_HOST_DEVICE bool intersect( const SubMesh &mesh, uint root, float &t, float2 &uv ) const
+	KOISHI_HOST_DEVICE bool intersect( const SubMesh &mesh, uint root, Hit &hit ) const
 	{
 		uint i = root;
 		while ( !mesh.bvh[ i ].isleaf )
@@ -68,18 +81,16 @@ struct Ray
 			if ( !left && !right ) return false;
 			if ( left && right )
 			{
-				float t1;
-				float2 uv1;
-				auto b0 = intersect( mesh, root << 1, t, uv );
-				auto b1 = intersect( mesh, ( root << 1 ) | 1, t1, uv1 );
+				Hit hit1;
+				auto b0 = intersect( mesh, root << 1, hit );
+				auto b1 = intersect( mesh, ( root << 1 ) | 1, hit1 );
 				if ( !b0 && !b1 )
 				{
 					return false;
 				}
-				if ( !b0 || b1 && t1 < t )
+				if ( !b0 || b1 && hit1.t < hit.t )
 				{
-					t = t1;
-					uv = uv1;
+					hit = hit1;
 				}
 				return true;
 			}
@@ -87,24 +98,33 @@ struct Ray
 			if ( right ) i |= 1;
 		}
 		// return true;
+		hit.t = INFINITY;
 		for ( uint j = mesh.bvh[ i ].begin; j < mesh.bvh[ i ].end; j += 3 )
 		{
-			float t;
-			float2 uv;
+			util::Hit hit1;
 			if ( intersect_triangle( mesh.vertices[ mesh.indices[ j ] ],
 									 mesh.vertices[ mesh.indices[ j + 1 ] ],
-									 mesh.vertices[ mesh.indices[ j + 2 ] ], t, uv ) &&
-				 t > 0.f )
+									 mesh.vertices[ mesh.indices[ j + 2 ] ], hit1 ) &&
+				 hit1.t < hit.t )
 			{
-				return true;
+				hit = hit1;
+				hit.id = j;
 			}
 		}
-		return false;
+		return hit.t != INFINITY;
+	}
+	KOISHI_HOST_DEVICE Ray reflect( double t, const double3 &N ) const
+	{
+		return Ray{ o + v * t, normalize( vm::reflect( v, N ) ) };
 	}
 };
 
-}  // namespace util
+KOISHI_HOST_DEVICE double3 interplot( const double3 &v0, const double3 &v1,
+									  const double3 &v2, const float2 &uv )
+{
+	return v0 * ( 1 - uv.x - uv.y ) + v1 * uv.x + v2 * uv.y;
+}
 
-using namespace util;
+}  // namespace util
 
 }  // namespace koishi

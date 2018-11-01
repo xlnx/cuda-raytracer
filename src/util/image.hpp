@@ -15,15 +15,27 @@ namespace __com
 template <uint Channel>
 struct Component : Component<Channel - 1>
 {
-	constexpr Component( const std::initializer_list<unsigned char> &l )
-	{
-		unsigned char *p = reinterpret_cast<unsigned char *>( this );
-		for ( auto c : l ) *p++ = c;
-	}
 	constexpr Component( const std::initializer_list<float> &l )
 	{
-		unsigned char *p = reinterpret_cast<unsigned char *>( this );
+		auto p = reinterpret_cast<unsigned char *>( this );
 		for ( auto c : l ) *p++ = min( max( c, 0.f ), 1.f ) * 255;
+	}
+	constexpr Component( const std::initializer_list<double> &l )
+	{
+		auto p = reinterpret_cast<unsigned char *>( this );
+		for ( auto c : l ) *p++ = min( max( c, 0. ), 1. ) * 255;
+	}
+	constexpr Component( const typename vecfloat<Channel>::type &v )
+	{
+		auto p = reinterpret_cast<unsigned char *>( this );
+		auto q = reinterpret_cast<const float *>( &v );
+		for ( uint k = 0; k != Channel; ++k ) *p++ = min( max( q[ k ], 0.f ), 1.f ) * 255;
+	}
+	constexpr Component( const typename vecdouble<Channel>::type &v )
+	{
+		auto p = reinterpret_cast<unsigned char *>( this );
+		auto q = reinterpret_cast<const double *>( &v );
+		for ( uint k = 0; k != Channel; ++k ) *p++ = min( max( q[ k ], 0. ), 1. ) * 255;
 	}
 	constexpr Component() = default;
 	unsigned char &operator[]( uint n )

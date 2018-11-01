@@ -1,3 +1,4 @@
+#include <sstream>
 #include <fallback/renderer.hpp>
 #include <vis/renderer.hpp>
 
@@ -5,12 +6,21 @@ using namespace koishi;
 
 int main( int argc, char **argv )
 {
-	// fallback::Renderer r{ 1024, 768 };
+	if ( argc < 4 )
+	{
+		std::cout << "Not enough parameters." << std::endl;
+		return 1;
+	}
+	uint spp;
+	std::istringstream is( argv[ 3 ] );
+	is >> spp;
 
-	// r.render( "./cornell_box.json", 4 );
+	// vis::Renderer r{ 1024, 768 };
+
+	// r.render( argv[ 1 ] );
 	fallback::Renderer r{ 1024, 768 };
 
-	r.render( "./cow.json", "./a.png", 1 );
+	r.render( argv[ 1 ], argv[ 2 ], spp );
 	// vis::Renderer r{ 1024, 768 };
 
 	// r.render( "./cow.json" );

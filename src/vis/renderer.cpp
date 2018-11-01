@@ -93,7 +93,7 @@ void Renderer::render( const std::string &path )
 			glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
 			glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
 			glEnableVertexAttribArray( 0 );
-			glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float3 ), (const void *)( 0 ) );
+			glVertexAttribPointer( 0, 3, GL_DOUBLE, GL_FALSE, sizeof( double3 ), (const void *)( 0 ) );
 			glBindVertexArray( 0 );
 			glBindBuffer( GL_ARRAY_BUFFER, 0 );
 			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );

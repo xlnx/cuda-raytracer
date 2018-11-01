@@ -1,6 +1,7 @@
 #pragma once
 
 #include "util.hpp"
+#include <util/upaxis.hpp>
 
 namespace koishi
 {
@@ -15,9 +16,9 @@ public:
 		glViewport( 0, 0, w, h );
 		P = glm::vec3{ config.position.x, config.position.y, config.position.z };
 		N = glm::normalize( glm::vec3{ config.target.x, config.target.y, config.target.z } );
-		Up = glm::vec3{ 0, 1, 0 };
+		Up = { util::upaxis.x, util::upaxis.y, util::upaxis.z };
 		const auto zNear = 1e-3f, zFar = 1e5f;
-		persTrans = glm::perspective( glm::radians( config.fovy ),
+		persTrans = glm::perspective( float( glm::radians( config.fovy ) ),
 									  float( w ) / float( h ), zNear, zFar );
 	}
 	~Camera() = default;
@@ -26,10 +27,6 @@ public:
 	void setTarget( float x, float y, float z )
 	{
 		N = glm::normalize( glm::vec3{ x, y, z } );
-	}
-	void setUp( float x, float y, float z )
-	{
-		Up = glm::normalize( glm::vec3{ x, y, z } );
 	}
 	void setPosition( float x, float y, float z )
 	{
@@ -45,9 +42,8 @@ public:
 	{
 		auto U = glm::normalize( glm::cross( N, Up ) );
 		// auto V = glm::cross( U, N );
-		N = glm::rotate( N, au, Up );
-		N = glm::rotate( N, av, U );
-		Up = glm::rotate( Up, an, N );
+		N = glm::rotate( N, float( au ), Up );
+		N = glm::rotate( N, float( av ), U );
 	}
 	glm::mat4 getTrans() const
 	{

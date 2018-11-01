@@ -11,7 +11,7 @@ namespace util
 {
 struct BVHNode
 {
-	float3 vmax, vmin;
+	double3 vmax, vmin;
 	uint begin, end, isleaf;
 };
 
@@ -19,9 +19,12 @@ using BVHTree = std::vector<BVHNode>;
 
 struct SubMesh
 {
-	std::vector<float3> vertices;
+	std::vector<double3> vertices;
+	std::vector<double3> normals;
 	std::vector<uint> indices;
 	BVHTree bvh;
+	double3 emissive;
+	double3 color;
 };
 
 struct PolyMesh

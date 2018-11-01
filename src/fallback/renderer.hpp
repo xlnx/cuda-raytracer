@@ -19,8 +19,8 @@ public:
 
 private:
 	using uchar = unsigned char;
-	std::vector<float3> buffer;
-	std::vector<Ray> rays;
+	std::vector<double3> buffer;
+	std::vector<util::Ray> rays;
 	uint w, h;
 };
 

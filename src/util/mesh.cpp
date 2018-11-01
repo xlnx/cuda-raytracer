@@ -19,9 +19,9 @@ namespace util
 struct TriangleInfo
 {
 	uint3 index;
-	float3 vmax;
-	float3 vmin;
-	float area;
+	double3 vmax;
+	double3 vmin;
+	double area;
 };
 
 static BVHTree createBVH( std::vector<TriangleInfo> &info )
@@ -44,7 +44,7 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 		BVHNode node;  // current bbox
 		node.vmax = begin->vmax;
 		node.vmin = begin->vmin;
-		float s = 0;
+		double s = 0;
 		for ( auto iter = begin; iter != end; ++iter )
 		{
 			node.vmax = max( node.vmax, iter->vmax );
@@ -113,18 +113,31 @@ PolyMesh::PolyMesh( const jsel::Mesh &config )
 		for ( uint i = 0; i != scene->mNumMeshes; ++i )
 		{
 			auto &m = mesh[ i ];
+			m.emissive = config.emissive;
+			m.color = config.color;
 			auto &aimesh = scene->mMeshes[ i ];
-			std::vector<float3> vertices;
+			std::vector<double3> vertices;
 			if ( aimesh->HasPositions() )
 			{
 				vertices.resize( aimesh->mNumVertices );
 				for ( uint j = 0; j != aimesh->mNumVertices; ++j )
 				{
-					vertices[ j ] = float3{ aimesh->mVertices[ j ].x,
-											aimesh->mVertices[ j ].y,
-											aimesh->mVertices[ j ].z } *
+					vertices[ j ] = double3{ aimesh->mVertices[ j ].x,
+											 aimesh->mVertices[ j ].y,
+											 aimesh->mVertices[ j ].z } *
 									config.scale;
-					vertices[ j ] += config.transform;
+					vertices[ j ] += config.translate;
+				}
+			}
+			std::vector<double3> normals;
+			if ( aimesh->HasNormals() )
+			{
+				normals.resize( aimesh->mNumVertices );
+				for ( uint j = 0; j != aimesh->mNumVertices; ++j )
+				{
+					normals[ j ] = double3{ aimesh->mNormals[ j ].x,
+											aimesh->mNormals[ j ].y,
+											aimesh->mNormals[ j ].z };
 				}
 			}
 			std::vector<TriangleInfo> indices;
@@ -136,7 +149,7 @@ PolyMesh::PolyMesh( const jsel::Mesh &config )
 					auto index = uint3{ aimesh->mFaces[ j ].mIndices[ 0 ],
 										aimesh->mFaces[ j ].mIndices[ 1 ],
 										aimesh->mFaces[ j ].mIndices[ 2 ] };
-					float3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
+					double3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
 					indices[ j ].index = index;
 					indices[ j ].vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );
 					indices[ j ].vmin = min( v[ 0 ], min( v[ 1 ], v[ 2 ] ) );
@@ -146,6 +159,7 @@ PolyMesh::PolyMesh( const jsel::Mesh &config )
 			m.bvh = createBVH( indices );
 			std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
 			m.vertices = std::move( vertices );
+			m.normals = std::move( normals );
 			m.indices.resize( indices.size() * 3 );
 			for ( uint j = 0; j != indices.size(); ++j )
 			{

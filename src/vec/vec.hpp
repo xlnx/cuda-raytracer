@@ -22,6 +22,54 @@ KOISHI_DEF_VEC( uint );
 
 #endif
 
+template <uint N>
+struct vecfloat;
+
+template <uint N>
+struct vecdouble;
+
+template <>
+struct vecfloat<1>
+{
+	using type = float1;
+};
+template <>
+struct vecfloat<2>
+{
+	using type = float2;
+};
+template <>
+struct vecfloat<3>
+{
+	using type = float3;
+};
+template <>
+struct vecfloat<4>
+{
+	using type = float4;
+};
+
+template <>
+struct vecdouble<1>
+{
+	using type = double1;
+};
+template <>
+struct vecdouble<2>
+{
+	using type = double2;
+};
+template <>
+struct vecdouble<3>
+{
+	using type = double3;
+};
+template <>
+struct vecdouble<4>
+{
+	using type = double4;
+};
+
 #define KOISHI_VEC_FLOAT float1, float2, float3, float4
 #define KOISHI_VEC_DOUBLE double1, double2, double3, double4
 #define KOISHI_VEC_INT int1, int2, int3, int4
