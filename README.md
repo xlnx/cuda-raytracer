@@ -15,3 +15,7 @@ CPU intersect bbox:
 CPU intersect triangle:
 
 ![doc/cpu_bbox.png](doc/cpu_triangle.png)
+
+## Lambert
+
+![doc/lambert_diffuse.png](doc/lambert_diffuse.png)
