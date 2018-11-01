@@ -51,8 +51,8 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 			node.vmin = min( node.vmin, iter->vmin );
 			s += iter->area;
 		}
-		node.begin = begin - info.begin();
-		node.end = end - info.begin();
+		node.begin = ( begin - info.begin() ) * 3;
+		node.end = ( end - info.begin() ) * 3;
 		node.isleaf = end - begin <= KOISHI_TRIANGLE_STRIPE;
 		if ( index >= res.size() )
 		{
@@ -145,13 +145,7 @@ PolyMesh::PolyMesh( const jsel::Mesh &config )
 			}
 			m.bvh = createBVH( indices );
 			std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
-			m.vertices.resize( vertices.size() * 3 );
-			for ( uint j = 0; j != vertices.size(); ++j )
-			{
-				m.vertices[ 3 * j ] = vertices[ j ].x;
-				m.vertices[ 3 * j + 1 ] = vertices[ j ].y;
-				m.vertices[ 3 * j + 2 ] = vertices[ j ].z;
-			}
+			m.vertices = std::move( vertices );
 			m.indices.resize( indices.size() * 3 );
 			for ( uint j = 0; j != indices.size(); ++j )
 			{

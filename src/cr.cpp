@@ -10,5 +10,8 @@ int main( int argc, char **argv )
 	// r.render( "./cornell_box.json", 4 );
 	fallback::Renderer r{ 1024, 768 };
 
-	r.render( "./cow.json", 1 );
+	r.render( "./cow.json", "./a.png", 1 );
+	// vis::Renderer r{ 1024, 768 };
+
+	// r.render( "./cow.json" );
 }

@@ -93,7 +93,7 @@ void Renderer::render( const std::string &path )
 			glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
 			glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
 			glEnableVertexAttribArray( 0 );
-			glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float ) * 3, (const void *)( 0 ) );
+			glVertexAttribPointer( 0, 3, GL_FLOAT, GL_FALSE, sizeof( float3 ), (const void *)( 0 ) );
 			glBindVertexArray( 0 );
 			glBindBuffer( GL_ARRAY_BUFFER, 0 );
 			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
@@ -122,14 +122,14 @@ void Renderer::render( const std::string &path )
 			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
 			glUniform1i( glGetUniformLocation( prog, "mode" ), 0 );
 			glBindVertexArray( m.vao );
-			glDrawElements( GL_TRIANGLES, ( m.bvh[ 1 ].end - m.bvh[ 1 ].begin ) * 3, GL_UNSIGNED_INT, nullptr );
+			glDrawElements( GL_TRIANGLES, m.bvh[ 1 ].end - m.bvh[ 1 ].begin, GL_UNSIGNED_INT, nullptr );
 			glBindVertexArray( 0 );
 
 			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
 			glUniform1i( glGetUniformLocation( prog, "mode" ), 1 );
 			glBindVertexArray( m.vao );
-			glDrawElements( GL_TRIANGLES, ( m.bvh[ k ].end - m.bvh[ k ].begin ) * 3,
-							GL_UNSIGNED_INT, (uint *)nullptr + m.bvh[ k ].begin * 3 );
+			glDrawElements( GL_TRIANGLES, m.bvh[ k ].end - m.bvh[ k ].begin,
+							GL_UNSIGNED_INT, (uint *)nullptr + m.bvh[ k ].begin );
 			glBindVertexArray( 0 );
 		}
 

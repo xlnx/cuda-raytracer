@@ -15,7 +15,7 @@ class Renderer
 public:
 	Renderer( uint w, uint h );
 
-	void render( const std::string &path, uint spp );
+	void render( const std::string &path, const std::string &dest, uint spp );
 
 private:
 	using uchar = unsigned char;

@@ -566,7 +566,6 @@ using namespace vec4;
 #undef KOISHI_MATH_NAMESP
 
 #undef KOISHI_COMPWISE_OP
-#undef KOISHI_HOST_DEVICE
 
 }  // namespace vm
 

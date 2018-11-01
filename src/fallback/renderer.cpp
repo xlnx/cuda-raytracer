@@ -13,43 +13,12 @@ Renderer::Renderer( uint w, uint h ) :
 {
 }
 
-static bool intersect_bbox( const Ray &ray, const float3 &vmin, const float3 &vmax )
-{
-	auto a = ( vmin - ray.o ) / ray.v, b = ( vmax - ray.o ) / ray.v;
-	auto tmin = min( a, b ), tmax = max( a, b );
-	auto t0 = max( tmin.x, max( tmin.y, tmin.z ) ), t1 = min( tmax.x, min( tmax.y, tmax.z ) );
-	return t0 <= t1 && t1 >= 0;
-}
+// static bool intersect( const Ray &ray, const util::SubMesh &mesh )
+// {
+// 	return ray.intersect_branch( mesh, 1 );
+// }
 
-static bool intersect_branch( const Ray &ray, const util::SubMesh &mesh, uint root )
-{
-	uint i = root;
-	while ( !mesh.bvh[ i ].isleaf )
-	{
-		auto left = intersect_bbox( ray, mesh.bvh[ i << 1 ].vmin, mesh.bvh[ i << 1 ].vmax );
-		auto right = intersect_bbox( ray, mesh.bvh[ ( i << 1 ) + 1 ].vmin, mesh.bvh[ ( i << 1 ) + 1 ].vmax );
-		if ( !left && !right ) return false;
-		if ( left && right )
-		{
-			//
-			return false;  ///
-		}
-		i <<= 1;
-		if ( right ) i += 1;
-	}
-	// return true;
-	for ( uint j = mesh.bvh[ i ].begin; j != mesh.bvh[ i ].end; ++j )
-	{
-		// if (intersect_triangle(mesh.indices))
-	}
-}
-
-static bool intersect( const Ray &ray, const util::SubMesh &mesh )
-{
-	return intersect_branch( ray, mesh, 1 );
-}
-
-void Renderer::render( const std::string &path, uint spp )
+void Renderer::render( const std::string &path, const std::string &dest, uint spp )
 {
 	jsel::Scene scene;
 	std::ifstream( path ) >> scene;
@@ -94,12 +63,14 @@ void Renderer::render( const std::string &path, uint spp )
 		for ( auto &m : mesh )
 		{
 			// image.at( p % 1024, p / 1024 ) = { r.v.x, r.v.y, r.v.z };
-			unsigned char val = 255 * intersect_bbox( r, m.bvh[ 1 ].vmin, m.bvh[ 1 ].vmax );
+			float t;
+			float2 uv;
+			unsigned char val = 255 * r.intersect( m, 1, t, uv );
 			image.at( p % 1024, p / 1024 ) = { val, val, val };
 		}
 		p++;
 	}
-	image.dump( "./a.png" );
+	image.dump( dest );
 }
 
 }  // namespace fallback

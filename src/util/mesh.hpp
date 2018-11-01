@@ -19,7 +19,7 @@ using BVHTree = std::vector<BVHNode>;
 
 struct SubMesh
 {
-	std::vector<float> vertices;
+	std::vector<float3> vertices;
 	std::vector<uint> indices;
 	BVHTree bvh;
 };

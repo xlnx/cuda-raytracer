@@ -8,6 +8,10 @@
 
 ## BBox
 
-CPU rendered bbox:
+CPU intersect bbox:
 
 ![doc/cpu_bbox.png](doc/cpu_bbox.png)
+
+CPU intersect triangle:
+
+![doc/cpu_bbox.png](doc/cpu_triangle.png)
