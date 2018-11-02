@@ -62,9 +62,14 @@ static inline double3 radiance( const util::Ray &r, const std::vector<util::SubM
 		dr.v = normalize( ( u * cos( r1 ) + v * sin( r1 ) ) * r2s + nr.v * sqrt( 1 - r2s ) );
 		// return nr.v;  //( r.o + r.v * hit.t ) / 100.;
 		if ( depth < 100 )
-			return pm->emissive +
-				   pm->color *
-					 radiance( dr, mesh, depth + 1 );
+			if ( drand48() < .9 )
+				return pm->emissive +
+					   pm->color *
+						 radiance( dr, mesh, depth + 1 );
+			else
+				return pm->emissive +
+					   pm->color *
+						 radiance( nr, mesh, depth + 1 );
 		// return  //pm->emissive +
 		// 		//pm->color *
 		//   radiance( nr, mesh, depth + 1 );
@@ -126,10 +131,6 @@ void Renderer::render( const std::string &path, const std::string &dest, uint sp
 			double3 rad = { 0, 0, 0 };
 			for ( uint k = 0; k != spp; ++k )
 			{
-				if ( j == 768 / 2 && i == 512 )
-				{
-					int c = 1;
-				}
 				rad += radiance( rays[ ( j * w + i ) * spp + k ], mesh );
 			}
 			image.at( i, j ) = rad / spp;

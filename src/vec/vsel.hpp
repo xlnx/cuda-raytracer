@@ -1,6 +1,6 @@
 #pragma once
 
-#include <nlohmann/json.hpp>
+#include <json/json.h>
 #include "trait.hpp"
 #include "vec.hpp"
 
@@ -10,58 +10,62 @@ namespace vec
 {
 template <typename T, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value &&
 														 trait::is_vec1<T>::value>::type>
-void to_json( nlohmann::json &j, const T &v )
+void to_json( Json::Value &j, const T &v )
 {
-	j = nlohmann::json{ v.x };
+	j = Json::arrayValue;
+	j[ 0 ] = v.x;
 }
 
 template <typename T, typename = void, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value && trait::is_vec2<T>::value>::type>
-void to_json( nlohmann::json &j, const T &v )
+void to_json( Json::Value &j, const T &v )
 {
-	j = nlohmann::json{ v.x, v.y };
+	j = Json::arrayValue;
+	j[ 0 ] = v.x, j[ 1 ] = v.y;
 }
 
 template <typename T, typename = void, typename = void, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value && trait::is_vec3<T>::value>::type>
-void to_json( nlohmann::json &j, const T &v )
+void to_json( Json::Value &j, const T &v )
 {
-	j = nlohmann::json{ v.x, v.y, v.z };
+	j = Json::arrayValue;
+	j[ 0 ] = v.x, j[ 1 ] = v.y, j[ 2 ] = v.z;
 }
 
 template <typename T, typename = void, typename = void, typename = void, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value && trait::is_vec4<T>::value>::type>
-void to_json( nlohmann::json &j, const T &v )
+void to_json( Json::Value &j, const T &v )
 {
-	j = nlohmann::json{ v.x, v.y, v.z, v.w };
+	j = Json::arrayValue;
+	j[ 0 ] = v.x, j[ 1 ] = v.y, j[ 2 ] = v.z, j[ 3 ] = v.w;
 }
 
 template <typename T, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value &&
 														 trait::is_vec1<T>::value>::type>
-void from_json( const nlohmann::json &j, T &v )
+void from_json( const Json::Value &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
+	v.x = typename koishi::trait::com<T>::type( j[ 0 ].asDouble() );
 }
 
 template <typename T, typename = void, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value && trait::is_vec2<T>::value>::type>
-void from_json( const nlohmann::json &j, T &v )
+void from_json( const Json::Value &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
-	j[ 1 ].get_to( v.y );
+	v.x = typename koishi::trait::com<T>::type( j[ 0 ].asDouble() );
+	v.y = typename koishi::trait::com<T>::type( j[ 1 ].asDouble() );
 }
 
 template <typename T, typename = void, typename = void, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value && trait::is_vec3<T>::value>::type>
-void from_json( const nlohmann::json &j, T &v )
+void from_json( const Json::Value &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
-	j[ 1 ].get_to( v.y );
-	j[ 2 ].get_to( v.z );
+	v.x = typename koishi::trait::com<T>::type( j[ 0 ].asDouble() );
+	v.y = typename koishi::trait::com<T>::type( j[ 1 ].asDouble() );
+	v.z = typename koishi::trait::com<T>::type( j[ 2 ].asDouble() );
 }
 
 template <typename T, typename = void, typename = void, typename = void, typename = typename std::enable_if<trait::is_in<T, KOISHI_VEC>::value && trait::is_vec4<T>::value>::type>
-void from_json( const nlohmann::json &j, T &v )
+void from_json( const Json::Value &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
-	j[ 1 ].get_to( v.y );
-	j[ 2 ].get_to( v.z );
-	j[ 3 ].get_to( v.w );
+	v.x = typename koishi::trait::com<T>::type( j[ 0 ].asDouble() );
+	v.y = typename koishi::trait::com<T>::type( j[ 1 ].asDouble() );
+	v.z = typename koishi::trait::com<T>::type( j[ 2 ].asDouble() );
+	v.w = typename koishi::trait::com<T>::type( j[ 3 ].asDouble() );
 }
 
 }  // namespace vec
