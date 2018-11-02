@@ -46,7 +46,7 @@ namespace dev
 {
 using BVHTree = dev::vector<BVHNode>;
 
-struct SubMesh : util::SubMeshCore
+struct SubMesh : core::SubMeshCore
 {
 	dev::vector<double3> vertices;
 	dev::vector<double3> normals;
@@ -60,7 +60,7 @@ struct SubMesh : util::SubMeshCore
 	SubMesh &operator=( SubMesh && ) = default;
 	~SubMesh() = default;
 
-	SubMesh( const util::SubMesh &other ) :
+	SubMesh( const core::SubMesh &other ) :
 	  SubMeshCore( static_cast<const SubMeshCore &>( other ) ),
 	  vertices( other.vertices ),
 	  normals( other.normals ),
@@ -68,7 +68,7 @@ struct SubMesh : util::SubMeshCore
 	  bvh( other.bvh )
 	{
 	}
-	SubMesh( util::SubMesh &&other ) :
+	SubMesh( core::SubMesh &&other ) :
 	  SubMeshCore( std::move( static_cast<SubMeshCore &&>( other ) ) ),
 	  vertices( std::move( other.vertices ) ),
 	  normals( std::move( other.normals ) ),
@@ -76,7 +76,7 @@ struct SubMesh : util::SubMeshCore
 	  bvh( std::move( other.bvh ) )
 	{
 	}
-	SubMesh &operator=( const util::SubMesh &other )
+	SubMesh &operator=( const core::SubMesh &other )
 	{
 		static_cast<SubMeshCore &>( *this ) = static_cast<const SubMeshCore &>( other );
 		vertices = other.vertices;
@@ -85,7 +85,7 @@ struct SubMesh : util::SubMeshCore
 		bvh = other.bvh;
 		return *this;
 	}
-	SubMesh &operator=( util::SubMesh &&other )
+	SubMesh &operator=( core::SubMesh &&other )
 	{
 		static_cast<SubMeshCore &>( *this ) = std::move( static_cast<SubMeshCore &&>( other ) );
 		vertices = std::move( other.vertices );

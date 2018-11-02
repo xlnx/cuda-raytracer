@@ -1,2 +1,5 @@
 .vscode
 build
+clean
+configure
+make

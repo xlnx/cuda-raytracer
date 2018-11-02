@@ -53,7 +53,7 @@ struct Tracer
 		dev::vector<double3> devBuffer( w * h, 0 );
 		dev::vector<dev::SubMesh> devMeshs( meshs.begin(), meshs.end() );
 
-		intergrate<<<gridDim, blockDim, h * sizeof( double3 )>>>( devRays, devBuffer, devMeshs, rays.size(), h );
+		intergrate<Radiance><<<gridDim, blockDim, h * sizeof( double3 )>>>( devRays, devBuffer, devMeshs, rays.size(), h );
 
 		dev::host_vector<double3> buffer( devBuffer );
 
@@ -65,8 +65,9 @@ struct Tracer
 			}
 		}
 	}
+};
 
-private:
+template <typename Radiance>
 	__global__ static void intergrate( const dev::vector<Ray> &rays,
 									   const dev::vector<double3> &buffer,
 									   const dev::vector<dev::SubMesh> &meshs,
@@ -89,7 +90,6 @@ private:
 			buffer[ i * gridDim.x + blockIdx.x ] = rad[ i ];
 		}
 	}
-};
 
 }  // namespace cuda
 

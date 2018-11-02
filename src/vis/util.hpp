@@ -1,6 +1,6 @@
 #pragma once
 
-// #if defined( KOISHI_USE_OPENGL )
+#if defined( KOISHI_USE_GL )
 
 #include <glad/glad.h>
 #include <GLFW/glfw3.h>
@@ -19,4 +19,4 @@ namespace vis
 
 }  // namespace koishi
 
-// #endif
+#endif

@@ -2,14 +2,15 @@
 
 #include <cstdlib>
 #include <ctime>
+#include <dev.hpp>
 
 namespace koishi
 {
 namespace core
 {
-struct DRand48
+struct DRand48: Host
 {
-	static double rand()
+	__host__ static double rand()
 	{
 		static unsigned long long seed = ( ( (long long int)time( nullptr ) ) << 16 ) | ::rand();
 

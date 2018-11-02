@@ -1,3 +1,5 @@
+#if defined( KOISHI_USE_GL )
+
 #include <fstream>
 #include "renderer.hpp"
 #include "camera.hpp"
@@ -140,3 +142,5 @@ void Renderer::render( const std::string &path )
 }  // namespace vis
 
 }  // namespace koishi
+
+#endif

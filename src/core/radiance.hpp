@@ -3,13 +3,14 @@
 #include <vec/vec.hpp>
 #include "mesh.hpp"
 #include "ray.hpp"
+#include "dev.hpp"
 
 namespace koishi
 {
 namespace core
 {
 template <typename Random>
-struct Radiance
+struct Radiance: Host, Device
 {
 	template <typename Meshs>
 	KOISHI_HOST_DEVICE static double3 radiance( const core::Ray &r, const Meshs &mesh, uint depth = 0 )

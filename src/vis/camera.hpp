@@ -1,5 +1,7 @@
 #pragma once
 
+#if defined( KOISHI_USE_GL )
+
 #include "util.hpp"
 #include <util/upaxis.hpp>
 
@@ -62,3 +64,6 @@ private:
 }  // namespace vis
 
 }  // namespace koishi
+
+#endif
+

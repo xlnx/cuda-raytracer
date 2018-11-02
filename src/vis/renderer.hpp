@@ -1,5 +1,7 @@
 #pragma once
 
+#if defined( KOISHI_USE_GL )
+
 #include <vis/util.hpp>
 
 namespace koishi
@@ -22,3 +24,6 @@ private:
 }  // namespace vis
 
 }  // namespace koishi
+
+#endif
+
