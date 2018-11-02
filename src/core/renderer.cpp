@@ -5,11 +5,11 @@
 #include <util/config.hpp>
 #include <util/mesh.hpp>
 #include <util/image.hpp>
-#include <util/upaxis.hpp>
+#include "sampler.hpp"
 
 namespace koishi
 {
-namespace fallback
+namespace core
 {
 Renderer::Renderer( uint w, uint h ) :
   buffer( w * h ), w( w ), h( h )
@@ -104,25 +104,8 @@ void Renderer::render( const std::string &path, const std::string &dest, uint sp
 
 	srand48( time( nullptr ) );
 
-	rays.resize( spp * buffer.size() );
-	double3 target = normalize( camera.target ) * double( h ) / ( 2 * tan( radians( camera.fovy * .5 ) ) );
-	double3 U = normalize( cross( target, util::upaxis ) );
-	double3 V = normalize( cross( U, target ) );
-	for ( uint j = 0; j != h; ++j )
-	{
-		for ( uint i = 0; i != w; ++i )
-		{
-			auto *ray = &rays[ ( j * w + i ) * spp ];
-			auto N = target + U * ( double( i ) - w * .5 + .5 ) + V * ( h * .5 - double( j ) - .5 );
-			// double3 diff = sin( radians( 30. ) ) * U + cos( radians( 30. ) ) * V;
-			for ( uint k = 0; k != spp; ++k )
-			{
-				ray[ k ].o = camera.position;
-				ray[ k ].v = normalize( N + .8 * ( U * sin( radians( 30. + k * 360. / spp ) ) +
-												   V * cos( radians( 30. + k * 360. / spp ) ) ) );
-			}
-		}
-	}
+	rays = core::Sampler( w, h ).sample( camera, spp );
+
 	util::Image<3> image( w, h );
 	for ( uint j = 0; j != h; ++j )
 	{
@@ -139,6 +122,6 @@ void Renderer::render( const std::string &path, const std::string &dest, uint sp
 	image.dump( dest );
 }
 
-}  // namespace fallback
+}  // namespace core
 
 }  // namespace koishi

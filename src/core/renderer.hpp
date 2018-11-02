@@ -8,7 +8,7 @@
 
 namespace koishi
 {
-namespace fallback
+namespace core
 {
 class Renderer
 {
@@ -24,6 +24,6 @@ private:
 	uint w, h;
 };
 
-}  // namespace fallback
+}  // namespace core
 
 }  // namespace koishi

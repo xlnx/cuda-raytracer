@@ -1,5 +1,6 @@
 #pragma once
 
+#include <type_traits>
 #include <vec/vec.hpp>
 #include <vec/vmath.hpp>
 #include "mesh.hpp"
@@ -71,7 +72,13 @@ struct Ray
 		return hit.t > eps;
 	}
 
-	KOISHI_HOST_DEVICE bool intersect( const SubMesh &mesh, uint root, Hit &hit ) const
+	template <typename Mesh, typename = typename std::enable_if<
+							   std::is_same<Mesh, util::SubMesh>::value
+#if defined( KOISHI_USE_CUDA )
+							   || std::is_same<Mesh, util::dev::SubMesh>::value
+#endif
+							   >::type>
+	KOISHI_HOST_DEVICE bool intersect( const Mesh &mesh, uint root, Hit &hit ) const
 	{
 		uint i = root;
 		while ( !mesh.bvh[ i ].isleaf )
