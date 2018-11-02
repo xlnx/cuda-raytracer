@@ -5,10 +5,11 @@
 #include <utility>
 #include <vec/vec.hpp>
 #include <util/config.hpp>
+#include "dev.hpp"
 
 namespace koishi
 {
-namespace util
+namespace core
 {
 struct BVHNode
 {
@@ -43,9 +44,6 @@ struct PolyMesh
 
 namespace dev
 {
-template <typename T>
-using vector = thrust::device_vector<T>;
-
 using BVHTree = dev::vector<BVHNode>;
 
 struct SubMesh : util::SubMeshCore
@@ -102,6 +100,6 @@ struct SubMesh : util::SubMeshCore
 
 #endif
 
-}  // namespace util
+}  // namespace core
 
 }  // namespace koishi

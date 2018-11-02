@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <vec/vec.hpp>
-#include <util/mesh.hpp>
+#include <core/mesh.hpp>
 #include <util/config.hpp>
 #include <util/exception.hpp>
 

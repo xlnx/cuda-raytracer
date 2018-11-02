@@ -82,6 +82,8 @@ public:
 	{
 		return __impl::write_image( path, w, h, Channel, data() );
 	}
+	uint width() const { return w; }
+	uint height() const { return h; }
 
 private:
 	uint w, h;

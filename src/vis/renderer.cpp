@@ -1,5 +1,4 @@
 #include <fstream>
-#include <util/mesh.hpp>
 #include "renderer.hpp"
 #include "camera.hpp"
 
@@ -66,7 +65,7 @@ static GLuint compileShader()
 struct SubMesh
 {
 	GLuint vao;
-	util::BVHTree bvh;
+	core::BVHTree bvh;
 };
 
 void Renderer::render( const std::string &path )
@@ -81,7 +80,7 @@ void Renderer::render( const std::string &path )
 	std::vector<SubMesh> mesh;
 	for ( auto &m : scene.mesh )
 	{
-		for ( auto &e : util::PolyMesh( m ).mesh )
+		for ( auto &e : core::PolyMesh( m ).mesh )
 		{
 			GLuint vao, vbo, ebo;
 			glGenVertexArrays( 1, &vao );

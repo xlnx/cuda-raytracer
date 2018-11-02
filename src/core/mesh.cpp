@@ -14,7 +14,7 @@
 
 namespace koishi
 {
-namespace util
+namespace core
 {
 struct TriangleInfo
 {
@@ -172,6 +172,6 @@ PolyMesh::PolyMesh( const jsel::Mesh &config )
 	importer.FreeScene();
 }
 
-}  // namespace util
+}  // namespace core
 
 }  // namespace koishi

@@ -1,4 +1,7 @@
 #include <sstream>
+#include <core/tracer.hpp>
+#include <core/random.hpp>
+#include <core/radiance.hpp>
 #include <core/renderer.hpp>
 #include <vis/renderer.hpp>
 
@@ -18,7 +21,8 @@ int main( int argc, char **argv )
 	// vis::Renderer r{ 1024, 768 };
 
 	// r.render( argv[ 1 ] );
-	fallback::Renderer r{ 1024, 768 };
+	// core::Renderer<core::Tracer, core::DRand48, core::Radiance> r{ 1024, 768 };
+	core::Renderer<core::Tracer, core::DRand48> r{ 1024, 768 };
 
 	r.render( argv[ 1 ], argv[ 2 ], spp );
 	// vis::Renderer r{ 1024, 768 };

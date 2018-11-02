@@ -2,9 +2,9 @@
 
 #include <vector>
 #include <vec/vec.hpp>
-#include <util/ray.hpp>
 #include <util/config.hpp>
 #include <util/upaxis.hpp>
+#include "ray.hpp"
 
 namespace koishi
 {
@@ -17,9 +17,9 @@ struct Sampler
 	{
 	}
 
-	std::vector<util::Ray> sample( const jsel::Camera &camera, uint spp ) const
+	std::vector<core::Ray> sample( const jsel::Camera &camera, uint spp ) const
 	{
-		std::vector<util::Ray> rays( spp * w * h );
+		std::vector<core::Ray> rays( spp * w * h );
 		double3 target = normalize( camera.target ) * double( h ) / ( 2 * tan( radians( camera.fovy * .5 ) ) );
 		double3 U = normalize( cross( target, util::upaxis ) );
 		double3 V = normalize( cross( U, target ) );

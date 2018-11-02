@@ -7,7 +7,7 @@
 
 namespace koishi
 {
-namespace util
+namespace core
 {
 struct Hit
 {
@@ -73,9 +73,9 @@ struct Ray
 	}
 
 	template <typename Mesh, typename = typename std::enable_if<
-							   std::is_same<Mesh, util::SubMesh>::value
+							   std::is_same<Mesh, core::SubMesh>::value
 #if defined( KOISHI_USE_CUDA )
-							   || std::is_same<Mesh, util::dev::SubMesh>::value
+							   || std::is_same<Mesh, core::dev::SubMesh>::value
 #endif
 							   >::type>
 	KOISHI_HOST_DEVICE bool intersect( const Mesh &mesh, uint root, Hit &hit ) const
@@ -108,7 +108,7 @@ struct Ray
 		hit.t = INFINITY;
 		for ( uint j = mesh.bvh[ i ].begin; j < mesh.bvh[ i ].end; j += 3 )
 		{
-			util::Hit hit1;
+			core::Hit hit1;
 			if ( intersect_triangle( mesh.vertices[ mesh.indices[ j ] ],
 									 mesh.vertices[ mesh.indices[ j + 1 ] ],
 									 mesh.vertices[ mesh.indices[ j + 2 ] ], hit1 ) &&
@@ -132,6 +132,6 @@ KOISHI_HOST_DEVICE double3 interplot( const double3 &v0, const double3 &v1,
 	return v0 * ( 1 - uv.x - uv.y ) + v1 * uv.x + v2 * uv.y;
 }
 
-}  // namespace util
+}  // namespace core
 
 }  // namespace koishi

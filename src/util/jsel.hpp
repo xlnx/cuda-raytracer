@@ -302,6 +302,8 @@ private:
 	}
 };
 
+// namespace __io
+// {
 template <typename T, typename = typename std::enable_if<
 						std::is_base_of<__flag::IsSerializable, T>::value>::type>
 inline std::istream &operator>>( std::istream &is, T &t )
@@ -312,6 +314,10 @@ inline std::istream &operator>>( std::istream &is, T &t )
 	return is;
 }
 
+// }  // namespace __io
+
 }  // namespace jsel
+
+// using namespace jsel::__io;
 
 }  // namespace koishi
