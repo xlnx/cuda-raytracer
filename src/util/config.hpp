@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <vec/vec.hpp>
-#include <vec/vsel.hpp>
 #include <util/jsel.hpp>
 
 namespace koishi
