@@ -20,18 +20,19 @@ file(GLOB_RECURSE SOURCES ${CMAKE_SOURCE_DIR}/src/*.cpp ${CMAKE_SOURCE_DIR}/src/
 
 set(CMAKE_NVCC_FLAGS "${CMAKE_NVCC_FLAGS} -std=c++11 -x cu")
 
-link_libraries(assimp)
 if (${GL} STREQUAL "ON")
-	#link_libraries(glfw3 ${OPENGL_LIBRARIES})
+	link_libraries(glfw3 ${OPENGL_LIBRARIES})
 endif ()
 
 if (${CUDA} STREQUAL "ON")
+	link_libraries(assimp)
 	set(CMAKE_CXX_COMPILER nvcc)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -x cu")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -pg -DDEBUG -g")
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 	cuda_add_executable(cr ${SOURCES})
 else ()
+	link_libraries(assimpd)
 	add_compile_options(-Wno-narrowing)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -Wno-parentheses -Wno-comment")
 	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -pg -DDEBUG -g")

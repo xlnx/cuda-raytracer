@@ -11,7 +11,7 @@ namespace core
 {
 template <typename Random>
 PolyFunction( Radiance, Require<Random> )(
-  ( const core::Ray &r, const poly::vector<poly::SubMesh> &mesh, uint depth = 0 ) {
+  ( const core::Ray &r, const typename poly::template vector<typename poly::SubMesh> &mesh, uint depth = 0 )->double3 {
 	  const core::SubMesh *pm;
 	  core::Hit hit;
 	  for ( auto &m : mesh )
@@ -32,21 +32,21 @@ PolyFunction( Radiance, Require<Random> )(
 		  // if ( dot( n, r.v ) > 0 ) n = -n;
 		  auto nr = r.reflect( hit.t, n );
 		  // return normalize( nr.v );
-		  auto r1 = 2 * M_PI * Random::rand(), r2 = Random::rand(), r2s = sqrt( r2 );
+		  auto r1 = 2 * M_PI * call<Random>(), r2 = call<Random>(), r2s = sqrt( r2 );
 		  auto u = normalize( cross( abs( nr.v.x ) > abs( nr.v.y ) ? double3{ 0, 1, 0 } : double3{ 1, 0, 0 }, nr.v ) );
 		  auto v = cross( nr.v, u );
 		  auto dr = nr;
 		  dr.v = normalize( ( u * cos( r1 ) + v * sin( r1 ) ) * r2s + nr.v * sqrt( 1 - r2s ) );
 		  // return nr.v;  //( r.o + r.v * hit.t ) / 100.;
 		  if ( depth < 100 )
-			  if ( Random::rand() < .9 )
+			  if ( call<Random>() < .9 )
 				  return pm->emissive +
 						 pm->color *
-						   radiance( dr, mesh, depth + 1 );
+						   call<Radiance>( dr, mesh, depth + 1 );
 			  else
 				  return pm->emissive +
 						 pm->color *
-						   radiance( nr, mesh, depth + 1 );
+						   call<Radiance>( nr, mesh, depth + 1 );
 		  // return  //pm->emissive +
 		  // 		//pm->color *
 		  //   radiance( nr, mesh, depth + 1 );

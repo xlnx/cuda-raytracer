@@ -12,66 +12,60 @@ namespace koishi
 namespace core
 {
 template <typename Radiance>
-struct Tracer
-{
-	void trace( util::Image<3> &image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )
-	{
-		uint w = image.width();
-		uint h = image.height();
+PolyFunction( Tracer, Host )(
+  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
+	  uint w = image.width();
+	  uint h = image.height();
 
-		for ( uint j = 0; j != h; ++j )
-		{
-			for ( uint i = 0; i != w; ++i )
-			{
-				double3 rad = { 0, 0, 0 };
-				for ( uint k = 0; k != spp; ++k )
-				{
-					rad += call<Radiance>( rays[ ( j * w + i ) * spp + k ], meshs );
-				}
-				image.at( i, j ) = rad / spp;
-			}
-		}
-	}
-};
+	  for ( uint j = 0; j != h; ++j )
+	  {
+		  for ( uint i = 0; i != w; ++i )
+		  {
+			  double3 rad = { 0, 0, 0 };
+			  for ( uint k = 0; k != spp; ++k )
+			  {
+				  rad += call<Radiance>( rays[ ( j * w + i ) * spp + k ], meshs );
+			  }
+			  image.at( i, j ) = rad / spp;
+		  }
+	  }
+  } );
 
 #if defined( KOISHI_USE_CUDA )
 
 namespace cuda
 {
 template <typename Radiance>
-struct Tracer
-{
-	void trace( util::Image<3> &image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )
-	{
-		uint w = image.width();
-		uint h = image.height();
+PolyFunction( Tracer, Host )(
+  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
+	  uint w = image.width();
+	  uint h = image.height();
 
-		float gridDim = w;
-		float blockDim = spp;
+	  float gridDim = w;
+	  float blockDim = spp;
 
-		dev::vector<Ray> devRays = rays;
-		dev::vector<double3> devBuffer( w * h, 0 );
-		dev::vector<dev::SubMesh> devMeshs( meshs.begin(), meshs.end() );
+	  dev::vector<Ray> devRays = rays;
+	  dev::vector<double3> devBuffer( w * h, 0 );
+	  dev::vector<dev::SubMesh> devMeshs( meshs.begin(), meshs.end() );
 
-		intergrate<Radiance><<<gridDim, blockDim, h * sizeof( double3 )>>>( devRays, devBuffer, devMeshs, rays.size(), h );
+	  intergrate<Radiance><<<gridDim, blockDim, h * sizeof( double3 )>>>( devRays, devBuffer, devMeshs, rays.size(), h );
 
-		dev::host_vector<double3> buffer( devBuffer );
+	  dev::host_vector<double3> buffer( devBuffer );
 
-		for ( uint j = 0; j != h; ++j )
-		{
-			for ( uint i = 0; i != w; ++i )
-			{
-				image.at( i, j ) = buffer[ i + j * w ];
-			}
-		}
-	}
-};
+	  for ( uint j = 0; j != h; ++j )
+	  {
+		  for ( uint i = 0; i != w; ++i )
+		  {
+			  image.at( i, j ) = buffer[ i + j * w ];
+		  }
+	  }
+  } );
 
 template <typename Radiance>
-__global__ static void intergrate( const dev::vector<Ray> &rays,
-								   const dev::vector<double3> &buffer,
-								   const dev::vector<dev::SubMesh> &meshs,
-								   uint N, uint h )
+__global__ void intergrate( const dev::vector<Ray> &rays,
+							const dev::vector<double3> &buffer,
+							const dev::vector<dev::SubMesh> &meshs,
+							uint N, uint h )
 {
 	// __shared__ double3 rad = { 0, 0, 0 };
 	extern __shared__ double3 rad[];
@@ -80,7 +74,7 @@ __global__ static void intergrate( const dev::vector<Ray> &rays,
 	auto stride = gridDim.x * blockDim.x;
 	for ( uint i = index, j = 0; i < N; i += stride, ++j )
 	{
-		rad[ j ] += call<Radiance>( rays[ i ], meshs );
+		rad[ j ] += call<Radiance, Device>( rays[ i ], meshs );
 	}
 
 	__syncthreads();

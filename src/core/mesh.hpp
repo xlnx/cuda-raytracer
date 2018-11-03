@@ -119,6 +119,14 @@ struct SubMesh : core::SubMeshCore
 
 }  // namespace dev
 
+#else
+
+namespace dev
+{
+using SubMesh = void;
+
+}  // namespace dev
+
 #endif
 
 }  // namespace core
