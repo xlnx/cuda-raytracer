@@ -123,7 +123,7 @@ struct SubMesh : core::SubMeshCore
 
 namespace dev
 {
-using SubMesh = void;
+using SubMesh = int;
 
 }  // namespace dev
 
