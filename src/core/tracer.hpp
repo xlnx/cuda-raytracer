@@ -26,7 +26,7 @@ struct Tracer
 				double3 rad = { 0, 0, 0 };
 				for ( uint k = 0; k != spp; ++k )
 				{
-					rad += Radiance::radiance( rays[ ( j * w + i ) * spp + k ], meshs );
+					rad += call<Radiance>( rays[ ( j * w + i ) * spp + k ], meshs );
 				}
 				image.at( i, j ) = rad / spp;
 			}
@@ -68,28 +68,28 @@ struct Tracer
 };
 
 template <typename Radiance>
-	__global__ static void intergrate( const dev::vector<Ray> &rays,
-									   const dev::vector<double3> &buffer,
-									   const dev::vector<dev::SubMesh> &meshs,
-									   uint N, uint h )
+__global__ static void intergrate( const dev::vector<Ray> &rays,
+								   const dev::vector<double3> &buffer,
+								   const dev::vector<dev::SubMesh> &meshs,
+								   uint N, uint h )
+{
+	// __shared__ double3 rad = { 0, 0, 0 };
+	extern __shared__ double3 rad[];
+
+	auto index = threadIdx.x + blockIdx.x * blockDim.x;
+	auto stride = gridDim.x * blockDim.x;
+	for ( uint i = index, j = 0; i < N; i += stride, ++j )
 	{
-		// __shared__ double3 rad = { 0, 0, 0 };
-		extern __shared__ double3 rad[];
-
-		auto index = threadIdx.x + blockIdx.x * blockDim.x;
-		auto stride = gridDim.x * blockDim.x;
-		for ( uint i = index, j = 0; i < N; i += stride, ++j )
-		{
-			rad[ j ] += Radiance::radiance( rays[ i ], meshs );
-		}
-
-		__syncthreads();
-
-		for ( uint i = threadIdx; i < h; i += blockDim.x )
-		{
-			buffer[ i * gridDim.x + blockIdx.x ] = rad[ i ];
-		}
+		rad[ j ] += call<Radiance>( rays[ i ], meshs );
 	}
+
+	__syncthreads();
+
+	for ( uint i = threadIdx; i < h; i += blockDim.x )
+	{
+		buffer[ i * gridDim.x + blockIdx.x ] = rad[ i ];
+	}
+}
 
 }  // namespace cuda
 

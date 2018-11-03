@@ -5,12 +5,33 @@
 #include <utility>
 #include <vec/vec.hpp>
 #include <util/config.hpp>
-#include "dev.hpp"
+
+#if defined( KOISHI_USE_CUDA )
+#include <thrust/device_vector.h>
+#include <thrust/host_vector.h>
+#endif
 
 namespace koishi
 {
 namespace core
 {
+#if defined( KOISHI_USE_CUDA )
+
+namespace dev
+{
+template <typename T>
+using vector = thrust::device_vector<T>;
+
+}
+
+namespace host
+{
+template <typename T>
+using vector = thrust::host_vector<T>;
+
+}
+#endif
+
 struct BVHNode
 {
 	double3 vmax, vmin;
