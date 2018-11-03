@@ -49,9 +49,9 @@ template <typename T, typename = void>
 struct is_host_callable : std::integral_constant<bool, false>
 {
 };
-template <typename T, typename = typename std::enable_if<
-						std::is_base_of<Host, T>::value>::type>
-struct is_host_callable : std::integral_constant<bool, true>
+template <typename T>
+struct is_host_callable<T, typename std::enable_if<
+                                                std::is_base_of<Host, T>::value>::type> : std::integral_constant<bool, true>
 {
 };
 
@@ -59,9 +59,9 @@ template <typename T, typename = void>
 struct is_device_callable : std::integral_constant<bool, false>
 {
 };
-template <typename T, typename = typename std::enable_if<
-						std::is_base_of<Device, T>::value>::type>
-struct is_device_callable : std::integral_constant<bool, true>
+template <typename T>
+struct is_device_callable<T, typename std::enable_if<
+                                                std::is_base_of<Device, T>::value>::type> : std::integral_constant<bool, true>
 {
 };
 
