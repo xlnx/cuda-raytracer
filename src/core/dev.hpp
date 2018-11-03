@@ -88,46 +88,46 @@ struct Require : std::conditional<std::is_base_of<Host, T>::value, Host, trait::
 {
 };
 
-#define __PolyFunctionImpl( ... )                                                              \
-	{                                                                                          \
-		struct __priv                                                                          \
-		{                                                                                      \
-			template <typename _M_T, typename = typename std::enable_if<                       \
-									   koishi::trait::is_in<_M_T, Host, Device>::value>::type> \
-			struct func                                                                        \
-			{                                                                                  \
-				using call_type = Host;                                                        \
-				struct poly                                                                    \
-				{                                                                              \
-					template <typename _M__T>                                                  \
-					using vector = std::vector<_M__T>;                                         \
-					using SubMesh = core::SubMesh;                                             \
-				};                                                                             \
-				KOISHI_HOST static auto fn __VA_ARGS__                                         \
-			};                                                                                 \
-			template <typename _M_T>                                                           \
-			struct func<_M_T, typename std::enable_if<                                         \
-								std::is_same<_M_T, Device>::value>::type>                      \
-			{                                                                                  \
-				using call_type = Device;                                                      \
-				struct poly                                                                    \
-				{                                                                              \
-					template <typename _M__T>                                                  \
-					using vector = dev::vector<_M__T>;                                         \
-					using SubMesh = core::dev::SubMesh;                                        \
-				};                                                                             \
-				KOISHI_DEVICE static auto fn __VA_ARGS__                                       \
-			};                                                                                 \
-			template <typename _M_T>                                                           \
-			struct return_type_of;                                                             \
-			template <typename _M_T, typename... _M_Args>                                      \
-			struct return_type_of<_M_T( _M_Args... )>                                          \
-			{                                                                                  \
-				using type = _M_T;                                                             \
-			};                                                                                 \
-		};                                                                                     \
-		using value_type = typename __priv::template return_type_of<                           \
-		  decltype( __priv::template func<Host>::fn )>::type;                                  \
+#define __PolyFunctionImpl( ... )                                           \
+	{                                                                       \
+		struct __priv                                                       \
+		{                                                                   \
+			template <typename _M_T, typename _M_Host, typename _M_Device>  \
+			struct func;                                                    \
+			template <typename _M_Host, typename _M_Device>                 \
+			struct func<_M_Host, _M_Host, _M_Device>                        \
+			{                                                               \
+				using call_type = Host;                                     \
+				struct poly                                                 \
+				{                                                           \
+					template <typename _M__T>                               \
+					using vector = std::vector<_M__T>;                      \
+					using SubMesh = core::SubMesh;                          \
+				};                                                          \
+				KOISHI_HOST static auto fn __VA_ARGS__                      \
+			};                                                              \
+			template <typename _M_Host, typename _M_Device>                 \
+			struct func<_M_Device, _M_Host, _M_Device>                      \
+			{                                                               \
+				using call_type = Device;                                   \
+				struct poly                                                 \
+				{                                                           \
+					template <typename _M__T>                               \
+					using vector = dev::vector<_M__T>;                      \
+					using SubMesh = core::dev::SubMesh;                     \
+				};                                                          \
+				KOISHI_DEVICE static auto fn __VA_ARGS__                    \
+			};                                                              \
+			template <typename _M_T>                                        \
+			struct return_type_of;                                          \
+			template <typename _M_T, typename... _M_Args>                   \
+			struct return_type_of<_M_T( _M_Args... )>                       \
+			{                                                               \
+				using type = _M_T;                                          \
+			};                                                              \
+		};                                                                  \
+		using value_type = typename __priv::template return_type_of<        \
+		  decltype( __priv::template func<Host, Host, Device>::fn )>::type; \
 	}
 
 #define PolyFunction( name, ... ) \
@@ -139,7 +139,7 @@ using call_type = Host;
 template <typename F, typename... Args>
 KOISHI_HOST_DEVICE typename F::value_type call( Args &&... args )
 {
-	return F::__priv::template func<call_type>::fn( std::forward<Args>( args )... );
+	return F::__priv::template func<call_type, Host, Device>::fn( std::forward<Args>( args )... );
 }
 
 }  // namespace core
