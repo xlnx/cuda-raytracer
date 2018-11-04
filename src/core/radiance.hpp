@@ -42,18 +42,13 @@ PolyFunction( Radiance, Require<Random> )(
 			  if ( call<Random>() < .9 )
 				  return pm->emissive +
 						 pm->color *
-						   call<Radiance>( dr, mesh, depth + 1 );
+						   call<Radiance>( dr, mesh, N, depth + 1 );
 			  else
 				  return pm->emissive +
 						 pm->color *
-						   call<Radiance>( nr, mesh, depth + 1 );
-		  // return  //pm->emissive +
-		  // 		//pm->color *
-		  //   radiance( nr, mesh, depth + 1 );
+						   call<Radiance>( nr, mesh, N, depth + 1 );
 		  else
-			  // return ( r.o + r.v * hit.t ) / 100.;
 			  return pm->emissive;
-		  // radiance( nr, mesh );
 	  }
 	  else
 	  {
