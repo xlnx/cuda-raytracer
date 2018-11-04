@@ -11,16 +11,16 @@ namespace core
 {
 template <typename Random>
 PolyFunction( Radiance, Require<Random> )(
-  ( const core::Ray &r, const typename poly::template vector<typename poly::SubMesh> &mesh, uint depth = 0 )->double3 {
-	  const core::SubMesh *pm;
+  ( const core::Ray &r, const dev::Mesh *mesh, uint N, uint depth = 0 )->double3 {
+	  const dev::Mesh *pm;
 	  core::Hit hit;
-	  for ( auto &m : mesh )
+	  for ( uint i = 0; i != N; ++i )
 	  {
 		  core::Hit hit1;
-		  if ( r.intersect( m, 1, hit1 ) && hit1.t < hit.t )
+		  if ( r.intersect( mesh[ i ], 1, hit1 ) && hit1.t < hit.t )
 		  {
 			  hit = hit1;
-			  pm = &m;
+			  pm = mesh + i;
 		  }
 	  }
 	  if ( hit )

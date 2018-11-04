@@ -14,6 +14,8 @@ namespace core
 template <typename Radiance>
 PolyFunction( Tracer, Require<Host> )(
   ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
+	  std::vector<dev::Mesh> ms( meshs.begin(), meshs.end() );
+
 	  uint w = image.width();
 	  uint h = image.height();
 
@@ -24,7 +26,7 @@ PolyFunction( Tracer, Require<Host> )(
 			  double3 rad = { 0, 0, 0 };
 			  for ( uint k = 0; k != spp; ++k )
 			  {
-				  rad += call<Radiance>( rays[ ( j * w + i ) * spp + k ], meshs );
+				  rad += call<Radiance>( rays[ ( j * w + i ) * spp + k ], &ms[ 0 ], ms.size() );
 			  }
 			  image.at( i, j ) = rad / spp;
 		  }
@@ -36,10 +38,7 @@ PolyFunction( Tracer, Require<Host> )(
 namespace cuda
 {
 template <typename Radiance>
-__global__ void intergrate( const dev::vector<Ray> &rays,
-							const dev::vector<double3> &buffer,
-							const dev::vector<dev::SubMesh> &meshs,
-							uint N, uint h )
+__global__ void intergrate( const Ray *rays, double3 *buffer, const dev::SubMesh *meshs, uint N, uint h )
 {
 	// __shared__ double3 rad = { 0, 0, 0 };
 	extern __shared__ double3 rad[];
@@ -48,7 +47,7 @@ __global__ void intergrate( const dev::vector<Ray> &rays,
 	auto stride = gridDim.x * blockDim.x;
 	for ( uint i = index, j = 0; i < N; i += stride, ++j )
 	{
-		rad[ j ] += call<Radiance, Device>( rays[ i ], meshs );
+		rad[ j ] += Device::call<Radiance>( rays[ i ], meshs );
 	}
 
 	__syncthreads();
@@ -68,13 +67,14 @@ PolyFunction( Tracer, Require<Host> )(
 	  float gridDim = w;
 	  float blockDim = spp;
 
-	  dev::vector<Ray> devRays = rays;
-	  dev::vector<double3> devBuffer( w * h );
-	  dev::vector<dev::SubMesh> devMeshs( meshs.begin(), meshs.end() );
+	  thrust::device_vector<Ray> devRays = rays;
+	  thrust::device_vector<double3> devBuffer( w * h );
+	  thrust::device_vector<dev::Mesh> devMeshs( meshs.begin(), meshs.end() );
 
-	  intergrate<Radiance><<<gridDim, blockDim, h * sizeof( double3 )>>>( devRays, devBuffer, devMeshs, rays.size(), h );
+	  intergrate<Radiance><<<gridDim, blockDim, h * sizeof( double3 )>>>(
+		( &devRays[ 0 ] ).get(), ( &devBuffer[ 0 ].get() ), ( &devMeshs[ 0 ] ).get(), rays.size(), h );
 
-	  host::vector<double3> buffer( devBuffer );
+	  thrust::host_vector<double3> buffer = std::move( devBuffer );
 
 	  for ( uint j = 0; j != h; ++j )
 	  {

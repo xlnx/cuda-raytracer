@@ -72,13 +72,7 @@ struct Ray
 		return hit.t > eps;
 	}
 
-	template <typename Mesh, typename = typename std::enable_if<
-							   std::is_same<Mesh, core::SubMesh>::value
-#if defined( KOISHI_USE_CUDA )
-							   || std::is_same<Mesh, core::dev::SubMesh>::value
-#endif
-							   >::type>
-	KOISHI_HOST_DEVICE bool intersect( const Mesh &mesh, uint root, Hit &hit ) const
+	KOISHI_HOST_DEVICE bool intersect( const dev::Mesh &mesh, uint root, Hit &hit ) const
 	{
 		uint i = root;
 		while ( !mesh.bvh[ i ].isleaf )

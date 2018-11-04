@@ -14,38 +14,6 @@ namespace koishi
 {
 namespace core
 {
-#if defined( KOISHI_USE_CUDA )
-
-namespace dev
-{
-template <typename T>
-using vector = thrust::device_vector<T>;
-
-}
-
-namespace host
-{
-template <typename T>
-using vector = thrust::host_vector<T>;
-
-}
-
-#else
-
-namespace dev
-{
-template <typename T>
-using vector = int;
-}
-
-namespace host
-{
-template <typename T>
-using vector = int;
-}
-
-#endif
-
 struct Host;
 struct Device;
 
@@ -124,12 +92,6 @@ struct Require : std::conditional<trait::make_and<
 			struct func<_M_Host, _M_Host, _M_Device>                                                                     \
 			{                                                                                                            \
 				using call_type = Host;                                                                                  \
-				struct poly                                                                                              \
-				{                                                                                                        \
-					template <typename _M__T>                                                                            \
-					using vector = std::vector<_M__T>;                                                                   \
-					using SubMesh = core::SubMesh;                                                                       \
-				};                                                                                                       \
 				template <typename _M_F, typename... _M_Args>                                                            \
 				KOISHI_HOST static typename _M_F::value_type call( _M_Args &&... args )                                  \
 				{                                                                                                        \
@@ -141,12 +103,6 @@ struct Require : std::conditional<trait::make_and<
 			struct func<_M_Device, _M_Host, _M_Device>                                                                   \
 			{                                                                                                            \
 				using call_type = Device;                                                                                \
-				struct poly                                                                                              \
-				{                                                                                                        \
-					template <typename _M__T>                                                                            \
-					using vector = dev::vector<_M__T>;                                                                   \
-					using SubMesh = core::dev::SubMesh;                                                                  \
-				};                                                                                                       \
 				template <typename _M_F, typename... _M_Args>                                                            \
 				KOISHI_DEVICE static typename _M_F::value_type call( _M_Args &&... args )                                \
 				{                                                                                                        \
