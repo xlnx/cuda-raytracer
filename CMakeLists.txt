@@ -16,12 +16,13 @@ file(GLOB_RECURSE SOURCES
 	${CMAKE_SOURCE_DIR}/src/*.cu
 )
 
-find_package(assimp REQUIRED)
-if (assimp_FOUND)
-    link_directories(${ASSIMP_LIBRARY_DIRS})
-    include_directories(${ASSIMP_INCLUDE_DIRS})
-    link_libraries (${ASSIMP_LIBRARIES})
-endif(assimp_FOUND)
+# find_package(assimp REQUIRED)
+# if (assimp_FOUND)
+#     link_directories(${ASSIMP_LIBRARY_DIRS})
+#     include_directories(${ASSIMP_INCLUDE_DIRS})
+link_libraries (assimpd)
+    # link_libraries (${ASSIMP_LIBRARIES})
+# endif(assimp_FOUND)
 
 if (${GL} STREQUAL "ON")
 	add_definitions(-DKOISHI_USE_GL)

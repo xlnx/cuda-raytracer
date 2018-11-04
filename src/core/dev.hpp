@@ -46,12 +46,25 @@ using vector = int;
 
 #endif
 
+struct Host;
+struct Device;
+
 struct Host
 {
+	template <typename F, typename... Args>
+	KOISHI_HOST static typename F::value_type call( Args &&... args )
+	{
+		return F::__priv::template func<Host, Host, Device>::fn( std::forward<Args>( args )... );
+	}
 };
 
 struct Device
 {
+	template <typename F, typename... Args>
+	KOISHI_DEVICE static typename F::value_type call( Args &&... args )
+	{
+		return F::__priv::template func<Device, Host, Device>::fn( std::forward<Args>( args )... );
+	}
 };
 
 namespace trait
@@ -80,11 +93,24 @@ struct is_device_callable<T, typename std::enable_if<
 {
 };
 
+template <bool X, bool... Args>
+struct make_and : std::integral_constant<bool, X && make_and<Args...>::value>
+{
+};
+template <bool X>
+struct make_and<X> : std::integral_constant<bool, X>
+{
+};
+
 }  // namespace trait
 
-template <typename T>
-struct Require : std::conditional<std::is_base_of<Host, T>::value, Host, trait::dummy>::type,
-				 std::conditional<std::is_base_of<Device, T>::value, Device, trait::dummy>::type
+template <typename... Args>
+struct Require : std::conditional<trait::make_and<
+									std::is_base_of<Host, Args>::value...>::value,
+								  Host, trait::dummy>::type,
+				 std::conditional<trait::make_and<
+									std::is_base_of<Device, Args>::value...>::value,
+								  Device, trait::dummy>::type
 {
 };
 
@@ -143,12 +169,6 @@ struct Require : std::conditional<std::is_base_of<Host, T>::value, Host, trait::
 #define PolyFunction( name, ... ) \
 	struct name : __VA_ARGS__     \
 					__PolyFunctionImpl
-
-template <typename F, typename Target, typename... Args>
-KOISHI_HOST_DEVICE typename F::value_type call( Args &&... args )
-{
-	return F::__priv::template func<Target, Host, Device>::fn( std::forward<Args>( args )... );
-}
 
 }  // namespace core
 

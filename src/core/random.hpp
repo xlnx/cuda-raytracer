@@ -8,7 +8,7 @@ namespace koishi
 {
 namespace core
 {
-PolyFunction( DRand48, Host )(
+PolyFunction( DRand48, Require<Host> )(
   ()->double {
 	  static unsigned long long seed = ( ( (long long int)time( nullptr ) ) << 16 ) | ::rand();
 

@@ -50,7 +50,7 @@ public:
 		rays = core::Sampler( w, h ).sample( camera, spp );
 
 		util::Image<3> image( w, h );
-		call<Tracer<Radiance<Random>>, Host>( image, rays, mesh, spp );
+		Host::call<Tracer<Radiance<Random>>>( image, rays, mesh, spp );
 
 		image.dump( dest );
 	}

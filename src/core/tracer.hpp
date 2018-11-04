@@ -12,7 +12,7 @@ namespace koishi
 namespace core
 {
 template <typename Radiance>
-PolyFunction( Tracer, Host )(
+PolyFunction( Tracer, Require<Host> )(
   ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
 	  uint w = image.width();
 	  uint h = image.height();
@@ -35,7 +35,6 @@ PolyFunction( Tracer, Host )(
 
 namespace cuda
 {
-
 template <typename Radiance>
 __global__ void intergrate( const dev::vector<Ray> &rays,
 							const dev::vector<double3> &buffer,
@@ -61,7 +60,7 @@ __global__ void intergrate( const dev::vector<Ray> &rays,
 }
 
 template <typename Radiance>
-PolyFunction( Tracer, Host )(
+PolyFunction( Tracer, Require<Host> )(
   ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
 	  uint w = image.width();
 	  uint h = image.height();
