@@ -38,7 +38,7 @@ PolyFunction( Tracer, Require<Host> )(
 namespace cuda
 {
 template <typename Radiance>
-__global__ void intergrate( const Ray *rays, double3 *buffer, const dev::SubMesh *meshs, uint N, uint h )
+__global__ void intergrate( const Ray *rays, double3 *buffer, const dev::Mesh *meshs, uint N, uint h )
 {
 	// __shared__ double3 rad = { 0, 0, 0 };
 	extern __shared__ double3 rad[];
@@ -72,7 +72,7 @@ PolyFunction( Tracer, Require<Host> )(
 	  thrust::device_vector<dev::Mesh> devMeshs( meshs.begin(), meshs.end() );
 
 	  intergrate<Radiance><<<gridDim, blockDim, h * sizeof( double3 )>>>(
-		( &devRays[ 0 ] ).get(), ( &devBuffer[ 0 ].get() ), ( &devMeshs[ 0 ] ).get(), rays.size(), h );
+		( &devRays[ 0 ] ).get(), ( &devBuffer[ 0 ] ).get(), ( &devMeshs[ 0 ] ).get(), rays.size(), h );
 
 	  thrust::host_vector<double3> buffer = std::move( devBuffer );
 
