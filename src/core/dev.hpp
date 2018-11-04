@@ -20,18 +20,18 @@ struct Device;
 struct Host
 {
 	template <typename F, typename... Args>
-	KOISHI_HOST static typename F::value_type call( Args &&... args )
+	KOISHI_HOST static auto call( Args &&... args )
 	{
-		return F::__priv::template func<Host, Host, Device>::fn( std::forward<Args>( args )... );
+		return F::__priv::template func<F, Host, Host, Device>::fn( std::forward<Args>( args )... );
 	}
 };
 
 struct Device
 {
 	template <typename F, typename... Args>
-	KOISHI_DEVICE static typename F::value_type call( Args &&... args )
+	KOISHI_DEVICE static auto call( Args &&... args )
 	{
-		return F::__priv::template func<Device, Host, Device>::fn( std::forward<Args>( args )... );
+		return F::__priv::template func<F, Device, Host, Device>::fn( std::forward<Args>( args )... );
 	}
 };
 
@@ -82,44 +82,44 @@ struct Require : std::conditional<trait::make_and<
 {
 };
 
-#define __PolyFunctionImpl( ... )                                                                                        \
-	{                                                                                                                    \
-		struct __priv                                                                                                    \
-		{                                                                                                                \
-			template <typename _M_T, typename _M_Host, typename _M_Device>                                               \
-			struct func;                                                                                                 \
-			template <typename _M_Host, typename _M_Device>                                                              \
-			struct func<_M_Host, _M_Host, _M_Device>                                                                     \
-			{                                                                                                            \
-				using call_type = Host;                                                                                  \
-				template <typename _M_F, typename... _M_Args>                                                            \
-				KOISHI_HOST static typename _M_F::value_type call( _M_Args &&... args )                                  \
-				{                                                                                                        \
-					return _M_F::__priv::template func<call_type, Host, Device>::fn( std::forward<_M_Args>( args )... ); \
-				}                                                                                                        \
-				KOISHI_HOST static auto fn __VA_ARGS__                                                                   \
-			};                                                                                                           \
-			template <typename _M_Host, typename _M_Device>                                                              \
-			struct func<_M_Device, _M_Host, _M_Device>                                                                   \
-			{                                                                                                            \
-				using call_type = Device;                                                                                \
-				template <typename _M_F, typename... _M_Args>                                                            \
-				KOISHI_DEVICE static typename _M_F::value_type call( _M_Args &&... args )                                \
-				{                                                                                                        \
-					return _M_F::__priv::template func<call_type, Host, Device>::fn( std::forward<_M_Args>( args )... ); \
-				}                                                                                                        \
-				KOISHI_DEVICE static auto fn __VA_ARGS__                                                                 \
-			};                                                                                                           \
-			template <typename _M_T>                                                                                     \
-			struct return_type_of;                                                                                       \
-			template <typename _M_T, typename... _M_Args>                                                                \
-			struct return_type_of<_M_T( _M_Args... )>                                                                    \
-			{                                                                                                            \
-				using type = _M_T;                                                                                       \
-			};                                                                                                           \
-		};                                                                                                               \
-		using value_type = typename __priv::template return_type_of<                                                     \
-		  decltype( __priv::template func<Host, Host, Device>::fn )>::type;                                              \
+#define __PolyFunctionImpl( ... )                                                                                              \
+	{                                                                                                                          \
+		struct __priv                                                                                                          \
+		{                                                                                                                      \
+			template <typename _M_Self, typename _M_T, typename _M_Host, typename _M_Device>                                   \
+			struct func;                                                                                                       \
+			template <typename _M_Self, typename _M_Host, typename _M_Device>                                                  \
+			struct func<_M_Self, _M_Host, _M_Host, _M_Device>                                                                  \
+			{                                                                                                                  \
+				static_assert( std::is_base_of<Host, _M_Self>::value, "this function is not callable on host" );               \
+				using call_type = Host;                                                                                        \
+				template <typename _M_F, typename... _M_Args>                                                                  \
+				KOISHI_HOST static auto call( _M_Args &&... args )                                                             \
+				{                                                                                                              \
+					return _M_F::__priv::template func<_M_F, call_type, Host, Device>::fn( std::forward<_M_Args>( args )... ); \
+				}                                                                                                              \
+				KOISHI_HOST static auto fn __VA_ARGS__                                                                         \
+			};                                                                                                                 \
+			template <typename _M_Self, typename _M_Host, typename _M_Device>                                                  \
+			struct func<_M_Self, _M_Device, _M_Host, _M_Device>                                                                \
+			{                                                                                                                  \
+				static_assert( std::is_base_of<Device, _M_Self>::value, "this function is not callable on device" );           \
+				using call_type = Device;                                                                                      \
+				template <typename _M_F, typename... _M_Args>                                                                  \
+				KOISHI_DEVICE static auto call( _M_Args &&... args )                                                           \
+				{                                                                                                              \
+					return _M_F::__priv::template func<_M_F, call_type, Host, Device>::fn( std::forward<_M_Args>( args )... ); \
+				}                                                                                                              \
+				KOISHI_DEVICE static auto fn __VA_ARGS__                                                                       \
+			};                                                                                                                 \
+			template <typename _M_T>                                                                                           \
+			struct return_type_of;                                                                                             \
+			template <typename _M_T, typename... _M_Args>                                                                      \
+			struct return_type_of<_M_T( _M_Args... )>                                                                          \
+			{                                                                                                                  \
+				using type = _M_T;                                                                                             \
+			};                                                                                                                 \
+		};                                                                                                                     \
 	}
 
 #define PolyFunction( name, ... ) \
