@@ -16,13 +16,13 @@ file(GLOB_RECURSE SOURCES
 	${CMAKE_SOURCE_DIR}/src/*.cu
 )
 
-# find_package(assimp REQUIRED)
-# if (assimp_FOUND)
-#     link_directories(${ASSIMP_LIBRARY_DIRS})
-#     include_directories(${ASSIMP_INCLUDE_DIRS})
-link_libraries (assimpd)
-    # link_libraries (${ASSIMP_LIBRARIES})
-# endif(assimp_FOUND)
+find_package(assimp REQUIRED)
+if (assimp_FOUND)
+    link_directories(${ASSIMP_LIBRARY_DIRS})
+    include_directories(${ASSIMP_INCLUDE_DIRS})
+# link_libraries (assimpd)
+    link_libraries (${ASSIMP_LIBRARIES})
+endif(assimp_FOUND)
 
 if (${GL} STREQUAL "ON")
 	add_definitions(-DKOISHI_USE_GL)
@@ -36,7 +36,7 @@ endif ()
 if (${CUDA} STREQUAL "ON")
 	find_package(CUDA REQUIRED)
 	add_definitions(-DKOISHI_USE_CUDA)
-	set(CUDA_NVCC_FLAGS "${CMAKE_NVCC_FLAGS} -std=c++11 -O3"
+	set(CUDA_NVCC_FLAGS "${CMAKE_NVCC_FLAGS} -std=c++14 -O3"
 		"-Xcudafe \"--diag_suppress=\\\"set_but_not_used,code_is_unreachable\\\"\" ")
 	#link_libraries(assimp)
 	cuda_add_executable(cr ${SOURCES})
