@@ -13,7 +13,7 @@ namespace koishi
 {
 namespace core
 {
-template <typename Radiance>
+template <typename Radiance, uint MaxThreads = -1u>
 PolyFunction( Tracer, Require<Host> )(
   ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
 	  std::vector<dev::Mesh> ms( meshs.begin(), meshs.end() );
@@ -22,12 +22,13 @@ PolyFunction( Tracer, Require<Host> )(
 	  uint h = image.height();
 
 	  auto ncores = std::thread::hardware_concurrency();
+	  if ( MaxThreads < ncores ) ncores = MaxThreads;
 	  std::cout << "using " << ncores << " threads:" << std::endl;
 	  std::vector<std::thread> ts;
-	  for ( k = 0; k != ncores; ++k )
+	  for ( auto id = 0; id != ncores; ++id )
 	  {
-		  ts.emplace_back( [ncores, spp, h, w, &image, &rays, &ms] {
-			  for ( uint j = 0; j < h; j += ncores )
+		  ts.emplace_back( [id, ncores, spp, h, w, &image, &rays, &ms] {
+			  for ( uint j = id; j < h; j += ncores )
 			  {
 				  for ( uint i = 0; i != w; ++i )
 				  {
@@ -39,7 +40,11 @@ PolyFunction( Tracer, Require<Host> )(
 					  image.at( i, j ) = rad / spp;
 				  }
 			  }
-		  } )
+		  } );
+	  }
+	  for ( auto &th: ts )
+	  {
+	  	th.join();
 	  }
 	  //std::cout << std::endl;
   } );

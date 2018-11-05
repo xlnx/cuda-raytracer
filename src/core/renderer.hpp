@@ -11,13 +11,14 @@
 #include "ray.hpp"
 #include "mesh.hpp"
 #include "radiance.hpp"
+#include "random.hpp"
 #include "dev.hpp"
 
 namespace koishi
 {
 namespace core
 {
-template <template <typename T> class Tracer, typename Random, template <typename T> class Radiance = core::Radiance>
+template <typename Tracer = core::Radiance<core::DRand48>>
 class Renderer
 {
 	using call_type = Host;
@@ -50,7 +51,7 @@ public:
 		rays = core::Sampler( w, h ).sample( camera, spp );
 
 		util::Image<3> image( w, h );
-		Host::call<Tracer<Radiance<Random>>>( image, rays, mesh, spp );
+		Host::call<Tracer>( image, rays, mesh, spp );
 
 		image.dump( dest );
 	}

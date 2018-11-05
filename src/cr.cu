@@ -22,7 +22,8 @@ int main( int argc, char **argv )
 
 	// r.render( argv[ 1 ] );
 	// core::Renderer<core::Tracer, core::DRand48, core::Radiance> r{ 1024, 768 };
-	core::Renderer<core::Tracer, core::DRand48> r{ 1024, 768 };
+	using TraceFn = core::Radiance<core::DRand48>;
+	core::Renderer<core::Tracer<TraceFn>> r{ 1024, 768 };
 
 	r.render( argv[ 1 ], argv[ 2 ], spp );
 	// vis::Renderer r{ 1024, 768 };
