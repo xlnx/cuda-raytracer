@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <iostream>
+#include <omp.h>
 #include <vec/vec.hpp>
 #include <util/image.hpp>
 #include "mesh.hpp"
@@ -20,20 +21,21 @@ PolyFunction( Tracer, Require<Host> )(
 	  uint w = image.width();
 	  uint h = image.height();
 
-	  uint cnt = w * h;
-	  uint cui = 0;
-	  uint curr = 0;
-	  for ( uint i = 0; i != 50; ++i )
-		  std::cout << "=";
-	  std::cout << std::endl;
+	  //uint cnt = w * h;
+	  //uint cui = 0;
+	  //uint curr = 0;
+	  //for ( uint i = 0; i != 50; ++i )
+	//	  std::cout << "=";
+	  //std::cout << std::endl;
 
+	  #pragma omp parallel for
 	  for ( uint j = 0; j != h; ++j )
 	  {
 		  for ( uint i = 0; i != w; ++i )
 		  {
-			  ++curr;
-			  if ( curr >= cnt / 50 * cui )
-			  	std::cout << "*" << std::flush, ++cui;
+			  //++curr;
+			  //if ( curr >= cnt / 50 * cui )
+			  //	std::cout << "*" << std::flush, ++cui;
 			  double3 rad = { 0, 0, 0 };
 			  for ( uint k = 0; k != spp; ++k )
 			  {
@@ -42,7 +44,7 @@ PolyFunction( Tracer, Require<Host> )(
 			  image.at( i, j ) = rad / spp;
 		  }
 	  }
-	  std::cout << std::endl;
+	  //std::cout << std::endl;
   } );
 
 #if defined( KOISHI_USE_CUDA )
