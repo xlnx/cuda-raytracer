@@ -1,5 +1,9 @@
 # cuda-raytracer
 
+## CPU Single Core 1024spp
+
+![doc/a.png](doc/a.png)
+
 ## CPU Single Core 128spp
 
 ![doc/b.png](doc/b.png)
