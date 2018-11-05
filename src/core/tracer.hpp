@@ -1,6 +1,8 @@
 #pragma once
 
 #include <vector>
+#include <thread>
+#include <iostream>
 #include <vec/vec.hpp>
 #include <util/image.hpp>
 #include "mesh.hpp"
@@ -19,17 +21,25 @@ PolyFunction( Tracer, Require<Host> )(
 	  uint w = image.width();
 	  uint h = image.height();
 
-	  for ( uint j = 0; j != h; ++j )
+	  auto ncores = std::thread::hardware_concurrency();
+	  std::cout << "using " << ncores << " threads:" << std::endl;
+	  std::vector<std::thread> ts;
+	  for ( k = 0; k != ncores; ++k )
 	  {
-		  for ( uint i = 0; i != w; ++i )
-		  {
-			  double3 rad = { 0, 0, 0 };
-			  for ( uint k = 0; k != spp; ++k )
+		  ts.emplace_back( [ncores, spp, h, w, &image, &rays, &ms] {
+			  for ( uint j = 0; j < h; j += ncores )
 			  {
-				  rad += call<Radiance>( rays[ ( j * w + i ) * spp + k ], &ms[ 0 ], ms.size() );
+				  for ( uint i = 0; i != w; ++i )
+				  {
+					  double3 rad = { 0, 0, 0 };
+					  for ( uint k = 0; k != spp; ++k )
+					  {
+						  rad += Self::call<Radiance>( rays[ ( j * w + i ) * spp + k ], &ms[ 0 ], ms.size() );
+					  }
+					  image.at( i, j ) = rad / spp;
+				  }
 			  }
-			  image.at( i, j ) = rad / spp;
-		  }
+		  } )
 	  }
   } );
 
