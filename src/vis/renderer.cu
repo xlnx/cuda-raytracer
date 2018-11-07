@@ -117,7 +117,7 @@ void Renderer::render( const std::string &path )
 		glUniformMatrix4fv( glGetUniformLocation( prog, "wvp" ), 1, GL_FALSE,
 							reinterpret_cast<const float *>( &mat ) );
 
-		auto k = 5;
+		auto k = 1;
 		for ( auto &m : mesh )
 		{
 			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );

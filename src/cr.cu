@@ -9,24 +9,21 @@ using namespace koishi;
 
 int main( int argc, char **argv )
 {
-	if ( argc < 4 )
+	if ( std::string( argv[ 2 ] ) == "-v" )
 	{
-		std::cout << "Not enough parameters." << std::endl;
-		return 1;
+		vis::Renderer r{ 1024, 768 };
+
+		r.render( argv[ 1 ] );
 	}
-	uint spp;
-	std::istringstream is( argv[ 3 ] );
-	is >> spp;
+	else
+	{
+		uint spp;
+		std::istringstream is( argv[ 3 ] );
+		is >> spp;
 
-	// vis::Renderer r{ 1024, 768 };
+		using TraceFn = core::Radiance<core::DRand48>;
+		core::Renderer<core::Tracer<TraceFn>> r{ 1024, 768 };
 
-	// r.render( argv[ 1 ] );
-	// core::Renderer<core::Tracer, core::DRand48, core::Radiance> r{ 1024, 768 };
-	using TraceFn = core::Radiance<core::DRand48>;
-	core::Renderer<core::Tracer<TraceFn>> r{ 1024, 768 };
-
-	r.render( argv[ 1 ], argv[ 2 ], spp );
-	// vis::Renderer r{ 1024, 768 };
-
-	// r.render( "./cow.json" );
+		r.render( argv[ 1 ], argv[ 2 ], spp );
+	}
 }

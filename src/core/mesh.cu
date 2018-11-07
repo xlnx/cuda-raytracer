@@ -10,7 +10,7 @@
 #include <vec/vmath.hpp>
 #include "mesh.hpp"
 
-#define KOISHI_TRIANGLE_STRIPE 8
+#define KOISHI_TRIANGLE_STRIPE 16
 
 namespace koishi
 {
@@ -126,6 +126,13 @@ PolyMesh::PolyMesh( const jsel::Mesh &config )
 											 aimesh->mVertices[ j ].y,
 											 aimesh->mVertices[ j ].z } *
 									config.scale;
+					for ( auto &rot : config.rotate )
+					{
+						auto th = radians( rot.degree );
+						auto c = cos( th ), s = sin( th );
+						auto n = normalize( rot.axis );
+						vertices[ j ] = vertices[ j ] * cos( th ) + cross( n, vertices[ j ] ) * s + dot( n, vertices[ j ] ) * n * ( 1 - c );
+					}
 					vertices[ j ] += config.translate;
 				}
 			}
