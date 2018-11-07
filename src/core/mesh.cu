@@ -97,13 +97,30 @@ static void printBVH( const BVHTree &tr, uint index = 1 )
 	}
 }
 
+#define GET( type, key, f )                                            \
+	do                                                                 \
+	{                                                                  \
+		std::string name = #key;                                       \
+		{                                                              \
+			type value;                                                \
+			if ( mat->Get( key, value ) == AI_SUCCESS )                \
+			{                                                          \
+				std::cout << "> " << name << ": " << f << std::endl;   \
+			}                                                          \
+			else                                                       \
+			{                                                          \
+				std::cout << "> " << name << ": unknown" << std::endl; \
+			}                                                          \
+		}                                                              \
+	} while ( 0 )
+
 static void collectObjects( const aiScene *scene, const aiNode *node, const jsel::Mesh &default_config,
 							std::vector<core::SubMesh> &mesh, const aiMatrix4x4 &tr )
 {
 	auto trans = tr * node->mTransformation;
 	for ( uint i = 0; i != node->mNumMeshes; ++i )
 	{
-		auto &aimesh = scene->mMeshes[ node->mMeshes[ i ] ];
+		auto aimesh = scene->mMeshes[ node->mMeshes[ i ] ];
 		std::vector<double3> vertices;
 		if ( aimesh->HasPositions() )
 		{
@@ -154,6 +171,28 @@ static void collectObjects( const aiScene *scene, const aiNode *node, const jsel
 			}
 		}
 		if ( indices.size() <= 0 ) continue;
+
+		std::cout << "mesh: " << node->mName.C_Str() << ", mateial: " << aimesh->mMaterialIndex << std::endl;
+		auto mat = scene->mMaterials[ aimesh->mMaterialIndex ];
+
+		GET( aiString, AI_MATKEY_NAME, value.C_Str() );
+		GET( aiColor3D, AI_MATKEY_COLOR_DIFFUSE, value.r << "," << value.g << "," << value.b );
+		GET( aiColor3D, AI_MATKEY_COLOR_AMBIENT, value.r << "," << value.g << "," << value.b );
+		GET( aiColor3D, AI_MATKEY_COLOR_SPECULAR, value.r << "," << value.g << "," << value.b );
+		GET( aiColor3D, AI_MATKEY_COLOR_EMISSIVE, value.r << "," << value.g << "," << value.b );
+		GET( aiColor3D, AI_MATKEY_COLOR_TRANSPARENT, value.r << "," << value.g << "," << value.b );
+		GET( aiColor3D, AI_MATKEY_COLOR_REFLECTIVE, value.r << "," << value.g << "," << value.b );
+		GET( int, AI_MATKEY_TWOSIDED, value );
+		GET( int, AI_MATKEY_SHADING_MODEL, value );
+		GET( int, AI_MATKEY_ENABLE_WIREFRAME, value );
+		GET( int, AI_MATKEY_BLEND_FUNC, value );
+		GET( float, AI_MATKEY_OPACITY, value );
+		GET( float, AI_MATKEY_BUMPSCALING, value );
+		GET( float, AI_MATKEY_SHININESS, value );
+		GET( float, AI_MATKEY_REFLECTIVITY, value );
+		GET( float, AI_MATKEY_SHININESS_STRENGTH, value );
+		GET( float, AI_MATKEY_REFRACTI, value );
+
 		SubMesh m;
 		m.emissive = default_config.emissive;
 		m.color = default_config.color;
