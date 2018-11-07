@@ -3,14 +3,12 @@
 #include <utility>
 #include <queue>
 #include <iostream>
-#include <assimp/Importer.hpp>
-#include <assimp/scene.h>
-#include <assimp/postprocess.h>
 #include <util/exception.hpp>
 #include <vec/vmath.hpp>
+#include <util/config.hpp>
 #include "mesh.hpp"
 
-#define KOISHI_TRIANGLE_STRIPE 16
+#define KOISHI_TRIANGLE_STRIPE 32
 
 namespace koishi
 {
@@ -99,84 +97,122 @@ static void printBVH( const BVHTree &tr, uint index = 1 )
 	}
 }
 
-PolyMesh::PolyMesh( const jsel::Mesh &config )
+static void collectObjects( const aiScene *scene, const aiNode *node, const jsel::Mesh &default_config,
+							std::vector<core::SubMesh> &mesh, const aiMatrix4x4 &tr )
 {
-	Assimp::Importer importer;
-	auto scene = importer.ReadFile( config.path, aiProcess_Triangulate |
-												   aiProcess_GenSmoothNormals |
-												   aiProcess_FlipUVs |
-												   aiProcess_JoinIdenticalVertices |
-												   aiProcess_CalcTangentSpace );
-	if ( !( !scene || scene->mFlags & AI_SCENE_FLAGS_INCOMPLETE || !scene->mRootNode ) )
+	auto trans = tr * node->mTransformation;
+	for ( uint i = 0; i != node->mNumMeshes; ++i )
 	{
-		mesh.resize( scene->mNumMeshes );
-		for ( uint i = 0; i != scene->mNumMeshes; ++i )
+		auto &aimesh = scene->mMeshes[ node->mMeshes[ i ] ];
+		std::vector<double3> vertices;
+		if ( aimesh->HasPositions() )
 		{
-			auto &m = mesh[ i ];
-			m.emissive = config.emissive;
-			m.color = config.color;
-			auto &aimesh = scene->mMeshes[ i ];
-			std::vector<double3> vertices;
-			if ( aimesh->HasPositions() )
+			vertices.resize( aimesh->mNumVertices );
+			for ( uint j = 0; j != aimesh->mNumVertices; ++j )
 			{
-				vertices.resize( aimesh->mNumVertices );
-				for ( uint j = 0; j != aimesh->mNumVertices; ++j )
+				auto v = trans * aimesh->mVertices[ j ];
+				vertices[ j ] = double3{ v.x, v.y, v.z } * default_config.scale;
+				for ( auto &rot : default_config.rotate )
 				{
-					vertices[ j ] = double3{ aimesh->mVertices[ j ].x,
-											 aimesh->mVertices[ j ].y,
-											 aimesh->mVertices[ j ].z } *
-									config.scale;
-					for ( auto &rot : config.rotate )
-					{
-						auto th = radians( rot.degree );
-						auto c = cos( th ), s = sin( th );
-						auto n = normalize( rot.axis );
-						vertices[ j ] = vertices[ j ] * cos( th ) + cross( n, vertices[ j ] ) * s + dot( n, vertices[ j ] ) * n * ( 1 - c );
-					}
-					vertices[ j ] += config.translate;
+					auto th = radians( rot.degree );
+					auto c = cos( th ), s = sin( th );
+					auto n = normalize( rot.axis );
+					vertices[ j ] = vertices[ j ] * cos( th ) + cross( n, vertices[ j ] ) * s + dot( n, vertices[ j ] ) * n * ( 1 - c );
 				}
+				vertices[ j ] += default_config.translate;
 			}
-			std::vector<double3> normals;
-			if ( aimesh->HasNormals() )
+		}
+		std::vector<double3> normals;
+		if ( aimesh->HasNormals() )
+		{
+			normals.resize( aimesh->mNumVertices );
+			for ( uint j = 0; j != aimesh->mNumVertices; ++j )
 			{
-				normals.resize( aimesh->mNumVertices );
-				for ( uint j = 0; j != aimesh->mNumVertices; ++j )
-				{
-					normals[ j ] = double3{ aimesh->mNormals[ j ].x,
-											aimesh->mNormals[ j ].y,
-											aimesh->mNormals[ j ].z };
-				}
+				normals[ j ] = double3{ aimesh->mNormals[ j ].x,
+										aimesh->mNormals[ j ].y,
+										aimesh->mNormals[ j ].z };
 			}
-			std::vector<TriangleInfo> indices;
-			if ( aimesh->HasFaces() )
+		}
+		std::vector<TriangleInfo> indices;
+		if ( aimesh->HasFaces() )
+		{
+			for ( uint j = 0; j != aimesh->mNumFaces; ++j )
 			{
-				indices.resize( aimesh->mNumFaces );
-				for ( uint j = 0; j != aimesh->mNumFaces; ++j )
+				if ( aimesh->mFaces[ j ].mNumIndices == 3 )
 				{
 					auto index = uint3{ aimesh->mFaces[ j ].mIndices[ 0 ],
 										aimesh->mFaces[ j ].mIndices[ 1 ],
 										aimesh->mFaces[ j ].mIndices[ 2 ] };
 					double3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
-					indices[ j ].index = index;
-					indices[ j ].vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );
-					indices[ j ].vmin = min( v[ 0 ], min( v[ 1 ], v[ 2 ] ) );
-					indices[ j ].area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
+					TriangleInfo info;
+					info.index = index;
+					info.vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );
+					info.vmin = min( v[ 0 ], min( v[ 1 ], v[ 2 ] ) );
+					info.area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
+					indices.emplace_back( std::move( info ) );
 				}
 			}
-			m.bvh = createBVH( indices );
-			std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
-			m.vertices = std::move( vertices );
-			m.normals = std::move( normals );
-			m.indices.resize( indices.size() * 3 );
-			for ( uint j = 0; j != indices.size(); ++j )
-			{
-				m.indices[ 3 * j ] = indices[ j ].index.x;
-				m.indices[ 3 * j + 1 ] = indices[ j ].index.y;
-				m.indices[ 3 * j + 2 ] = indices[ j ].index.z;
-			}
 		}
+		if ( indices.size() <= 0 ) continue;
+		SubMesh m;
+		m.emissive = default_config.emissive;
+		m.color = default_config.color;
+		m.bvh = createBVH( indices );
+		std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
+		m.vertices = std::move( vertices );
+		m.normals = std::move( normals );
+		m.indices.resize( indices.size() * 3 );
+		for ( uint j = 0; j != indices.size(); ++j )
+		{
+			m.indices[ 3 * j ] = indices[ j ].index.x;
+			m.indices[ 3 * j + 1 ] = indices[ j ].index.y;
+			m.indices[ 3 * j + 2 ] = indices[ j ].index.z;
+		}
+		mesh.emplace_back( std::move( m ) );
 	}
-	importer.FreeScene();
+	for ( auto i = 0u; i != node->mNumChildren; ++i )
+	{
+		collectObjects( scene, node->mChildren[ i ], default_config, mesh, trans );
+	}
+}
+
+PolyMesh::PolyMesh( const std::vector<double3> &vertices,
+					const std::vector<double3> &normals,
+					const std::vector<uint3> &idx,
+					const jsel::Mesh &default_config )
+{
+	std::vector<TriangleInfo> indices;
+	for ( auto &index : idx )
+	{
+		double3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
+		TriangleInfo info;
+		info.index = index;
+		info.vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );
+		info.vmin = min( v[ 0 ], min( v[ 1 ], v[ 2 ] ) );
+		info.area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
+		indices.emplace_back( std::move( info ) );
+	}
+	SubMesh m;
+	m.emissive = default_config.emissive;
+	m.color = default_config.color;
+	m.bvh = createBVH( indices );
+	std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
+	m.vertices = vertices;
+	m.normals = normals;
+	m.indices.resize( indices.size() * 3 );
+	for ( uint j = 0; j != indices.size(); ++j )
+	{
+		m.indices[ 3 * j ] = indices[ j ].index.x;
+		m.indices[ 3 * j + 1 ] = indices[ j ].index.y;
+		m.indices[ 3 * j + 2 ] = indices[ j ].index.z;
+	}
+	mesh.emplace_back( std::move( m ) );
+}
+
+PolyMesh::PolyMesh( const aiScene *scene, const jsel::Mesh &default_config )
+{
+	auto t = scene->mRootNode->mTransformation;
+	collectObjects( scene, scene->mRootNode, default_config, mesh, t );
 }
 
 }  // namespace core

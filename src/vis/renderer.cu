@@ -1,6 +1,7 @@
 #if defined( KOISHI_USE_GL )
 
 #include <fstream>
+#include <core/scene.hpp>
 #include "renderer.hpp"
 #include "camera.hpp"
 
@@ -72,34 +73,30 @@ struct SubMesh
 
 void Renderer::render( const std::string &path )
 {
-	jsel::Scene scene;
-	std::ifstream( path ) >> scene;
+	core::Scene scene( path );
 	if ( !scene.camera.size() )
 	{
-		throw util::Exception( "No valid camera in this scene." );
+		throw "no camera in the scene.";
 	}
 	Camera camera( w, h, scene.camera[ 0 ] );
 	std::vector<SubMesh> mesh;
-	for ( auto &m : scene.mesh )
+	for ( auto &e : scene.mesh )
 	{
-		for ( auto &e : core::PolyMesh( m ).mesh )
-		{
-			GLuint vao, vbo, ebo;
-			glGenVertexArrays( 1, &vao );
-			glGenBuffers( 1, &vbo );
-			glGenBuffers( 1, &ebo );
-			glBindVertexArray( vao );
-			glBindBuffer( GL_ARRAY_BUFFER, vbo );
-			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
-			glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
-			glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
-			glEnableVertexAttribArray( 0 );
-			glVertexAttribPointer( 0, 3, GL_DOUBLE, GL_FALSE, sizeof( double3 ), (const void *)( 0 ) );
-			glBindVertexArray( 0 );
-			glBindBuffer( GL_ARRAY_BUFFER, 0 );
-			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-			mesh.emplace_back( SubMesh{ vao, e.bvh } );
-		}
+		GLuint vao, vbo, ebo;
+		glGenVertexArrays( 1, &vao );
+		glGenBuffers( 1, &vbo );
+		glGenBuffers( 1, &ebo );
+		glBindVertexArray( vao );
+		glBindBuffer( GL_ARRAY_BUFFER, vbo );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
+		glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
+		glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
+		glEnableVertexAttribArray( 0 );
+		glVertexAttribPointer( 0, 3, GL_DOUBLE, GL_FALSE, sizeof( double3 ), (const void *)( 0 ) );
+		glBindVertexArray( 0 );
+		glBindBuffer( GL_ARRAY_BUFFER, 0 );
+		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+		mesh.emplace_back( SubMesh{ vao, e.bvh } );
 	}
 
 	auto prog = compileShader();

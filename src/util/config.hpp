@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <string>
 #include <vec/vec.hpp>
 #include <util/jsel.hpp>
 
@@ -10,9 +11,13 @@ namespace jsel
 {
 struct Serializable( Camera )
 {
-	Property( double, fovy, 60 );
+	Property( double, fovx, 90 );
+	Property( double, aspect, 0 );
 	Property( double3, position, { 1, 0, 0 } );
 	Property( double3, target, { -1, 0, 0 } );
+	Property( double3, upaxis, { 0, 0, 1 } );
+	Property( double, zNear, 1e-3 );
+	Property( double, zFar, 1e5 );
 };
 
 struct Serializable( Rotate )

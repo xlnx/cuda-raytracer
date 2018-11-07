@@ -25,26 +25,28 @@ PolyFunction( Tracer, Require<Host> )(
 	  if ( MaxThreads < ncores ) ncores = MaxThreads;
 	  std::cout << "using " << ncores << " threads:" << std::endl;
 	  std::vector<std::thread> ts;
-	  for ( auto id = 0; id != ncores; ++id )
-	  {
-		  ts.emplace_back( [id, ncores, spp, h, w, &image, &rays, &ms] {
-			  for ( uint j = id; j < h; j += ncores )
+	  auto tracer_thread = [ncores, spp, h, w, &image, &rays, &ms]( uint id ) {
+		  for ( uint j = id; j < h; j += ncores )
+		  {
+			  for ( uint i = 0; i != w; ++i )
 			  {
-				  for ( uint i = 0; i != w; ++i )
+				  double3 rad = { 0, 0, 0 };
+				  for ( uint k = 0; k != spp; ++k )
 				  {
-					  double3 rad = { 0, 0, 0 };
-					  for ( uint k = 0; k != spp; ++k )
-					  {
-						  rad += Self::call<Radiance>( rays[ ( j * w + i ) * spp + k ], &ms[ 0 ], ms.size() );
-					  }
-					  image.at( i, j ) = rad / spp;
+					  rad += Self::call<Radiance>( rays[ ( j * w + i ) * spp + k ], &ms[ 0 ], ms.size() );
 				  }
+				  image.at( i, j ) = rad / spp;
 			  }
-		  } );
-	  }
-	  for ( auto &th: ts )
+		  }
+	  };
+	  for ( auto id = 0u; id != ncores - 1; ++id )
 	  {
-	  	th.join();
+		  ts.emplace_back( tracer_thread, id );
+	  }
+	  tracer_thread( ncores - 1 );
+	  for ( auto &th : ts )
+	  {
+		  th.join();
 	  }
 	  //std::cout << std::endl;
   } );

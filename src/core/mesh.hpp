@@ -5,6 +5,7 @@
 #include <utility>
 #include <vec/vec.hpp>
 #include <util/config.hpp>
+#include <assimp/scene.h>
 
 namespace koishi
 {
@@ -34,7 +35,11 @@ struct SubMesh : SubMeshCore
 
 struct PolyMesh
 {
-	PolyMesh( const jsel::Mesh &config );
+	PolyMesh( const std::vector<double3> &vertices,
+			  const std::vector<double3> &normals,
+			  const std::vector<uint3> &indices,
+			  const jsel::Mesh &default_config );
+	PolyMesh( const aiScene *scene, const jsel::Mesh &default_config );
 
 	std::vector<SubMesh> mesh;
 };

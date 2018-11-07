@@ -3,7 +3,6 @@
 #if defined( KOISHI_USE_GL )
 
 #include "util.hpp"
-#include <util/upaxis.hpp>
 
 namespace koishi
 {
@@ -18,10 +17,10 @@ public:
 		glViewport( 0, 0, w, h );
 		P = glm::vec3{ config.position.x, config.position.y, config.position.z };
 		N = glm::normalize( glm::vec3{ config.target.x, config.target.y, config.target.z } );
-		Up = { util::upaxis.x, util::upaxis.y, util::upaxis.z };
-		const auto zNear = 1e-3f, zFar = 1e5f;
-		persTrans = glm::perspective( float( glm::radians( config.fovy ) ),
-									  float( w ) / float( h ), zNear, zFar );
+		Up = glm::normalize( glm::vec3{ config.upaxis.x, config.upaxis.y, config.upaxis.z } );
+		auto as = float( w ) / float( h );
+		auto fovy = atan( tan( glm::radians( config.fovx ) * .5 ) / as ) * 2.;
+		persTrans = glm::perspective( float( fovy ), as, float( config.zNear ), float( config.zFar ) );
 	}
 	~Camera() = default;
 
@@ -66,4 +65,3 @@ private:
 }  // namespace koishi
 
 #endif
-
