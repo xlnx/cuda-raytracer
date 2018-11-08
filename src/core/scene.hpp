@@ -13,7 +13,8 @@ struct Scene
 {
 	Scene( const std::string &path );
 
-	std::vector<core::SubMesh> mesh;
+	std::vector<core::Mesh> mesh;
+	std::vector<std::string> material;
 	std::vector<jsel::Camera> camera;
 };
 

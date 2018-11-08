@@ -115,7 +115,7 @@ static void printBVH( const BVHTree &tr, uint index = 1 )
 	} while ( 0 )
 
 static void collectObjects( const aiScene *scene, const aiNode *node, const jsel::Mesh &default_config,
-							std::vector<core::SubMesh> &mesh, const aiMatrix4x4 &tr )
+							std::vector<core::Mesh> &mesh, const aiMatrix4x4 &tr )
 {
 	auto trans = tr * node->mTransformation;
 	for ( uint i = 0; i != node->mNumMeshes; ++i )
@@ -193,9 +193,9 @@ static void collectObjects( const aiScene *scene, const aiNode *node, const jsel
 		GET( float, AI_MATKEY_SHININESS_STRENGTH, value );
 		GET( float, AI_MATKEY_REFRACTI, value );
 
-		SubMesh m;
-		m.emissive = default_config.emissive;
-		m.color = default_config.color;
+		Mesh m;
+		// m.emissive = default_config.emissive;
+		// m.color = default_config.color;
 		m.bvh = createBVH( indices );
 		std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
 		m.vertices = std::move( vertices );
@@ -231,9 +231,9 @@ PolyMesh::PolyMesh( const std::vector<double3> &vertices,
 		info.area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
 		indices.emplace_back( std::move( info ) );
 	}
-	SubMesh m;
-	m.emissive = default_config.emissive;
-	m.color = default_config.color;
+	Mesh m;
+	// m.emissive = default_config.emissive;
+	// m.color = default_config.color;
 	m.bvh = createBVH( indices );
 	std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
 	m.vertices = vertices;

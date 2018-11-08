@@ -5,18 +5,21 @@
 #include <iostream>
 #include <vec/vec.hpp>
 #include <util/image.hpp>
+#include <core/device/scene.hpp>
 #include "mesh.hpp"
 #include "ray.hpp"
-#include "dev.hpp"
+#include "poly.hpp"
+#include "allocator.hpp"
 
 namespace koishi
 {
 namespace core
 {
-template <typename Radiance, uint MaxThreads = -1u>
-PolyFunction( Tracer, Require<Host> )(
-  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
-	  std::vector<dev::Mesh> ms( meshs.begin(), meshs.end() );
+template <typename Radiance, typename Alloc = HostAllocator, uint MaxThreads = -1u>
+PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
+  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<Mesh> &meshs, uint spp )->void {
+	  Alloc pool;
+	  auto scene = dev::Scene::create<call_type>( meshs );
 
 	  uint w = image.width();
 	  uint h = image.height();
@@ -25,7 +28,7 @@ PolyFunction( Tracer, Require<Host> )(
 	  if ( MaxThreads < ncores ) ncores = MaxThreads;
 	  std::cout << "using " << ncores << " threads:" << std::endl;
 	  std::vector<std::thread> ts;
-	  auto tracer_thread = [ncores, spp, h, w, &image, &rays, &ms]( uint id ) {
+	  auto tracer_thread = [ncores, spp, h, w, scene, &image, &rays, &pool]( uint id ) {
 		  for ( uint j = id; j < h; j += ncores )
 		  {
 			  for ( uint i = 0; i != w; ++i )
@@ -33,7 +36,8 @@ PolyFunction( Tracer, Require<Host> )(
 				  double3 rad = { 0, 0, 0 };
 				  for ( uint k = 0; k != spp; ++k )
 				  {
-					  rad += Self::call<Radiance>( rays[ ( j * w + i ) * spp + k ], &ms[ 0 ], ms.size() );
+					  rad += Self::template call<Radiance>( rays[ ( j * w + i ) * spp + k ], scene, pool );
+					  clear( pool );
 				  }
 				  image.at( i, j ) = rad / spp;
 			  }
@@ -48,24 +52,27 @@ PolyFunction( Tracer, Require<Host> )(
 	  {
 		  th.join();
 	  }
-	  //std::cout << std::endl;
+
+	  dev::Scene::destroy<call_type>( scene );
   } );
 
 #if defined( KOISHI_USE_CUDA )
 
 namespace cuda
 {
-template <typename Radiance>
+template <typename Radiance, typename Alloc>
 __global__ void intergrate( const Ray *rays, double3 *buffer, const dev::Mesh *meshs, uint N, uint h )
 {
-	// __shared__ double3 rad = { 0, 0, 0 };
+	Alloc pool;
+
 	extern __shared__ double3 rad[];
 
 	auto index = threadIdx.x + blockIdx.x * blockDim.x;
 	auto stride = gridDim.x * blockDim.x;
 	for ( uint i = index, j = 0; i < N; i += stride, ++j )
 	{
-		rad[ j ] += Device::call<Radiance>( rays[ i ], meshs );
+		rad[ j ] += Device::call<Radiance>( rays[ i ], meshs, pool );
+		clear( pool );
 	}
 
 	__syncthreads();
@@ -76,9 +83,12 @@ __global__ void intergrate( const Ray *rays, double3 *buffer, const dev::Mesh *m
 	}
 }
 
-template <typename Radiance>
+template <typename Radiance, typename Alloc = DeviceAllocator>
 PolyFunction( Tracer, Require<Host> )(
-  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<SubMesh> &meshs, uint spp )->void {
+  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<Mesh> &meshs, uint spp )->void {
+	  static_assert( std::is_base_of<Device, Radiance>::value );
+	  static_assert( std::is_base_of<Device, Alloc>::value );
+
 	  uint w = image.width();
 	  uint h = image.height();
 
@@ -89,7 +99,7 @@ PolyFunction( Tracer, Require<Host> )(
 	  thrust::device_vector<double3> devBuffer( w * h );
 	  thrust::device_vector<dev::Mesh> devMeshs( meshs.begin(), meshs.end() );
 
-	  intergrate<Radiance><<<gridDim, blockDim, h * sizeof( double3 )>>>(
+	  intergrate<Radiance, Alloc><<<gridDim, blockDim, h * sizeof( double3 )>>>(
 		( &devRays[ 0 ] ).get(), ( &devBuffer[ 0 ] ).get(), ( &devMeshs[ 0 ] ).get(), rays.size(), h );
 
 	  thrust::host_vector<double3> buffer = std::move( devBuffer );

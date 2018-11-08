@@ -1,59 +1,55 @@
 #pragma once
 
 #include <vec/vec.hpp>
+#include <core/device/scene.hpp>
 #include "mesh.hpp"
 #include "ray.hpp"
-#include "dev.hpp"
+#include "poly.hpp"
+#include "allocator.hpp"
 
 namespace koishi
 {
 namespace core
 {
 template <typename Random>
-PolyFunction( Radiance, Require<Random> )(
-  ( const core::Ray &r, const dev::Mesh *mesh, uint N, uint depth = 0 )->double3 {
-	  const dev::Mesh *pm;
-	  core::Hit hit;
-	  for ( uint i = 0; i != N; ++i )
+PolyFunction( CosSampleHemisphere, Require<Random> )(
+  ()->double3 {
+	  double3 w;
+	  auto r1 = 2 * M_PI * call<Random>(), r2 = call<Random>(), r2s = sqrt( r2 );
+
+	  return w;
+  } );
+
+template <typename Random>
+PolyFunction( SampleBsdf, Require<Random> )(
+  ( const double3 &wo )->double3 {
+	  double3 w;
+	  auto r1 = 2 * M_PI * call<Random>(), r2 = call<Random>(), r2s = sqrt( r2 );
+	  auto u = normalize( cross( abs( wo.x ) > abs( wo.y ) ? double3{ 0, 1, 0 } : double3{ 1, 0, 0 }, wo ) );
+	  auto v = cross( wo, u );
+	  return normalize( ( u * cos( r1 ) + v * sin( r1 ) ) * r2s + wo * sqrt( 1 - r2s ) );
+  } );
+
+template <typename Random>
+PolyFunction( Radiance, Require<SampleBsdf<Random>> )(
+  ( const core::Ray &r, dev::Scene *scene, Allocator &pool )->double3 {
+	  auto ray = r;
+	  dev::Hit hit;
+	  double3 L = { 0, 0, 0 };
+	  constexpr auto maxBounce = 10;
+
+	  for ( auto bounce = 0; ( hit = scene->intersect( ray, pool ) ) && bounce != maxBounce; ++bounce )
 	  {
-		  core::Hit hit1;
-		  if ( r.intersect( mesh[ i ], 1, hit1 ) && hit1.t < hit.t )
-		  {
-			  hit = hit1;
-			  pm = mesh + i;
-		  }
+		  auto spec = reflect( ray.d, hit.n );
+		  auto diff = call<SampleBsdf<Random>>( spec );
+
+		  // L += hit.mesh->emissive;
+
+		  ray = hit.emitRay( call<Random>() < .9 ? diff : spec );
+		  // clear( pool );
 	  }
-	  if ( hit )
-	  {
-		  auto n = core::interplot( pm->normals[ pm->indices[ hit.id ] ],
-									pm->normals[ pm->indices[ hit.id + 1 ] ],
-									pm->normals[ pm->indices[ hit.id + 2 ] ],
-									hit.uv );
-		  // if ( dot( n, r.v ) > 0 ) n = -n;
-		  auto nr = r.reflect( hit.t, n );
-		  // return normalize( nr.v );
-		  auto r1 = 2 * M_PI * call<Random>(), r2 = call<Random>(), r2s = sqrt( r2 );
-		  auto u = normalize( cross( abs( nr.v.x ) > abs( nr.v.y ) ? double3{ 0, 1, 0 } : double3{ 1, 0, 0 }, nr.v ) );
-		  auto v = cross( nr.v, u );
-		  auto dr = nr;
-		  dr.v = normalize( ( u * cos( r1 ) + v * sin( r1 ) ) * r2s + nr.v * sqrt( 1 - r2s ) );
-		  // return nr.v;  //( r.o + r.v * hit.t ) / 100.;
-		  if ( depth < 100 )
-			  if ( call<Random>() < .9 )
-				  return pm->emissive +
-						 pm->color *
-						   call<Radiance>( dr, mesh, N, depth + 1 );
-			  else
-				  return pm->emissive +
-						 pm->color *
-						   call<Radiance>( nr, mesh, N, depth + 1 );
-		  else
-			  return pm->emissive;
-	  }
-	  else
-	  {
-		  return double3{ 0.f, 0.f, 0.f };
-	  }
+
+	  return L;
   } );
 
 }  // namespace core

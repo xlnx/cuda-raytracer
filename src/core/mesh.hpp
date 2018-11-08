@@ -1,11 +1,14 @@
 #pragma once
 
+#include <new>
+#include <cstdlib>
 #include <string>
 #include <vector>
 #include <utility>
 #include <vec/vec.hpp>
 #include <util/config.hpp>
 #include <assimp/scene.h>
+#include <core/ray.hpp>
 
 namespace koishi
 {
@@ -19,18 +22,13 @@ struct BVHNode
 
 using BVHTree = std::vector<BVHNode>;
 
-struct SubMeshCore
-{
-	double3 emissive;
-	double3 color;
-};
-
-struct SubMesh : SubMeshCore
+struct Mesh
 {
 	std::vector<double3> vertices;
 	std::vector<double3> normals;
 	std::vector<uint> indices;
 	BVHTree bvh;
+	uint matid;
 };
 
 struct PolyMesh
@@ -41,34 +39,8 @@ struct PolyMesh
 			  const jsel::Mesh &default_config );
 	PolyMesh( const aiScene *scene, const jsel::Mesh &default_config );
 
-	std::vector<SubMesh> mesh;
+	std::vector<Mesh> mesh;
 };
-
-namespace dev
-{
-struct Mesh : SubMeshCore
-{
-	const double3 *vertices;
-	const double3 *normals;
-	const uint *indices;
-	const BVHNode *bvh;
-
-	Mesh() = delete;
-	Mesh( const SubMesh &other ) :
-	  SubMeshCore( other ),
-	  vertices( &other.vertices[ 0 ] ),
-	  normals( &other.normals[ 0 ] ),
-	  indices( &other.indices[ 0 ] ),
-	  bvh( &other.bvh[ 0 ] )
-	{
-	}
-};
-
-}  // namespace dev
-
-#if defined( KOISHI_USE_CUDA )
-
-#endif
 
 }  // namespace core
 

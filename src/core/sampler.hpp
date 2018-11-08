@@ -32,7 +32,7 @@ struct Sampler
 				for ( uint k = 0; k != spp; ++k )
 				{
 					ray[ k ].o = camera.position;
-					ray[ k ].v = normalize( N + .8 * ( U * sin( radians( 30. + k * 360. / spp ) ) +
+					ray[ k ].d = normalize( N + .8 * ( U * sin( radians( 30. + k * 360. / spp ) ) +
 													   V * cos( radians( 30. + k * 360. / spp ) ) ) );
 				}
 			}

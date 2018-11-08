@@ -65,7 +65,7 @@ static GLuint compileShader()
 	return prog;
 }
 
-struct SubMesh
+struct Mesh
 {
 	GLuint vao;
 	core::BVHTree bvh;
@@ -79,7 +79,7 @@ void Renderer::render( const std::string &path )
 		throw "no camera in the scene.";
 	}
 	Camera camera( w, h, scene.camera[ 0 ] );
-	std::vector<SubMesh> mesh;
+	std::vector<Mesh> mesh;
 	for ( auto &e : scene.mesh )
 	{
 		GLuint vao, vbo, ebo;
@@ -96,7 +96,7 @@ void Renderer::render( const std::string &path )
 		glBindVertexArray( 0 );
 		glBindBuffer( GL_ARRAY_BUFFER, 0 );
 		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-		mesh.emplace_back( SubMesh{ vao, e.bvh } );
+		mesh.emplace_back( Mesh{ vao, e.bvh } );
 	}
 
 	auto prog = compileShader();

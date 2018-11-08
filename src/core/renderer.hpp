@@ -6,19 +6,19 @@
 #include <vec/vmath.hpp>
 #include <vec/vios.hpp>
 #include <util/image.hpp>
+#include "allocator.hpp"
 #include "scene.hpp"
 #include "sampler.hpp"
 #include "ray.hpp"
 #include "mesh.hpp"
 #include "radiance.hpp"
 #include "random.hpp"
-#include "dev.hpp"
 
 namespace koishi
 {
 namespace core
 {
-template <typename Tracer = core::Radiance<core::DRand48>>
+template <typename Tracer>
 class Renderer
 {
 	using call_type = Host;

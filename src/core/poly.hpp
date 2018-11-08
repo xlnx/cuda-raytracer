@@ -3,7 +3,6 @@
 #include <type_traits>
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
-#include "mesh.hpp"
 
 #if defined( KOISHI_USE_CUDA )
 #include <thrust/device_vector.h>
