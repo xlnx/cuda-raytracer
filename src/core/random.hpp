@@ -2,7 +2,7 @@
 
 #include <cstdlib>
 #include <ctime>
-#include "poly.hpp"
+#include <core/basic/poly.hpp>
 
 namespace koishi
 {

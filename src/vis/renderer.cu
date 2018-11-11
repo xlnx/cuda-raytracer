@@ -1,7 +1,8 @@
 #if defined( KOISHI_USE_GL )
 
 #include <fstream>
-#include <core/scene.hpp>
+#include <utility>
+#include <core/meta/scene.hpp>
 #include "renderer.hpp"
 #include "camera.hpp"
 
@@ -73,66 +74,75 @@ struct Mesh
 
 void Renderer::render( const std::string &path )
 {
-	core::Scene scene( path );
-	if ( !scene.camera.size() )
+	if ( core::Scene scene = path )
 	{
-		throw "no camera in the scene.";
-	}
-	Camera camera( w, h, scene.camera[ 0 ] );
-	std::vector<Mesh> mesh;
-	for ( auto &e : scene.mesh )
-	{
-		GLuint vao, vbo, ebo;
-		glGenVertexArrays( 1, &vao );
-		glGenBuffers( 1, &vbo );
-		glGenBuffers( 1, &ebo );
-		glBindVertexArray( vao );
-		glBindBuffer( GL_ARRAY_BUFFER, vbo );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
-		glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
-		glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
-		glEnableVertexAttribArray( 0 );
-		glVertexAttribPointer( 0, 3, GL_DOUBLE, GL_FALSE, sizeof( double3 ), (const void *)( 0 ) );
-		glBindVertexArray( 0 );
-		glBindBuffer( GL_ARRAY_BUFFER, 0 );
-		glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
-		mesh.emplace_back( Mesh{ vao, e.bvh } );
-	}
-
-	auto prog = compileShader();
-	glUseProgram( prog );
-
-	while ( !glfwWindowShouldClose( window ) )
-	{
-		glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
-
-		static auto prev = glfwGetTime();
-		auto curr = glfwGetTime();
-		auto detMillis = curr - prev;
-
-		auto mat = camera.getTrans();
-		glUniformMatrix4fv( glGetUniformLocation( prog, "wvp" ), 1, GL_FALSE,
-							reinterpret_cast<const float *>( &mat ) );
-
-		auto k = 1;
-		for ( auto &m : mesh )
+		if ( !scene.camera.size() )
 		{
-			glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
-			glUniform1i( glGetUniformLocation( prog, "mode" ), 0 );
-			glBindVertexArray( m.vao );
-			glDrawElements( GL_TRIANGLES, m.bvh[ 1 ].end - m.bvh[ 1 ].begin, GL_UNSIGNED_INT, nullptr );
+			throw "no camera in the scene.";
+		}
+		Camera camera( w, h, scene.camera[ 0 ] );
+		std::vector<Mesh> mesh;
+		// static_assert( std::is_same<core::PolyVectorView<core::Mesh> &, decltype( ( scene.mesh ) )>::value );
+		// static_assert( std::is_same<const core::BVHTree &&, decltype( std::move( e.bvh ) )>::value );
+		for ( core::Mesh &e : scene.mesh )
+		{
+			GLuint vao, vbo, ebo;
+			glGenVertexArrays( 1, &vao );
+			glGenBuffers( 1, &vbo );
+			glGenBuffers( 1, &ebo );
+			glBindVertexArray( vao );
+			glBindBuffer( GL_ARRAY_BUFFER, vbo );
+			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, ebo );
+			glBufferData( GL_ARRAY_BUFFER, e.vertices.size() * sizeof( e.vertices[ 0 ] ), &e.vertices[ 0 ], GL_STATIC_DRAW );
+			glBufferData( GL_ELEMENT_ARRAY_BUFFER, e.indices.size() * sizeof( e.indices[ 0 ] ), &e.indices[ 0 ], GL_STATIC_DRAW );
+			glEnableVertexAttribArray( 0 );
+			glVertexAttribPointer( 0, 3, GL_DOUBLE, GL_FALSE, sizeof( double3 ), (const void *)( 0 ) );
 			glBindVertexArray( 0 );
-
-			glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
-			glUniform1i( glGetUniformLocation( prog, "mode" ), 1 );
-			glBindVertexArray( m.vao );
-			glDrawElements( GL_TRIANGLES, m.bvh[ k ].end - m.bvh[ k ].begin,
-							GL_UNSIGNED_INT, (uint *)nullptr + m.bvh[ k ].begin );
-			glBindVertexArray( 0 );
+			glBindBuffer( GL_ARRAY_BUFFER, 0 );
+			glBindBuffer( GL_ELEMENT_ARRAY_BUFFER, 0 );
+			// static_assert( std::is_same<core::BVHTree, decltype( e.bvh )>::value );
+			// static_assert( std::is_same<const core::BVHTree &&, decltype( std::move( e.bvh ) )>::value );
+			Mesh m;
+			m.vao = vao;
+			m.bvh = std::move( e.bvh );
+			mesh.emplace_back( std::move( m ) );
 		}
 
-		glfwPollEvents();
-		glfwSwapBuffers( window );
+		auto prog = compileShader();
+		glUseProgram( prog );
+
+		while ( !glfwWindowShouldClose( window ) )
+		{
+			glClear( GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT );
+
+			static auto prev = glfwGetTime();
+			auto curr = glfwGetTime();
+			auto detMillis = curr - prev;
+
+			auto mat = camera.getTrans();
+			glUniformMatrix4fv( glGetUniformLocation( prog, "wvp" ), 1, GL_FALSE,
+								reinterpret_cast<const float *>( &mat ) );
+
+			auto k = 1;
+			for ( auto &m : mesh )
+			{
+				glPolygonMode( GL_FRONT_AND_BACK, GL_LINE );
+				glUniform1i( glGetUniformLocation( prog, "mode" ), 0 );
+				glBindVertexArray( m.vao );
+				glDrawElements( GL_TRIANGLES, m.bvh[ 1 ].end - m.bvh[ 1 ].begin, GL_UNSIGNED_INT, nullptr );
+				glBindVertexArray( 0 );
+
+				glPolygonMode( GL_FRONT_AND_BACK, GL_FILL );
+				glUniform1i( glGetUniformLocation( prog, "mode" ), 1 );
+				glBindVertexArray( m.vao );
+				glDrawElements( GL_TRIANGLES, m.bvh[ k ].end - m.bvh[ k ].begin,
+								GL_UNSIGNED_INT, (uint *)nullptr + m.bvh[ k ].begin );
+				glBindVertexArray( 0 );
+			}
+
+			glfwPollEvents();
+			glfwSwapBuffers( window );
+		}
 	}
 }
 

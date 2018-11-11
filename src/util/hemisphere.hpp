@@ -9,17 +9,17 @@ constexpr double PI = M_PI;
 
 namespace hemisphere
 {
-KOISHI_HOST_DEVICE bool isSame( const double3 &w0, const double3 &w1 )
+KOISHI_HOST_DEVICE inline bool isSame( const double3 &w0, const double3 &w1 )
 {
 	return w0.z * w1.z > 0.;
 }
 
-KOISHI_HOST_DEVICE double h( const double3 &w )
+KOISHI_HOST_DEVICE inline double h( const double3 &w )
 {
 	return abs( w.z );
 }
 
-KOISHI_HOST_DEVICE double3 sampleCos( const double2 &rn )
+KOISHI_HOST_DEVICE inline double3 sampleCos( const double2 &rn )
 {
 	auto uv = 2. * rn - 1;  // map uniform rn to [-1,1]
 	if ( uv.x == 0 && uv.y == 0 )

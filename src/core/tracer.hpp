@@ -5,11 +5,11 @@
 #include <iostream>
 #include <vec/vec.hpp>
 #include <util/image.hpp>
-#include <core/device/scene.hpp>
-#include "mesh.hpp"
-#include "ray.hpp"
-#include "poly.hpp"
-#include "allocator.hpp"
+#include <core/basic/ray.hpp>
+#include <core/basic/poly.hpp>
+#include <core/basic/allocator.hpp>
+#include <core/meta/mesh.hpp>
+#include <core/meta/scene.hpp>
 
 namespace koishi
 {
@@ -17,9 +17,8 @@ namespace core
 {
 template <typename Radiance, typename Alloc = HostAllocator, uint MaxThreads = -1u>
 PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
-  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<Mesh> &meshs, uint spp )->void {
+  ( util::Image<3> & image, const PolyVectorView<Ray> &rays, const Scene &scene, uint spp )->void {
 	  Alloc pool;
-	  auto scene = dev::Scene::create<call_type>( meshs );
 
 	  uint w = image.width();
 	  uint h = image.height();
@@ -28,7 +27,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 	  if ( MaxThreads < ncores ) ncores = MaxThreads;
 	  std::cout << "using " << ncores << " threads:" << std::endl;
 	  std::vector<std::thread> ts;
-	  auto tracer_thread = [ncores, spp, h, w, scene, &image, &rays, &pool]( uint id ) {
+	  auto tracer_thread = [ncores, spp, h, w, &scene, &image, &rays, &pool]( uint id ) {
 		  for ( uint j = id; j < h; j += ncores )
 		  {
 			  for ( uint i = 0; i != w; ++i )
@@ -52,8 +51,6 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 	  {
 		  th.join();
 	  }
-
-	  dev::Scene::destroy<call_type>( scene );
   } );
 
 #if defined( KOISHI_USE_CUDA )
@@ -85,7 +82,7 @@ __global__ void intergrate( const Ray *rays, double3 *buffer, const dev::Mesh *m
 
 template <typename Radiance, typename Alloc = DeviceAllocator>
 PolyFunction( Tracer, Require<Host> )(
-  ( util::Image<3> & image, const std::vector<Ray> &rays, const std::vector<Mesh> &meshs, uint spp )->void {
+  ( util::Image<3> & image, const PolyVectorView<Ray> &rays, const Scene &scene, uint spp )->void {
 	  static_assert( std::is_base_of<Device, Radiance>::value );
 	  static_assert( std::is_base_of<Device, Alloc>::value );
 

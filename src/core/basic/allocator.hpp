@@ -26,14 +26,14 @@ struct Allocator
 };
 
 template <typename T, typename... Args>
-KOISHI_HOST_DEVICE T *alloc( Allocator &al, Args &&... args )
+KOISHI_HOST_DEVICE inline T *alloc( Allocator &al, Args &&... args )
 {
 	auto ptr = reinterpret_cast<T *>( al.alloc( sizeof( T ) ) );
 	new ( ptr ) T( std::forward<Args>( args )... );
 	return ptr;
 }
 
-KOISHI_HOST_DEVICE void clear( Allocator &al )
+KOISHI_HOST_DEVICE inline void clear( Allocator &al )
 {
 	al.clear();
 }
@@ -91,13 +91,13 @@ private:
 	}
 
 private:
-	static constexpr std::size_t block_size = 2048u;
+	const std::size_t block_size = 2048u;
 
 	using char_type = typename std::aligned_storage<1, 64u>::type;
 
 	std::size_t rest_size = block_size, curr_block = 0;
-	char_type *data = new char_type[ block_size ];
-	std::vector<std::pair<std::size_t, char_type *>> blocks{ { block_size, data } };
+	char_type *data = new char_type[ rest_size ];
+	std::vector<std::pair<std::size_t, char_type *>> blocks{ { rest_size, data } };
 };
 
 #if defined( KOISHI_USE_CUDA )

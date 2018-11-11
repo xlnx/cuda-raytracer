@@ -71,8 +71,8 @@ struct Ray
 	}
 };
 
-KOISHI_HOST_DEVICE double3 interplot( const double3 &v0, const double3 &v1,
-									  const double3 &v2, const double2 &uv )
+KOISHI_HOST_DEVICE inline double3 interplot( const double3 &v0, const double3 &v1,
+											 const double3 &v2, const double2 &uv )
 {
 	return v0 * ( 1 - uv.x - uv.y ) + v1 * uv.x + v2 * uv.y;
 }

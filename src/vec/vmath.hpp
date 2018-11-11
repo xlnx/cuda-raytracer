@@ -18,16 +18,17 @@ namespace vm
 	__device__
 #define KOISHI_HOST_DEVICE \
 	__host__ __device__
+
 #define KOISHI_MATH_NAMESP
 
 #else
 
-#define KOISHI_HOST \
-	inline
-#define KOISHI_DEVICE \
-	inline
-#define KOISHI_HOST_DEVICE \
-	inline
+#define KOISHI_HOST
+
+#define KOISHI_DEVICE
+
+#define KOISHI_HOST_DEVICE
+
 #define KOISHI_MATH_NAMESP \
 	std
 

@@ -5,7 +5,6 @@
 #include <iostream>
 #include <util/exception.hpp>
 #include <vec/vmath.hpp>
-#include <util/config.hpp>
 #include "mesh.hpp"
 
 #define KOISHI_TRIANGLE_STRIPE 32
@@ -29,7 +28,7 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 		uint index;
 		std::vector<TriangleInfo>::iterator begin, end;
 	};
-	BVHTree res( 2 );
+	BVHTree::buffer_type res( 2 );
 	std::queue<QueueItem> Q;
 	Q.emplace( QueueItem{ 1, info.begin(), info.end() } );
 	while ( !Q.empty() )
@@ -97,49 +96,66 @@ static void printBVH( const BVHTree &tr, uint index = 1 )
 	}
 }
 
-#define GET( type, key, f )                                            \
-	do                                                                 \
-	{                                                                  \
-		std::string name = #key;                                       \
-		{                                                              \
-			type value;                                                \
-			if ( mat->Get( key, value ) == AI_SUCCESS )                \
-			{                                                          \
-				std::cout << "> " << name << ": " << f << std::endl;   \
-			}                                                          \
-			else                                                       \
-			{                                                          \
-				std::cout << "> " << name << ": unknown" << std::endl; \
-			}                                                          \
-		}                                                              \
-	} while ( 0 )
+KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit ) const
+{
+	uint i = root;
+	while ( !bvh[ i ].isleaf )
+	{
+		auto left = ray.intersect_bbox( bvh[ i << 1 ].vmin, bvh[ i << 1 ].vmax );
+		auto right = ray.intersect_bbox( bvh[ ( i << 1 ) + 1 ].vmin, bvh[ ( i << 1 ) + 1 ].vmax );
+		if ( !left && !right ) return false;
+		if ( left && right )
+		{
+			Hit hit1;
+			auto b0 = intersect( ray, root << 1, hit );
+			auto b1 = intersect( ray, ( root << 1 ) | 1, hit1 );
+			if ( !b0 && !b1 )
+			{
+				return false;
+			}
+			if ( !b0 || b1 && hit1.t < hit.t )
+			{
+				hit = hit1;
+			}
+			return true;
+		}
+		i <<= 1;
+		if ( right ) i |= 1;
+	}
+	// return true;
+	hit.t = INFINITY;
+	for ( uint j = bvh[ i ].begin; j < bvh[ i ].end; j += 3 )
+	{
+		Hit hit1;
+		if ( ray.intersect_triangle( vertices[ indices[ j ] ],
+									 vertices[ indices[ j + 1 ] ],
+									 vertices[ indices[ j + 2 ] ], hit1 ) &&
+			 hit1.t < hit.t )
+		{
+			hit = hit1;
+			hit.id = j;
+		}
+	}
+	return hit.t != INFINITY;
+}
 
-static void collectObjects( const aiScene *scene, const aiNode *node, const jsel::Mesh &default_config,
-							std::vector<core::Mesh> &mesh, const aiMatrix4x4 &tr )
+void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const aiMatrix4x4 &tr )
 {
 	auto trans = tr * node->mTransformation;
 	for ( uint i = 0; i != node->mNumMeshes; ++i )
 	{
 		auto aimesh = scene->mMeshes[ node->mMeshes[ i ] ];
-		std::vector<double3> vertices;
+		PolyVector<double3> vertices;
 		if ( aimesh->HasPositions() )
 		{
 			vertices.resize( aimesh->mNumVertices );
 			for ( uint j = 0; j != aimesh->mNumVertices; ++j )
 			{
 				auto v = trans * aimesh->mVertices[ j ];
-				vertices[ j ] = double3{ v.x, v.y, v.z } * default_config.scale;
-				for ( auto &rot : default_config.rotate )
-				{
-					auto th = radians( rot.degree );
-					auto c = cos( th ), s = sin( th );
-					auto n = normalize( rot.axis );
-					vertices[ j ] = vertices[ j ] * cos( th ) + cross( n, vertices[ j ] ) * s + dot( n, vertices[ j ] ) * n * ( 1 - c );
-				}
-				vertices[ j ] += default_config.translate;
+				vertices[ j ] = double3{ v.x, v.y, v.z };
 			}
 		}
-		std::vector<double3> normals;
+		PolyVector<double3> normals;
 		if ( aimesh->HasNormals() )
 		{
 			normals.resize( aimesh->mNumVertices );
@@ -172,27 +188,6 @@ static void collectObjects( const aiScene *scene, const aiNode *node, const jsel
 		}
 		if ( indices.size() <= 0 ) continue;
 
-		std::cout << "mesh: " << node->mName.C_Str() << ", mateial: " << aimesh->mMaterialIndex << std::endl;
-		auto mat = scene->mMaterials[ aimesh->mMaterialIndex ];
-
-		GET( aiString, AI_MATKEY_NAME, value.C_Str() );
-		GET( aiColor3D, AI_MATKEY_COLOR_DIFFUSE, value.r << "," << value.g << "," << value.b );
-		GET( aiColor3D, AI_MATKEY_COLOR_AMBIENT, value.r << "," << value.g << "," << value.b );
-		GET( aiColor3D, AI_MATKEY_COLOR_SPECULAR, value.r << "," << value.g << "," << value.b );
-		GET( aiColor3D, AI_MATKEY_COLOR_EMISSIVE, value.r << "," << value.g << "," << value.b );
-		GET( aiColor3D, AI_MATKEY_COLOR_TRANSPARENT, value.r << "," << value.g << "," << value.b );
-		GET( aiColor3D, AI_MATKEY_COLOR_REFLECTIVE, value.r << "," << value.g << "," << value.b );
-		GET( int, AI_MATKEY_TWOSIDED, value );
-		GET( int, AI_MATKEY_SHADING_MODEL, value );
-		GET( int, AI_MATKEY_ENABLE_WIREFRAME, value );
-		GET( int, AI_MATKEY_BLEND_FUNC, value );
-		GET( float, AI_MATKEY_OPACITY, value );
-		GET( float, AI_MATKEY_BUMPSCALING, value );
-		GET( float, AI_MATKEY_SHININESS, value );
-		GET( float, AI_MATKEY_REFLECTIVITY, value );
-		GET( float, AI_MATKEY_SHININESS_STRENGTH, value );
-		GET( float, AI_MATKEY_REFRACTI, value );
-
 		Mesh m;
 		// m.emissive = default_config.emissive;
 		// m.color = default_config.color;
@@ -200,25 +195,26 @@ static void collectObjects( const aiScene *scene, const aiNode *node, const jsel
 		std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
 		m.vertices = std::move( vertices );
 		m.normals = std::move( normals );
-		m.indices.resize( indices.size() * 3 );
+		m.matid = aimesh->mMaterialIndex;
+		PolyVector<uint> idxBuffer( indices.size() * 3 );
 		for ( uint j = 0; j != indices.size(); ++j )
 		{
-			m.indices[ 3 * j ] = indices[ j ].index.x;
-			m.indices[ 3 * j + 1 ] = indices[ j ].index.y;
-			m.indices[ 3 * j + 2 ] = indices[ j ].index.z;
+			idxBuffer[ 3 * j ] = indices[ j ].index.x;
+			idxBuffer[ 3 * j + 1 ] = indices[ j ].index.y;
+			idxBuffer[ 3 * j + 2 ] = indices[ j ].index.z;
 		}
+		m.indices = std::move( idxBuffer );
 		mesh.emplace_back( std::move( m ) );
 	}
 	for ( auto i = 0u; i != node->mNumChildren; ++i )
 	{
-		collectObjects( scene, node->mChildren[ i ], default_config, mesh, trans );
+		collectObjects( scene, node->mChildren[ i ], trans );
 	}
 }
 
-PolyMesh::PolyMesh( const std::vector<double3> &vertices,
-					const std::vector<double3> &normals,
-					const std::vector<uint3> &idx,
-					const jsel::Mesh &default_config )
+PolyMesh::PolyMesh( PolyVector<double3> &&vertices,
+					PolyVector<double3> &&normals,
+					const std::vector<uint3> &idx )
 {
 	std::vector<TriangleInfo> indices;
 	for ( auto &index : idx )
@@ -232,26 +228,32 @@ PolyMesh::PolyMesh( const std::vector<double3> &vertices,
 		indices.emplace_back( std::move( info ) );
 	}
 	Mesh m;
-	// m.emissive = default_config.emissive;
-	// m.color = default_config.color;
 	m.bvh = createBVH( indices );
 	std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
-	m.vertices = vertices;
-	m.normals = normals;
-	m.indices.resize( indices.size() * 3 );
+	m.vertices = std::move( vertices );
+	m.normals = std::move( normals );
+	PolyVector<uint> idxBuffer( indices.size() * 3 );
 	for ( uint j = 0; j != indices.size(); ++j )
 	{
-		m.indices[ 3 * j ] = indices[ j ].index.x;
-		m.indices[ 3 * j + 1 ] = indices[ j ].index.y;
-		m.indices[ 3 * j + 2 ] = indices[ j ].index.z;
+		idxBuffer[ 3 * j ] = indices[ j ].index.x;
+		idxBuffer[ 3 * j + 1 ] = indices[ j ].index.y;
+		idxBuffer[ 3 * j + 2 ] = indices[ j ].index.z;
 	}
+	m.indices = std::move( idxBuffer );
 	mesh.emplace_back( std::move( m ) );
 }
 
-PolyMesh::PolyMesh( const aiScene *scene, const jsel::Mesh &default_config )
+PolyMesh::PolyMesh( const aiScene *scene )
 {
 	auto t = scene->mRootNode->mTransformation;
-	collectObjects( scene, scene->mRootNode, default_config, mesh, t );
+	collectObjects( scene, scene->mRootNode, t );
+	for ( uint i = 0; i != scene->mNumMaterials; ++i )
+	{
+		auto mat = scene->mMaterials[ i ];
+		aiString name;
+		mat->Get( AI_MATKEY_NAME, name );
+		material.emplace_back( name.C_Str() );
+	}
 }
 
 }  // namespace core

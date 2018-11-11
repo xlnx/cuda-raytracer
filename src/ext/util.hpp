@@ -1,19 +1,19 @@
 #pragma once
 
 #include <vec/vmath.hpp>
-#include <core/allocator.hpp>
-#include <core/dev/material.hpp>
-#include <core/dev/bsdf.hpp>
+#include <core/basic/allocator.hpp>
+#include <core/meta/material.hpp>
+#include <core/meta/bsdf.hpp>
 
 namespace koishi
 {
 namespace ext
 {
-using Material = core::dev::Material;
+using Material = core::Material;
 
-using BSDF = core::dev::BSDF;
+using BSDF = core::BSDF;
 
-using BxDF = core::dev::BxDF;
+using BxDF = core::BxDF;
 
 }  // namespace ext
 

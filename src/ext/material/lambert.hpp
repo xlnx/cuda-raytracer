@@ -22,7 +22,7 @@ private:
 
 struct LambertMaterial : Material
 {
-	KOISHI_HOST_DEVICE virtual void fetchTo( dev::Hit &res, Allocator &pool ) const
+	KOISHI_HOST_DEVICE virtual void fetchTo( Interreact &res, Allocator &pool ) const
 	{
 		res.bsdf = alloc<BSDF>( pool );
 		res.bsdf->add<LambertDiffuse>( pool, 0.5, );

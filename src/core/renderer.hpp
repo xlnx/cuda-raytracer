@@ -6,11 +6,12 @@
 #include <vec/vmath.hpp>
 #include <vec/vios.hpp>
 #include <util/image.hpp>
-#include "allocator.hpp"
-#include "scene.hpp"
+#include <core/basic/ray.hpp>
+#include <core/basic/poly.hpp>
+#include <core/basic/allocator.hpp>
+#include <core/meta/mesh.hpp>
+#include <core/meta/scene.hpp>
 #include "sampler.hpp"
-#include "ray.hpp"
-#include "mesh.hpp"
 #include "radiance.hpp"
 #include "random.hpp"
 
@@ -31,25 +32,27 @@ public:
 
 	void render( const std::string &path, const std::string &dest, uint spp )
 	{
-		core::Scene scene( path );
-		if ( !scene.camera.size() )
+		if ( core::Scene scene = path )
 		{
-			throw "no camera in the scene.";
+			if ( !scene.camera.size() )
+			{
+				throw "no camera in the scene.";
+			}
+			auto &camera = scene.camera[ 0 ];
+
+			rays = core::Sampler( w, h ).sample( camera, spp );
+
+			util::Image<3> image( w, h );
+			Host::call<Tracer>( image, rays, scene, spp );
+
+			image.dump( dest );
 		}
-		auto &camera = scene.camera[ 0 ];
-
-		rays = core::Sampler( w, h ).sample( camera, spp );
-
-		util::Image<3> image( w, h );
-		Host::call<Tracer>( image, rays, scene.mesh, spp );
-
-		image.dump( dest );
 	}
 
 private:
 	using uchar = unsigned char;
 	std::vector<double3> buffer;
-	std::vector<core::Ray> rays;
+	PolyVectorView<Ray> rays;
 	uint w, h;
 };
 

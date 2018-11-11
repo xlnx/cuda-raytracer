@@ -1,5 +1,6 @@
 #pragma once
 
+#include <map>
 #include <vector>
 #include <string>
 #include <iosfwd>
@@ -55,6 +56,18 @@ struct is_vector
 
 template <typename T, typename U>
 struct is_vector<std::vector<T, U>>
+{
+	static constexpr bool value = true;
+};
+
+template <typename V>
+struct is_map
+{
+	static constexpr bool value = false;
+};
+
+template <typename T, typename U, typename C, typename A>
+struct is_map<std::map<T, U, C, A>>
 {
 	static constexpr bool value = true;
 };
@@ -126,6 +139,25 @@ inline void from_json( const Json::Value &j, T &e )
 	for ( uint i = 0; i != e.size(); ++i )
 	{
 		from_json( j[ i ], e[ i ] );
+	}
+}
+
+template <typename T, typename = void, int = 0, typename = typename std::enable_if<__trait::is_map<T>::value>::type>
+inline void to_json( Json::Value &j, const T &e )
+{
+	j = Json::objectValue;
+	for ( auto &p : e )
+	{
+		to_json( j[ p.first ], p.second );
+	}
+}
+
+template <typename T, typename = void, int = 0, typename = typename std::enable_if<__trait::is_map<T>::value>::type>
+inline void from_json( const Json::Value &j, T &e )
+{
+	for ( auto iter = j.begin(); iter != j.end(); ++iter )
+	{
+		from_json( *iter, e[ iter.key().asCString() ] );
 	}
 }
 

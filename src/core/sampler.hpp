@@ -3,7 +3,8 @@
 #include <vector>
 #include <vec/vec.hpp>
 #include <util/config.hpp>
-#include "ray.hpp"
+#include <core/basic/ray.hpp>
+#include <core/basic/poly.hpp>
 
 namespace koishi
 {
@@ -16,9 +17,9 @@ struct Sampler
 	{
 	}
 
-	std::vector<core::Ray> sample( const jsel::Camera &camera, uint spp ) const
+	PolyVectorView<Ray> sample( const jsel::Camera &camera, uint spp ) const
 	{
-		std::vector<core::Ray> rays( spp * w * h );
+		PolyVector<Ray> rays( spp * w * h );
 		double3 target = normalize( camera.target ) * double( w ) / ( 2 * tan( radians( camera.fovx * .5 ) ) );
 		double3 U = normalize( cross( target, camera.upaxis ) );
 		double3 V = normalize( cross( U, target ) );

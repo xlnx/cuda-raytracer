@@ -2,14 +2,12 @@
 
 #include <type_traits>
 #include <vec/vmath.hpp>
-#include <core/allocator.hpp>
 #include <util/hemisphere.hpp>
+#include <core/basic/allocator.hpp>
 
 namespace koishi
 {
 namespace core
-{
-namespace dev
 {
 struct BxDF
 {
@@ -65,8 +63,6 @@ public:
 	BxDF *bxdfs[ maxBxdfs ];
 	uint numBxdfs = 0;
 };
-
-}  // namespace dev
 
 }  // namespace core
 

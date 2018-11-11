@@ -1,8 +1,10 @@
 #pragma once
 
+#include <map>
 #include <vector>
 #include <string>
 #include <vec/vec.hpp>
+// #include <core/meta/material.hpp>
 #include <util/jsel.hpp>
 
 namespace koishi
@@ -20,26 +22,14 @@ struct Serializable( Camera )
 	Property( double, zFar, 1e5 );
 };
 
-struct Serializable( Rotate )
-{
-	Property( double3, axis );
-	Property( double, degree );
-};
-
-struct Serializable( Mesh )
-{
-	Property( std::string, path );
-	Property( double3, translate, { 0, 0, 0 } );
-	Property( std::vector<Rotate>, rotate, {} );
-	Property( double, scale, 1 );
-	Property( double3, emissive, { 0, 0, 0 } );
-	Property( double3, color, { 0, 0, 0 } );
-};
+struct Serializable( Material ){};
 
 struct Serializable( Scene )
 {
+	using TMaterials = std::map<std::string, Material>;
 	Property( std::vector<Camera>, camera, {} );
-	Property( std::vector<Mesh>, mesh, {} );
+	Property( std::string, path );
+	Property( TMaterials, material );
 };
 
 }  // namespace jsel
