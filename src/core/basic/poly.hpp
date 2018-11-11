@@ -337,6 +337,12 @@ struct PolyVectorView final
 
 public:
 	PolyVectorView() = default;
+	PolyVectorView( size_type count ) :
+	  value( (pointer)std::malloc( sizeof( T ) * count ) ),
+	  curr( count ),
+	  is_device_ptr( false )
+	{
+	}
 	PolyVectorView( PolyVectorView &&other ) :
 	  value( other.value ),
 	  curr( other.curr ),
@@ -361,7 +367,7 @@ private:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		copyToDevice( other );
+		copyBetweenDevice( other );
 	}
 #else
 	  = delete;
@@ -369,43 +375,85 @@ private:
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		copyToDevice( other );
+		copyBetweenDevice( other );
 		return *this;
 	}
 #else
 	  = delete;
 #endif
 #ifdef KOISHI_USE_CUDA
-	void copyToDevice( const PolyVectorView &other )
+	void copyBetweenDevice( const PolyVectorView &other )
 	{
 		if ( other.is_device_ptr )
 		{
-			throw std::bad_alloc();  // only host vector can be copied to device
+			if ( &other != this )
+			{
+				destroy();
+				value = other.value;
+				curr = other.curr;
+			}
+			pointer host_value = (pointer)std::malloc( sizeof( T ) * curr );
+			if ( !std::is_pod<T>::value )
+			{
+				auto buf = (pointer)std::malloc( sizeof( T ) * curr );
+				if ( auto err = cudaMemcpy( buf, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+				{
+					throw err;  // buf objects are constructed on host, but used on device
+				}
+				for ( auto p = buf, q = host_value; p != buf + curr; ++p, ++q )
+				{
+					new ( q ) T( *p );
+				}
+				std::free( buf );  // don't call dtor because they exist on device
+			}
+			else
+			{
+				if ( auto err = cudaMemcpy( host_value, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+				{
+					throw err;  // buf objects are constructed on host, but used on device
+				}
+			}
+			value = host_value;
+			is_device_ptr = false;
 		}
 		else
 		{
-			destroy();
-			value = other.value;
-			curr = other.curr;
-			auto buf = (pointer)std::malloc( sizeof( T ) * curr );
-			for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
+			if ( &other != this )
 			{
-				new ( q ) T( *p );
+				destroy();
+				value = other.value;
+				curr = other.curr;
 			}
 			pointer device_value;
-			if ( auto err = cudaMalloc( &device_value, sizeof(T) * curr ) )
+			if ( auto err = cudaMalloc( &device_value, sizeof( T ) * curr ) )
 			{
 				throw err;
 			}
-			if ( auto err = cudaMemcpy( device_value, buf, sizeof( T ) * curr, cudaMemcpyHostToDevice ) )
+			if ( !std::is_pod<T>::value )
 			{
-				throw err;  // buf objects are constructed on host, but used on device
+				auto buf = (pointer)std::malloc( sizeof( T ) * curr );
+				for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
+				{
+					new ( q ) T( *p );
+				}
+				if ( auto err = cudaMemcpy( device_value, buf, sizeof( T ) * curr, cudaMemcpyHostToDevice ) )
+				{
+					throw err;  // buf objects are constructed on host, but used on device
+				}
+				std::free( buf );  // don't call dtor because they exist on device
+			}
+			else
+			{
+				if ( auto err = cudaMemcpy( device_value, value, sizeof( T ) * curr, cudaMemcpyHostToDevice ) )
+				{
+					throw err;  // buf objects are constructed on host, but used on device
+				}
 			}
 			value = device_value;
-			std::free( buf );	  // don't call dtor because they exist on device
 			is_device_ptr = true;  // this vector now points to device
 		}
 	}
+
 #endif
 	void destroy()
 	{
@@ -414,26 +462,32 @@ private:
 			if ( is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA
-				auto buf = (pointer)std::malloc( sizeof( T ) * curr );
-				if ( auto err = cudaMemcpy( buf, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+				if ( !std::is_pod<T>::value )
 				{
-					throw err;  // buf objects are constructed on host, but used on device
+					auto buf = (pointer)std::malloc( sizeof( T ) * curr );
+					if ( auto err = cudaMemcpy( buf, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+					{
+						throw err;  // buf objects are constructed on host, but used on device
+					}
+					for ( auto p = buf; p != buf + curr; ++p )
+					{
+						p->~T();
+					}
+					std::free( buf );
 				}
 				cudaFree( value );
-				for ( auto p = buf; p != buf + curr; ++p )
-				{
-					p->~T();
-				}
-				std::free( buf );
 #else
-				throw::std::bad_alloc();
+				throw ::std::bad_alloc();
 #endif
 			}
 			else
 			{
-				for ( auto p = value; p != value + curr; ++p )
+				if ( !std::is_pod<T>::value )
 				{
-					p->~T();
+					for ( auto p = value; p != value + curr; ++p )
+					{
+						p->~T();
+					}
 				}
 				std::free( value );
 			}
@@ -451,14 +505,43 @@ private:
 public:
 	PolyVectorView emit() const
 	{
+		if ( is_device_ptr )
+		{
+			throw std::bad_alloc();
+		}
 		PolyVectorView dev( *this );
 		return std::move( dev );
+	}
+	void emitAndReplace()
+	{
+		if ( is_device_ptr )
+		{
+			throw std::bad_alloc();
+		}
+		copyBetweenDevice( *this );
+	}
+	PolyVectorView fetch() const
+	{
+		if ( !is_device_ptr )
+		{
+			throw std::bad_alloc();
+		}
+		PolyVectorView dev( *this );
+		return std::move( dev );
+	}
+	void fetchAndReplace()
+	{
+		if ( !is_device_ptr )
+		{
+			throw std::bad_alloc();
+		}
+		copyBetweenDevice( *this );
 	}
 	PolyVectorViewTag forward() const
 	{
 		return PolyVectorViewTag{ value, curr, is_device_ptr };
 	}
-	PolyVectorView( const PolyVectorViewTag &other) :
+	PolyVectorView( const PolyVectorViewTag &other ) :
 	  value( other.value ),
 	  curr( other.curr ),
 	  is_device_ptr( other.is_device_ptr ),

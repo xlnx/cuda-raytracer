@@ -58,7 +58,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 namespace cuda
 {
 template <typename Radiance, typename Alloc>
-__global__ void intergrate( const Ray *rays, double3 *buffer, const dev::Mesh *meshs, uint N, uint h )
+__global__ void intergrate( double3 *buffer, PolyVectorView<Ray> rays, Scene scene, uint h )
 {
 	Alloc pool;
 
@@ -66,9 +66,9 @@ __global__ void intergrate( const Ray *rays, double3 *buffer, const dev::Mesh *m
 
 	auto index = threadIdx.x + blockIdx.x * blockDim.x;
 	auto stride = gridDim.x * blockDim.x;
-	for ( uint i = index, j = 0; i < N; i += stride, ++j )
+	for ( uint i = index, j = 0; i < rays.size(); i += stride, ++j )
 	{
-		rad[ j ] += Device::call<Radiance>( rays[ i ], meshs, pool );
+		rad[ j ] += Device::call<Radiance>( rays[ i ], scene, pool );
 		clear( pool );
 	}
 
@@ -92,14 +92,15 @@ PolyFunction( Tracer, Require<Host> )(
 	  float gridDim = w;
 	  float blockDim = spp;
 
-	  thrust::device_vector<Ray> devRays = rays;
-	  thrust::device_vector<double3> devBuffer( w * h );
-	  thrust::device_vector<dev::Mesh> devMeshs( meshs.begin(), meshs.end() );
+	  auto devRays = std::move( rays.emit() );
+	  auto devScene = std::move( scene.emit() );
+	  PolyVectorView<double3> buffer( w * h );
+	  buffer.emitAndReplace();
 
 	  intergrate<Radiance, Alloc><<<gridDim, blockDim, h * sizeof( double3 )>>>(
-		( &devRays[ 0 ] ).get(), ( &devBuffer[ 0 ] ).get(), ( &devMeshs[ 0 ] ).get(), rays.size(), h );
+		buffer.forward(), rays.forward(), scene.forward(), h );
 
-	  thrust::host_vector<double3> buffer = std::move( devBuffer );
+	  buffer.fetchAndReplace();
 
 	  for ( uint j = 0; j != h; ++j )
 	  {
