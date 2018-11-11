@@ -478,7 +478,11 @@ private:
 			}
 			if ( !std::is_pod<T>::value )
 			{
-				if ( !std::is_trivially_constructible<T>::value )
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
+				if ( !std::is_standard_layout<T>::value )
+#else
+				if ( !std::is_trivially_copyable<T>::value )
+#endif
 				{
 					pointer buf;
 					if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
