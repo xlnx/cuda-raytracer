@@ -321,6 +321,8 @@ struct PolyVectorView final
 {
 	template <typename U>
 	friend class __impl::PolyBase;
+	template <typename U>
+	friend class PolyVectorView;
 
 	using value_type = T;
 	using size_type = std::size_t;
@@ -334,15 +336,15 @@ struct PolyVectorView final
 	using buffer_type = PolyVector<T>;
 
 public:
-	KOISHI_HOST_DEVICE PolyVectorView() = default;
-	KOISHI_HOST_DEVICE PolyVectorView( PolyVectorView &&other ) :
+	PolyVectorView() = default;
+	PolyVectorView( PolyVectorView &&other ) :
 	  value( other.value ),
 	  curr( other.curr ),
 	  is_device_ptr( other.is_device_ptr )
 	{
 		other.value = nullptr;
 	}
-	KOISHI_HOST_DEVICE PolyVectorView &operator=( PolyVectorView &&other )
+	PolyVectorView &operator=( PolyVectorView &&other )
 	{
 		value = other.value;
 		curr = other.curr;
@@ -350,13 +352,13 @@ public:
 		other.value = nullptr;
 		return *this;
 	}
-	KOISHI_HOST_DEVICE ~PolyVectorView()
+	~PolyVectorView()
 	{
 		destroy();
 	}
 
 private:
-	KOISHI_HOST_DEVICE PolyVectorView( const PolyVectorView &other )
+	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
 		copyToDevice( other );
@@ -364,7 +366,7 @@ private:
 #else
 	  = delete;
 #endif
-	KOISHI_HOST_DEVICE PolyVectorView &operator=( const PolyVectorView &other )
+	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
 		copyToDevice( other );
@@ -388,14 +390,14 @@ private:
 			auto buf = (pointer)std::malloc( sizeof( T ) * curr );
 			for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 			{
-				*q = *p;
+				new ( q ) T( *p );
 			}
 			pointer device_value;
-			if ( auto err = cudaMalloc( &device_value, curr ) )
+			if ( auto err = cudaMalloc( &device_value, sizeof(T) * curr ) )
 			{
 				throw err;
 			}
-			if ( auto err = cudaMemcpy( device_value, buf, sizeof( T ) * curr, cudaHostToDevice ) )
+			if ( auto err = cudaMemcpy( device_value, buf, sizeof( T ) * curr, cudaMemcpyHostToDevice ) )
 			{
 				throw err;  // buf objects are constructed on host, but used on device
 			}
@@ -407,30 +409,66 @@ private:
 #endif
 	void destroy()
 	{
-		if ( value != nullptr )
+		if ( !is_forwarded && value != nullptr )
 		{
-			for ( auto p = value; p != value + curr; ++p )
-			{
-				p->~T();
-			}
 			if ( is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA
+				auto buf = (pointer)std::malloc( sizeof( T ) * curr );
+				if ( auto err = cudaMemcpy( buf, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+				{
+					throw err;  // buf objects are constructed on host, but used on device
+				}
 				cudaFree( value );
+				for ( auto p = buf; p != buf + curr; ++p )
+				{
+					p->~T();
+				}
+				std::free( buf );
 #else
-				throw std::bad_alloc();  //  incorrect internal state
+				throw::std::bad_alloc();
 #endif
 			}
 			else
 			{
+				for ( auto p = value; p != value + curr; ++p )
+				{
+					p->~T();
+				}
 				std::free( value );
 			}
 		}
 	}
 
+private:
+	struct PolyVectorViewTag
+	{
+		T *value;
+		size_type curr;
+		bool is_device_ptr;
+	};
+
+public:
+	PolyVectorView emit() const
+	{
+		PolyVectorView dev( *this );
+		return std::move( dev );
+	}
+	PolyVectorViewTag forward() const
+	{
+		return PolyVectorViewTag{ value, curr, is_device_ptr };
+	}
+	PolyVectorView( const PolyVectorViewTag &other) :
+	  value( other.value ),
+	  curr( other.curr ),
+	  is_device_ptr( other.is_device_ptr ),
+	  is_forwarded( true )
+	{
+	}
+
 public:
 	PolyVectorView( const buffer_type &other ) = delete;
-	PolyVectorView( buffer_type &&other ) :
+	KOISHI_HOST_DEVICE PolyVectorView( buffer_type &&other ) :
 	  value( other.value ),
 	  curr( other.curr ),
 	  is_device_ptr( false )
@@ -438,7 +476,7 @@ public:
 		other.value = nullptr;
 	}
 	PolyVectorView &operator=( const buffer_type &other ) = delete;
-	PolyVectorView &operator=( buffer_type &&other )
+	KOISHI_HOST_DEVICE PolyVectorView &operator=( buffer_type &&other )
 	{
 		value = other.value;
 		curr = other.curr;
@@ -448,32 +486,33 @@ public:
 	}
 
 public:
-	reference operator[]( size_type idx ) { return value[ idx ]; }
-	const_reference operator[]( size_type idx ) const { return value[ idx ]; }
+	KOISHI_HOST_DEVICE reference operator[]( size_type idx ) { return value[ idx ]; }
+	KOISHI_HOST_DEVICE const_reference operator[]( size_type idx ) const { return value[ idx ]; }
 
-	reference front() { return *value; }
-	const_reference front() const { return *value; }
+	KOISHI_HOST_DEVICE reference front() { return *value; }
+	KOISHI_HOST_DEVICE const_reference front() const { return *value; }
 
-	reference back() { return value[ curr - 1 ]; }
-	const_reference back() const { return value[ curr - 1 ]; }
+	KOISHI_HOST_DEVICE reference back() { return value[ curr - 1 ]; }
+	KOISHI_HOST_DEVICE const_reference back() const { return value[ curr - 1 ]; }
 
-	pointer data() { return value; }
-	const_pointer data() const { return value; }
+	KOISHI_HOST_DEVICE pointer data() { return value; }
+	KOISHI_HOST_DEVICE const_pointer data() const { return value; }
 
-	iterator begin() { return value; }
-	const_iterator begin() const { return value; }
+	KOISHI_HOST_DEVICE iterator begin() { return value; }
+	KOISHI_HOST_DEVICE const_iterator begin() const { return value; }
 
-	iterator end() { return value + curr; }
-	const_iterator end() const { return value + curr; }
+	KOISHI_HOST_DEVICE iterator end() { return value + curr; }
+	KOISHI_HOST_DEVICE const_iterator end() const { return value + curr; }
 
-	bool empty() const { return curr == 0; }
+	KOISHI_HOST_DEVICE bool empty() const { return curr == 0; }
 
-	size_type size() const { return curr; }
+	KOISHI_HOST_DEVICE size_type size() const { return curr; }
 
 private:
 	T *value = nullptr;
 	size_type curr = 0;
 	bool is_device_ptr = false;
+	bool is_forwarded = false;
 };
 
 }  // namespace core

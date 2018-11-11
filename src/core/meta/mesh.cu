@@ -83,7 +83,7 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 			}
 		}
 	}
-	return res;
+	return std::move( res );
 }
 
 static void printBVH( const BVHTree &tr, uint index = 1 )

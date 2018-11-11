@@ -42,7 +42,12 @@ struct HostAllocator : core::Allocator, Require<Host>
 {
 	KOISHI_HOST HostAllocator() = default;
 
-	KOISHI_HOST ~HostAllocator()
+	KOISHI_HOST_DEVICE ~HostAllocator()
+	{
+		destroy();
+	}
+	
+	KOISHI_HOST void destroy()
 	{
 		for ( auto &block : blocks ) { delete[] block.second; }
 	}
@@ -59,11 +64,13 @@ private:
 		static constexpr std::size_t align =
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
 		  alignof( ::max_align_t );
+		while ( !( data = reinterpret_cast<char_type *>(
+					 align_impl( align, size, reinterpret_cast<void *&>( data ), rest_size ) ) ) )
 #else
 		  alignof( std::max_align_t );
-#endif
 		while ( !( data = reinterpret_cast<char_type *>(
 					 std::align( align, size, reinterpret_cast<void *&>( data ), rest_size ) ) ) )
+#endif
 		{
 			if ( blocks.size() > curr_block + 1 )
 			{
@@ -91,6 +98,21 @@ private:
 	}
 
 private:
+	static void *align_impl( std::size_t __align, std::size_t __size, void *&__ptr, std::size_t &__space ) noexcept
+	{
+		const auto __intptr = reinterpret_cast<std::uintptr_t>( __ptr );
+		const auto __aligned = ( __intptr - 1u + __align ) & -__align;
+		const auto __diff = __aligned - __intptr;
+		if ( (__size + __diff) > __space )
+			return nullptr;
+		else
+		{
+			__space -= __diff;
+			return __ptr = reinterpret_cast<void *>( __aligned );
+		}
+	}
+
+private:
 	const std::size_t block_size = 2048u;
 
 	using char_type = typename std::aligned_storage<1, 64u>::type;
@@ -112,10 +134,10 @@ struct DeviceAllocator : core::Allocator, Require<Device>
 	KOISHI_HOST_DEVICE void clear() override { return do_clear(); }
 
 private:
-	KOISHI_DEVICE char *do_alloc( std::size_t size )
+	KOISHI_HOST_DEVICE char *do_alloc( std::size_t size )
 	{
 	}
-	KOISHI_DEVICE void do_clear()
+	KOISHI_HOST_DEVICE void do_clear()
 	{
 	}
 };

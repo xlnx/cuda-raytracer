@@ -110,15 +110,15 @@ Scene::PolyBase( const std::string &path )
 	material.resize( mats.size() );
 	for ( uint i = 0; i != mats.size(); ++i )
 	{
-		if ( config.material.find( mats[ i ] ) != config.material.end() )
-		{
-			material[ i ] = std::move( config.material[ mats[ i ] ] );
-		}
-		else
-		{
-			std::cout << "configuration for material <" << mats[ i ] << "> not found" << std::endl;
-			valid = false;
-		}
+		//if ( config.material.find( mats[ i ] ) != config.material.end() )
+		//{
+		//	material[ i ] = std::move( config.material[ mats[ i ] ] );
+		//}
+		//else
+		//{
+		//	std::cout << "configuration for material <" << mats[ i ] << "> not found" << std::endl;
+		//	valid = false;
+		//}
 	}
 }
 

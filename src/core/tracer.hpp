@@ -53,7 +53,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 	  }
   } );
 
-#if defined( KOISHI_USE_CUDA )
+#if defined( KOISHI_USE_CUDA1 )
 
 namespace cuda
 {

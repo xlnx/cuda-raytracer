@@ -26,10 +26,10 @@ struct Serializable( Material ){};
 
 struct Serializable( Scene )
 {
-	using TMaterials = std::map<std::string, Material>;
+	using TMaterials = std::map<std::string, jsel::Material>;
 	Property( std::vector<Camera>, camera, {} );
 	Property( std::string, path );
-	Property( TMaterials, material );
+	//Property( TMaterials, material );
 };
 
 }  // namespace jsel
