@@ -53,7 +53,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 	  }
   } );
 
-#if defined( KOISHI_USE_CUDA1 )
+#if defined( KOISHI_USE_CUDA )
 
 namespace cuda
 {
@@ -83,8 +83,8 @@ __global__ void intergrate( double3 *buffer, PolyVectorView<Ray> rays, Scene sce
 template <typename Radiance, typename Alloc = DeviceAllocator>
 PolyFunction( Tracer, Require<Host> )(
   ( util::Image<3> & image, const PolyVectorView<Ray> &rays, const Scene &scene, uint spp )->void {
-	  static_assert( std::is_base_of<Device, Radiance>::value );
-	  static_assert( std::is_base_of<Device, Alloc>::value );
+	  static_assert( std::is_base_of<Device, Radiance>::value, "Radiance must be host callable" );
+	  static_assert( std::is_base_of<Device, Alloc>::value, "Alloc must be host callable" );
 
 	  uint w = image.width();
 	  uint h = image.height();
@@ -97,8 +97,8 @@ PolyFunction( Tracer, Require<Host> )(
 	  PolyVectorView<double3> buffer( w * h );
 	  buffer.emitAndReplace();
 
-	  intergrate<Radiance, Alloc><<<gridDim, blockDim, h * sizeof( double3 )>>>(
-		buffer.forward(), rays.forward(), scene.forward(), h );
+	  //intergrate<Radiance, Alloc><<<gridDim, blockDim, h * sizeof( double3 )>>>(
+	//	buffer.forward(), rays.forward(), scene.forward(), h );
 
 	  buffer.fetchAndReplace();
 

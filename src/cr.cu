@@ -7,41 +7,40 @@
 
 using namespace koishi;
 
-// __global__ void add( core::PolyVectorView<core::PolyVectorView<int>> vec, int *sum, int **data)
-// {
-// 	*sum = 0;
-// 	*sum = vec.size();
-// 	for (auto &e: vec)
-// 	for (auto &f: e)
-// 		*sum += f;
-// }
+struct A
+{
+	A( int i ): n( i ) {}
+	__host__ __device__ virtual int f() { return n; }
+private:
+	int n;
+};
+
+__global__ void add( core::PolyVectorView<A> vec, core::PolyVectorView<int> res )
+{
+	res[0] = 0;
+	for (auto &e: vec)
+		res[0] += e.f();
+}
 
 int main( int argc, char **argv )
 {
-	// core::PolyVector<int> vec;
-	// for ( int i = 0; i != 10; ++i )
-	// {
-	// 	vec.emplace_back( i );
-	// }
-	// core::PolyVector<core::PolyVectorView<int>> vv;
-	// for ( int i = 0; i != 10; ++i )
-	// {
-	// 	vv.emplace_back( std::move( core::PolyVector<int>( vec ) ) );
-	// }
-	// std::cout << 1 << std::endl;
-	// core::PolyVectorView<core::PolyVectorView<int>> view = std::move( vv );
-	// std::cout << 2 << std::endl;
-	// auto gpuView = std::move( view.emit() );
-	// int *p, **pp;
-	// std::cout << 4 << std::endl;
-	// cudaMallocManaged( &p, sizeof( *p ) );
-	// cudaMallocManaged( &pp, sizeof( *pp ) );
-	// std::cout << 5 << std::endl;
-	// add<<<1, 1>>>( gpuView.forward(), p, pp );
-	// std::cout << 6 << std::endl;
-	// cudaDeviceSynchronize();
-	// std::cout << *p << " " << *pp << std::endl;
-	// return 0;
+#if 1
+	core::PolyVector<A> vec;
+	for ( int i = 0; i != 10; ++i )
+	{
+		vec.emplace_back( i );
+	}
+	core::PolyVectorView<A> view = std::move( vec );
+	view.emitAndReplace();
+	core::PolyVectorView<int> res(3);
+	res.emitAndReplace();
+	add<<<1, 1>>>( view.forward(), res.forward() );
+	cudaDeviceSynchronize();
+	res.fetchAndReplace();
+	std::cout << res[0] << std::endl;
+	return 0;
+#endif
+
 	if ( std::string( argv[ 2 ] ) == "-v" )
 	{
 	}

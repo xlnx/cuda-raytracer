@@ -292,10 +292,46 @@ namespace __impl
 template <typename T>
 struct PolyBase;
 
+template <typename T>
+struct PolyEmitter
+{
+
+public:
+	T emit() const
+	{
+		if ( is_device_ptr )
+		{
+			throw std::bad_alloc();
+		}
+		T dev( static_cast<const T&>( *this ) );
+		dev.is_device_ptr = true;
+		return std::move( dev );
+	}
+	T fetch() const
+	{
+		if ( !is_device_ptr )
+		{
+			throw std::bad_alloc();
+		}
+		T dev( static_cast<const T&>( *this ) );
+		dev.is_device_ptr = false;
+		return std::move( dev );
+	}
+	//Tag forward() const
+	//{
+	//	// TODO:
+	//}
+
+private:
+	bool is_device_ptr = false;
+};
+
 struct ProtectedCopyable
 {
 	template <typename T>
 	struct PolyBase;
+	template <typename T>
+	struct PolyEmitter;
 
 	KOISHI_HOST_DEVICE ProtectedCopyable() = default;
 	KOISHI_HOST_DEVICE ProtectedCopyable( ProtectedCopyable && ) = default;
@@ -312,7 +348,7 @@ protected:
 	__##type##_tag;                                              \
 	using type = koishi::core::__impl::PolyBase<__##type##_tag>; \
 	template <>                                                  \
-	struct koishi::core::__impl::PolyBase<__##type##_tag> : __impl::ProtectedCopyable
+	struct koishi::core::__impl::PolyBase<__##type##_tag> : __impl::PolyEmitter<type>, __impl::ProtectedCopyable
 
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
