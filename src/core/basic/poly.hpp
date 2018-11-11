@@ -295,7 +295,6 @@ struct PolyBase;
 template <typename T>
 struct PolyEmitter
 {
-
 public:
 	T emit() const
 	{
@@ -303,7 +302,7 @@ public:
 		{
 			throw std::bad_alloc();
 		}
-		T dev( static_cast<const T&>( *this ) );
+		T dev( static_cast<const T &>( *this ) );
 		dev.is_device_ptr = true;
 		return std::move( dev );
 	}
@@ -313,7 +312,7 @@ public:
 		{
 			throw std::bad_alloc();
 		}
-		T dev( static_cast<const T&>( *this ) );
+		T dev( static_cast<const T &>( *this ) );
 		dev.is_device_ptr = false;
 		return std::move( dev );
 	}
@@ -341,6 +340,17 @@ protected:
 	KOISHI_HOST_DEVICE ProtectedCopyable( const ProtectedCopyable & ) = default;
 	KOISHI_HOST_DEVICE ProtectedCopyable &operator=( const ProtectedCopyable & ) = default;
 };
+
+#ifdef KOISHI_USE_CUDA
+
+template <typename T>
+__global__ void move_construct( T *dest, T *src )
+{
+	auto idx = threadIdx.x;
+	new ( dest + idx ) T( std::move( src[ idx ] ) );
+}
+
+#endif
 
 }  // namespace __impl
 
@@ -420,6 +430,7 @@ private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const PolyVectorView &other )
 	{
+		auto alloc_size = sizeof( T ) * curr;
 		if ( other.is_device_ptr )
 		{
 			if ( &other != this )
@@ -428,11 +439,11 @@ private:
 				value = other.value;
 				curr = other.curr;
 			}
-			pointer host_value = (pointer)std::malloc( sizeof( T ) * curr );
+			pointer host_value = (pointer)std::malloc( alloc_size );
 			if ( !std::is_pod<T>::value )
 			{
-				auto buf = (pointer)std::malloc( sizeof( T ) * curr );
-				if ( auto err = cudaMemcpy( buf, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+				auto buf = (pointer)std::malloc( alloc_size );
+				if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
 				{
 					throw err;  // buf objects are constructed on host, but used on device
 				}
@@ -444,7 +455,7 @@ private:
 			}
 			else
 			{
-				if ( auto err = cudaMemcpy( host_value, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+				if ( auto err = cudaMemcpy( host_value, value, alloc_size, cudaMemcpyDeviceToHost ) )
 				{
 					throw err;  // buf objects are constructed on host, but used on device
 				}
@@ -461,26 +472,44 @@ private:
 				curr = other.curr;
 			}
 			pointer device_value;
-			if ( auto err = cudaMalloc( &device_value, sizeof( T ) * curr ) )
+			if ( auto err = cudaMalloc( &device_value, alloc_size ) )
 			{
 				throw err;
 			}
 			if ( !std::is_pod<T>::value )
 			{
-				auto buf = (pointer)std::malloc( sizeof( T ) * curr );
-				for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
+				if ( !std::is_trivially_constructible<T>::value )
 				{
-					new ( q ) T( *p );
+					pointer buf;
+					if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
+					{
+						throw err;
+					}
+					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
+					{
+						new ( q ) T( *p );
+					}
+					__impl::move_construct<<<1, alloc_size>>>( device_value, buf );
+					cudaDeviceSynchronize();
+					cudaFree( buf );
 				}
-				if ( auto err = cudaMemcpy( device_value, buf, sizeof( T ) * curr, cudaMemcpyHostToDevice ) )
+				else
 				{
-					throw err;  // buf objects are constructed on host, but used on device
+					auto buf = (pointer)std::malloc( alloc_size );
+					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
+					{
+						new ( q ) T( *p );
+					}
+					if ( auto err = cudaMemcpy( device_value, buf, alloc_size, cudaMemcpyHostToDevice ) )
+					{
+						throw err;  // buf objects are constructed on host, but used on device
+					}
+					std::free( buf );  // don't call dtor because they exist on device
 				}
-				std::free( buf );  // don't call dtor because they exist on device
 			}
 			else
 			{
-				if ( auto err = cudaMemcpy( device_value, value, sizeof( T ) * curr, cudaMemcpyHostToDevice ) )
+				if ( auto err = cudaMemcpy( device_value, value, alloc_size, cudaMemcpyHostToDevice ) )
 				{
 					throw err;  // buf objects are constructed on host, but used on device
 				}
@@ -498,10 +527,11 @@ private:
 			if ( is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA
+				auto alloc_size = sizeof( T ) * curr;
 				if ( !std::is_pod<T>::value )
 				{
-					auto buf = (pointer)std::malloc( sizeof( T ) * curr );
-					if ( auto err = cudaMemcpy( buf, value, sizeof( T ) * curr, cudaMemcpyDeviceToHost ) )
+					auto buf = (pointer)std::malloc( alloc_size );
+					if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
 					{
 						throw err;  // buf objects are constructed on host, but used on device
 					}
