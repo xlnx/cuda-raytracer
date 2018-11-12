@@ -9,7 +9,7 @@ namespace koishi
 {
 namespace core
 {
-Scene::Scene( const std::string &path )
+Scene::Poly( const std::string &path )
 {
 	auto pos = path.find_last_of( "." );
 	// if ( pos != path.npos && path.substr( pos ) == ".json" )

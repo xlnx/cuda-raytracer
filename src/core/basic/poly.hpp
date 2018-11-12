@@ -287,11 +287,10 @@ private:
 	T *value = (pointer)std::malloc( sizeof( T ) * total );
 };
 
-template <typename T>
-struct PolyStruct;
-
 namespace __impl
 {
+template <typename T>
+struct PolyStructImpl;
 
 template <typename T, typename = void>
 struct copyConstructor;
@@ -304,7 +303,7 @@ public:
 	{
 		if ( is_device_ptr )
 		{
-			throw::std::bad_alloc();
+			throw ::std::bad_alloc();
 		}
 		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
 		auto ptr = reinterpret_cast<T *>( &mem );
@@ -317,7 +316,7 @@ public:
 	{
 		if ( is_device_ptr )
 		{
-			throw::std::bad_alloc();
+			throw ::std::bad_alloc();
 		}
 		T *self = static_cast<T *>( self );
 		copyConstructor<T>::apply( self, self );
@@ -327,7 +326,7 @@ public:
 	{
 		if ( !is_device_ptr )
 		{
-			throw::std::bad_alloc();
+			throw ::std::bad_alloc();
 		}
 		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
 		auto ptr = reinterpret_cast<T *>( &mem );
@@ -340,7 +339,7 @@ public:
 	{
 		if ( !is_device_ptr )
 		{
-			throw::std::bad_alloc();
+			throw ::std::bad_alloc();
 		}
 		T *self = static_cast<T *>( self );
 		copyConstructor<T>::apply( self, self );
@@ -351,23 +350,21 @@ protected:
 	bool is_device_ptr = false;
 };
 
-}
-
 template <typename T>
-struct PolyStruct: __impl::Emittable<T>
+struct PolyStructImpl : __impl::Emittable<T>
 {
 	template <typename U>
 	friend struct PolyVectorView;
 	template <typename U>
-	friend struct PolyStruct;
+	friend struct PolyStructImpl;
 
-	PolyStruct() = default;
-	KOISHI_HOST_DEVICE PolyStruct( PolyStruct && ) = default;
-	KOISHI_HOST_DEVICE PolyStruct &operator=( PolyStruct && ) = default;
+	PolyStructImpl() = default;
+	KOISHI_HOST_DEVICE PolyStructImpl( PolyStructImpl && ) = default;
+	KOISHI_HOST_DEVICE PolyStructImpl &operator=( PolyStructImpl && ) = default;
 
 protected:
-	PolyStruct( const PolyStruct & ) = default;
-	PolyStruct &operator=( const PolyStruct & ) = default;
+	PolyStructImpl( const PolyStructImpl & ) = default;
+	PolyStructImpl &operator=( const PolyStructImpl & ) = default;
 
 private:
 	void copyConstruct( const T &other )
@@ -376,8 +373,6 @@ private:
 	}
 };
 
-namespace __impl
-{
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
@@ -390,7 +385,7 @@ __global__ void move_construct( T *dest, T *src )
 #endif
 
 template <typename T>
-struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStruct<T>, T>::value>::type>
+struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStructImpl<T>, T>::value>::type>
 {
 	inline static void apply( T *q, const T *p )
 	{
@@ -399,21 +394,24 @@ struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStruct<T>
 };
 
 template <typename T>
-struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStruct<T>, T>::value>::type>
+struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStructImpl<T>, T>::value>::type>
 {
 	inline static void apply( T *q, const T *p )
 	{
-		static_cast<PolyStruct<T> *>( q )->copyConstruct( *p );
+		static_cast<PolyStructImpl<T> *>( q )->copyConstruct( *p );
 	}
 };
 
+template <typename T>
+struct Poly;
+
 }  // namespace __impl
 
-// #define PolyStruct( type )                                       \
-// 	__##type##_tag;                                              \
-// 	using type = koishi::core::__impl::PolyBase<__##type##_tag>; \
-// 	template <>                                                  \
-// 	struct koishi::core::__impl::PolyBase<__##type##_tag> : __impl::PolyEmitter<type>, __impl::ProtectedCopyable
+#define PolyStruct( type )                                   \
+	__##type##_tag;                                          \
+	using type = koishi::core::__impl::Poly<__##type##_tag>; \
+	template <>                                              \
+	struct koishi::core::__impl::Poly<__##type##_tag> : __impl::PolyStructImpl<type>
 
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
@@ -421,7 +419,7 @@ template <typename T>
 struct PolyVectorView final
 {
 	template <typename U>
-	friend class PolyStruct;
+	friend class __impl::Poly;
 	template <typename U>
 	friend class PolyVectorView;
 

@@ -9,9 +9,10 @@ using namespace koishi;
 using namespace core;
 
 #if 1
-struct A: PolyStruct<A>
+struct PolyStruct( A )
 {
-	A( int i ): n( i ) 
+	Poly( int i ) :
+	  n( i )
 	{
 		PolyVector<int> vv;
 		for ( int i = 0; i != n; ++i )
@@ -20,7 +21,7 @@ struct A: PolyStruct<A>
 		}
 		v = std::move( vv );
 	}
-	__host__ __device__ virtual int f() 
+	__host__ __device__ virtual int f()
 	{
 		int s = 0;
 		for ( int i = 0; i != v.size(); ++i )
@@ -29,6 +30,7 @@ struct A: PolyStruct<A>
 		}
 		return s;
 	}
+
 private:
 	int n;
 	PolyVectorView<int> v;
@@ -36,9 +38,9 @@ private:
 
 __global__ void add( PolyVectorView<A> vec, PolyVectorView<int> res )
 {
-	res[0] = 0;
-	for (auto &e: vec)
-		res[0] += e.f();
+	res[ 0 ] = 0;
+	for ( auto &e : vec )
+		res[ 0 ] += e.f();
 }
 #endif
 
@@ -52,12 +54,12 @@ int main( int argc, char **argv )
 	}
 	PolyVectorView<A> view = std::move( vec );
 	view.emitAndReplace();
-	PolyVectorView<int> res(3);
+	PolyVectorView<int> res( 3 );
 	res.emitAndReplace();
 	add<<<1, 1>>>( view.forward(), res.forward() );
 	cudaDeviceSynchronize();
 	res.fetchAndReplace();
-	std::cout << res[0] << std::endl;
+	std::cout << res[ 0 ] << std::endl;
 	return 0;
 #endif
 
