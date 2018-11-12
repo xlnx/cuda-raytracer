@@ -14,11 +14,11 @@
 
 #define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
-#define LOG(...) println(__VA_ARGS__)
-#else 
-#define LOG(...)
+#define LOG( ... ) println( __VA_ARGS__ )
+#else
+#define LOG( ... )
 #endif
-#define THROW(...) throw std::logic_error(#__VA_ARGS__)
+#define THROW( ... ) throw std::logic_error( #__VA_ARGS__ )
 
 namespace koishi
 {
@@ -47,11 +47,12 @@ struct Device
 
 inline void println()
 {
-	std::cout << std::endl << std::flush;
+	std::cout << std::endl
+			  << std::flush;
 }
 
-template <typename X, typename ...Args>
-void println( const X &x, Args &&...args )
+template <typename X, typename... Args>
+void println( const X &x, Args &&... args )
 {
 	std::cout << x << " ";
 	println( std::forward<Args>( args )... );
@@ -327,8 +328,8 @@ public:
 	{
 		if ( is_device_ptr )
 		{
-			THROW(unable to emit device ptr);
-//			throw ::std::bad_alloc();
+			THROW( unable to emit device ptr );
+			//			throw ::std::bad_alloc();
 		}
 		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
 		auto ptr = reinterpret_cast<T *>( &mem );
@@ -341,8 +342,8 @@ public:
 	{
 		if ( is_device_ptr )
 		{
-			THROW(unable to emit device ptr);
-//			throw ::std::bad_alloc();
+			THROW( unable to emit device ptr );
+			//			throw ::std::bad_alloc();
 		}
 		T *self = static_cast<T *>( self );
 		copyConstructor<T>::apply( self, self );
@@ -352,8 +353,8 @@ public:
 	{
 		if ( !is_device_ptr )
 		{
-			THROW(unable to fetch host ptr);
-//			throw ::std::bad_alloc();
+			THROW( unable to fetch host ptr );
+			//			throw ::std::bad_alloc();
 		}
 		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
 		auto ptr = reinterpret_cast<T *>( &mem );
@@ -366,8 +367,8 @@ public:
 	{
 		if ( !is_device_ptr )
 		{
-			THROW(unable to fetch host ptr);
-//			throw ::std::bad_alloc();
+			THROW( unable to fetch host ptr );
+			//			throw ::std::bad_alloc();
 		}
 		T *self = static_cast<T *>( self );
 		copyConstructor<T>::apply( self, self );
@@ -420,7 +421,7 @@ struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStructImp
 {
 	inline static void apply( T *q, const T *p )
 	{
-		LOG("copyConstructor<T>()", typeid(T).name(), q, p);
+		LOG( "copyConstructor<T>()", typeid( T ).name(), q, p );
 		new ( q ) T( *p );
 	}
 };
@@ -430,7 +431,7 @@ struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStructImpl
 {
 	inline static void apply( T *q, const T *p )
 	{
-		LOG("copyConstructor<PolyStruct>()", typeid(T).name(), q, p);
+		LOG( "copyConstructor<PolyStruct>()", typeid( T ).name(), q, p );
 		static_cast<PolyStructImpl<T> *>( q )->copyConstruct( *p );
 	}
 };
@@ -492,7 +493,7 @@ public:
 	}
 	~PolyVectorView()
 	{
-		LOG("~PolyVectorView()", typeid(T).name(), this);
+		LOG( "~PolyVectorView()", typeid( T ).name(), this );
 		destroy();
 	}
 
@@ -500,7 +501,7 @@ private:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		LOG("PolyVectorView(const&)", typeid(T).name(), this, &other);
+		LOG( "PolyVectorView(const&)", typeid( T ).name(), this, &other );
 		copyBetweenDevice( other );
 	}
 #else
@@ -509,7 +510,7 @@ private:
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		LOG("PolyVectorView=(const&)", typeid(T).name(), this, &other);
+		LOG( "PolyVectorView=(const&)", typeid( T ).name(), this, &other );
 		copyBetweenDevice( other );
 		return *this;
 	}
@@ -519,11 +520,11 @@ private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const PolyVectorView &other )
 	{
-		LOG("copyBetweenDevice(const&)", typeid(T).name(), this, &other);
+		LOG( "copyBetweenDevice(const&)", typeid( T ).name(), this, &other );
 		auto alloc_size = sizeof( T ) * curr;
 		if ( other.is_device_ptr )
 		{
-			LOG("copy from device to host");
+			LOG( "copy from device to host" );
 			if ( &other != this )
 			{
 				destroy();
@@ -533,12 +534,11 @@ private:
 			pointer host_value = (pointer)std::malloc( alloc_size );
 			if ( !std::is_pod<T>::value )
 			{
-				LOG("using trivial copy for class", typeid(T).name());
+				LOG( "using trivial copy for class", typeid( T ).name() );
 				auto buf = (pointer)std::malloc( alloc_size );
 				if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
 				{
-					THROW(cudaMemcpy to host failed);
-//					throw err;  // buf objects are constructed on host, but used on device
+					THROW( cudaMemcpy to host failed );
 				}
 				for ( auto p = buf, q = host_value; p != buf + curr; ++p, ++q )
 				{
@@ -548,20 +548,19 @@ private:
 			}
 			else
 			{
-				LOG("using plain copy for class", typeid(T).name());
+				LOG( "using plain copy for class", typeid( T ).name() );
 				if ( auto err = cudaMemcpy( host_value, value, alloc_size, cudaMemcpyDeviceToHost ) )
 				{
-					THROW(cudaMemcpy to host failed);
-//					throw err;  // buf objects are constructed on host, but used on device
+					THROW( cudaMemcpy to host failed );
 				}
 			}
 			value = host_value;
-			LOG("value", value);
+			LOG( "value", value );
 			is_device_ptr = false;
 		}
 		else
 		{
-			LOG("copy from host to device");
+			LOG( "copy from host to device" );
 			if ( &other != this )
 			{
 				destroy();
@@ -571,10 +570,12 @@ private:
 			pointer device_value;
 			if ( auto err = cudaMalloc( &device_value, alloc_size ) )
 			{
-				THROW(cudaMalloc on device failed);
-//				throw err;
+				std::ostringstream os;
+				os << err;
+				throw std::logic_error( err.str() );
+				THROW( cudaMalloc on device failed );
 			}
-			LOG("allocated device ptr", device_value);
+			LOG( "allocated device ptr", device_value );
 			if ( !std::is_pod<T>::value )
 			{
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
@@ -583,26 +584,25 @@ private:
 				if ( !std::is_trivially_copyable<T>::value )
 #endif
 				{
-					LOG("using non-trival copy for class", typeid(T).name());
+					LOG( "using non-trival copy for class", typeid( T ).name() );
 					pointer buf;
 					if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
 					{
-						THROW(cudaMallocManaged failed);
-//						throw err;
+						THROW( cudaMallocManaged failed );
 					}
-					LOG("allocated union ptr", buf);
+					LOG( "allocated union ptr", buf );
 					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
 						__impl::copyConstructor<T>::apply( q, p );
 					}
-					LOG("move construct", typeid(T).name(), device_value, buf);
+					LOG( "move construct", typeid( T ).name(), device_value, buf );
 					__impl::move_construct<<<1, alloc_size>>>( device_value, buf );
 					cudaDeviceSynchronize();
 					cudaFree( buf );
 				}
 				else
 				{
-					LOG("using trival copy for class", typeid(T).name());
+					LOG( "using trival copy for class", typeid( T ).name() );
 					auto buf = (pointer)std::malloc( alloc_size );
 					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
@@ -610,23 +610,23 @@ private:
 					}
 					if ( auto err = cudaMemcpy( device_value, buf, alloc_size, cudaMemcpyHostToDevice ) )
 					{
-						THROW(cudaMemcpy to device failed);
-//						throw err;  // buf objects are constructed on host, but used on device
+						THROW( cudaMemcpy to device failed );
+						//						throw err;  // buf objects are constructed on host, but used on device
 					}
 					std::free( buf );  // don't call dtor because they exist on device
 				}
 			}
 			else
 			{
-				LOG("using plain copy for class", typeid(T).name());
+				LOG( "using plain copy for class", typeid( T ).name() );
 				if ( auto err = cudaMemcpy( device_value, value, alloc_size, cudaMemcpyHostToDevice ) )
 				{
-					THROW(cudaMemcpy to device failed);
-//					throw err;  // buf objects are constructed on host, but used on device
+					THROW( cudaMemcpy to device failed );
+					//					throw err;  // buf objects are constructed on host, but used on device
 				}
 			}
 			value = device_value;
-			LOG("value", value);
+			LOG( "value", value );
 			is_device_ptr = true;  // this vector now points to device
 		}
 	}
@@ -636,20 +636,20 @@ private:
 	{
 		if ( !is_forwarded && value != nullptr )
 		{
-			LOG("destroy()", typeid(T).name(), this);
+			LOG( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
-				LOG("is device ptr");
+				LOG( "is device ptr" );
 #ifdef KOISHI_USE_CUDA
 				auto alloc_size = sizeof( T ) * curr;
 				if ( !std::is_pod<T>::value )
 				{
-					LOG("not pod");
+					LOG( "not pod" );
 					auto buf = (pointer)std::malloc( alloc_size );
 					if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
 					{
-						THROW(cudaMemcpy to host failed);
-//						throw err;  // buf objects are constructed on host, but used on device
+						THROW( cudaMemcpy to host failed );
+						//						throw err;  // buf objects are constructed on host, but used on device
 					}
 					for ( auto p = buf; p != buf + curr; ++p )
 					{
@@ -664,7 +664,7 @@ private:
 			}
 			else
 			{
-				LOG("not device ptr");
+				LOG( "not device ptr" );
 				if ( !std::is_pod<T>::value )
 				{
 					for ( auto p = value; p != value + curr; ++p )
