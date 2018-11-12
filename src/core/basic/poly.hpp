@@ -12,7 +12,7 @@
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
-//#define KOISHI_DEBUG
+#define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) println( __VA_ARGS__ )
 #else
@@ -47,8 +47,7 @@ struct Device
 
 inline void println()
 {
-	std::cout << std::endl
-			  << std::flush;
+	std::cout << std::endl << std::flush;
 }
 
 template <typename X, typename... Args>
@@ -323,71 +322,86 @@ struct copyConstructor;
 template <typename T>
 struct Emittable
 {
+protected:
+	Emittable( bool is_device_ptr = false ):
+	  is_device_ptr( is_device_ptr )
+	{
+	}
 public:
+#ifdef KOISHI_USE_CUDA
 	T emit() const
 	{
+		LOG("emitting", typeid(T).name(), this);
 		if ( is_device_ptr )
 		{
 			THROW( unable to emit device ptr );
-			//			throw ::std::bad_alloc();
 		}
 		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
 		auto ptr = reinterpret_cast<T *>( &mem );
-		const T *self = static_cast<const T *>( self );
+		const T *self = static_cast<const T *>( this );
 		copyConstructor<T>::apply( ptr, self );
 		ptr->is_device_ptr = !ptr->is_device_ptr;
 		return std::move( *ptr );
 	}
 	void emitAndReplace()
 	{
+		LOG("emit&replacing", typeid(T).name(), this);
 		if ( is_device_ptr )
 		{
 			THROW( unable to emit device ptr );
-			//			throw ::std::bad_alloc();
 		}
-		T *self = static_cast<T *>( self );
+		T *self = static_cast<T *>( this );
 		copyConstructor<T>::apply( self, self );
 		is_device_ptr = !is_device_ptr;
 	}
 	T fetch() const
 	{
+		LOG("fetching", typeid(T).name(), this);
 		if ( !is_device_ptr )
 		{
 			THROW( unable to fetch host ptr );
-			//			throw ::std::bad_alloc();
 		}
 		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
 		auto ptr = reinterpret_cast<T *>( &mem );
-		const T *self = static_cast<const T *>( self );
+		const T *self = static_cast<const T *>( this );
 		copyConstructor<T>::apply( ptr, *self );
 		ptr->is_device_ptr = !ptr->is_device_ptr;
 		return std::move( *ptr );
 	}
 	void fetchAndReplace()
 	{
+		LOG("fetch&replacing", typeid(T).name(), this);
 		if ( !is_device_ptr )
 		{
 			THROW( unable to fetch host ptr );
-			//			throw ::std::bad_alloc();
 		}
-		T *self = static_cast<T *>( self );
+		T *self = static_cast<T *>( this );
 		copyConstructor<T>::apply( self, self );
 		is_device_ptr = !is_device_ptr;
 	}
 	T &&forward() const
 	{
+		if ( !is_device_ptr )
+		{
+			THROW( unable to forward host-ptr );
+		}
 		static typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
 		auto ptr = reinterpret_cast<T *>( &mem );
-		std::memcpy( ptr, this, sizeof( *this ) );
+		cudaMemcpy( ptr, this, sizeof( T ), cudaMemcpyHostToHost );
 		return std::move( *ptr );
 	}
+	bool space() const 
+	{
+		return is_device_ptr;
+	}
 
+#endif
 protected:
 	bool is_device_ptr = false;
 };
 
 template <typename T>
-struct PolyStructImpl : __impl::Emittable<T>
+struct PolyStructImpl : Emittable<T>
 {
 	template <typename U>
 	friend struct PolyVectorView;
@@ -396,7 +410,10 @@ struct PolyStructImpl : __impl::Emittable<T>
 	template <typename U, typename X>
 	friend struct copyConstructor;
 
-	PolyStructImpl() = default;
+	PolyStructImpl( bool is = false ):
+	  Emittable<T>( is )
+	{
+	}
 	KOISHI_HOST_DEVICE PolyStructImpl( PolyStructImpl && ) = default;
 	KOISHI_HOST_DEVICE PolyStructImpl &operator=( PolyStructImpl && ) = default;
 
@@ -407,7 +424,6 @@ protected:
 private:
 	void copyConstruct( const T &other )
 	{
-		//	LOG("copyConstruct(const&)", typeid(T).name(), this);
 		new ( static_cast<T *>( this ) ) T( other );
 	}
 };
@@ -458,13 +474,17 @@ struct Poly;
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
 template <typename T>
-struct PolyVectorView final : public Emittable<PolyVectorView>
+struct PolyVectorView final : public __impl::PolyStructImpl<PolyVectorView<T>>
 {
 	template <typename U>
 	friend class __impl::Poly;
 	template <typename U>
 	friend class PolyVectorView;
+	template <typename U>
+	friend class __impl::PolyStructImpl;
+	using Super = __impl::PolyStructImpl<PolyVectorView<T>>;
 
+public:
 	using value_type = T;
 	using size_type = std::size_t;
 	using difference_type = std::ptrdiff_t;
@@ -480,14 +500,13 @@ public:
 	PolyVectorView() = default;
 	PolyVectorView( size_type count ) :
 	  value( (pointer)std::malloc( sizeof( T ) * count ) ),
-	  curr( count ),
-	  is_device_ptr( false )
+	  curr( count )
 	{
 	}
 	KOISHI_HOST_DEVICE PolyVectorView( PolyVectorView &&other ) :
+	  Super( other ),
 	  value( other.value ),
-	  curr( other.curr ),
-	  is_device_ptr( other.is_device_ptr )
+	  curr( other.curr )
 	{
 		other.value = nullptr;
 	}
@@ -495,22 +514,23 @@ public:
 	{
 		value = other.value;
 		curr = other.curr;
-		is_device_ptr = other.is_device_ptr;
+		this->is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
 		return *this;
 	}
 	~PolyVectorView()
 	{
-		LOG( "~PolyVectorView()", typeid( T ).name(), this );
 		destroy();
 	}
 
 private:
-	PolyVectorView( const PolyVectorView &other )
+	PolyVectorView( const PolyVectorView &other ):
+	  Super( copyBetweenDevice( other ) ),
+	  value( value ),
+	  curr( curr )
 #ifdef KOISHI_USE_CUDA
 	{
 		LOG( "PolyVectorView(const&)", typeid( T ).name(), this, &other );
-		copyBetweenDevice( other );
 	}
 #else
 	  = delete;
@@ -519,6 +539,7 @@ private:
 #ifdef KOISHI_USE_CUDA
 	{
 		LOG( "PolyVectorView=(const&)", typeid( T ).name(), this, &other );
+		// this->is_device_ptr = other->is_device_ptr;
 		copyBetweenDevice( other );
 		return *this;
 	}
@@ -526,7 +547,7 @@ private:
 	  = delete;
 #endif
 #ifdef KOISHI_USE_CUDA
-	void copyBetweenDevice( const PolyVectorView &other )
+	const PolyVectorView &copyBetweenDevice( const PolyVectorView &other )
 	{
 		LOG( "copyBetweenDevice(const&)", typeid( T ).name(), this, &other, other.curr );
 		auto alloc_size = sizeof( T ) * other.curr;
@@ -535,7 +556,6 @@ private:
 			destroy();
 			value = nullptr;
 			curr = other.curr;
-			is_device_ptr = !other.is_device_ptr;
 		}
 		else if ( other.is_device_ptr )
 		{
@@ -571,7 +591,6 @@ private:
 			}
 			value = host_value;
 			LOG( "value", value );
-			is_device_ptr = false;
 		}
 		else
 		{
@@ -642,8 +661,8 @@ private:
 			}
 			value = device_value;
 			LOG( "value", value );
-			is_device_ptr = true;  // this vector now points to device
 		}
+		return other;
 	}
 
 #endif
@@ -652,7 +671,7 @@ private:
 		if ( value != nullptr )
 		{
 			LOG( "destroy()", typeid( T ).name(), this );
-			if ( is_device_ptr )
+			if ( this->is_device_ptr )
 			{
 				LOG( "is device ptr", value );
 #ifdef KOISHI_USE_CUDA
@@ -696,8 +715,7 @@ public:
 	PolyVectorView( const buffer_type &other ) = delete;
 	PolyVectorView( buffer_type &&other ) :
 	  value( other.value ),
-	  curr( other.curr ),
-	  is_device_ptr( false )
+	  curr( other.curr )
 	{
 		other.value = nullptr;
 	}
@@ -706,7 +724,7 @@ public:
 	{
 		value = other.value;
 		curr = other.curr;
-		is_device_ptr = false;
+		this->is_device_ptr = false;
 		other.value = nullptr;
 		return *this;
 	}
@@ -737,7 +755,6 @@ public:
 private:
 	T *value = nullptr;
 	size_type curr = 0;
-	bool is_device_ptr = false;
 };
 
 // template <typename T>

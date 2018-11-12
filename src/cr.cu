@@ -47,24 +47,54 @@ int main( int argc, char **argv )
 {
 #if 1
 	PolyVector<A> vec;
-	for ( int i = 0; i != 10; ++i )
+	for ( int i = 0; i != 2; ++i )
 	{
 		vec.emplace_back( i );
 	}
 	PolyVectorView<A> view = std::move( vec );
+
+	LOG( view.size() );		
+	
 	view.emitAndReplace();
 	
+	LOG( view.size() );		
 	PolyVectorView<int> nn( view.size() );
 	PolyVectorView<int*> pp( view.size() );
+	
+	LOG(nn.space());
+	LOG(pp.space());
+	
+	LOG("size of nn", nn.size());
+
 	nn.emitAndReplace();
 	pp.emitAndReplace();
+
+	LOG(nn.space());
+	LOG(pp.space());
+	
+	LOG("size of nn", nn.size());
+
 	add<<<1, 1>>>( view.forward(), nn.forward(), pp.forward() );
 	cudaDeviceSynchronize();
+	
+	LOG(nn.space());
+	LOG(pp.space());
+
+	LOG("size of nn", nn.size());
+	
 	nn.fetchAndReplace();
 	pp.fetchAndReplace();
+	
+	LOG(nn.space());
+	LOG(pp.space());
+
+	LOG("size of nn", nn.size());
 
 	for ( auto &e: nn )
 		std::cout << e << std::endl;
+	
+	LOG( "normal exit" );
+
 	return 0;
 #endif
 
