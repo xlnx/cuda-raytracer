@@ -288,7 +288,73 @@ private:
 };
 
 template <typename T>
-struct PolyStruct
+struct PolyStruct;
+
+namespace __impl
+{
+
+template <typename T, typename = void>
+struct copyConstructor;
+
+template <typename T>
+struct Emittable
+{
+public:
+	T emit() const
+	{
+		if ( is_device_ptr )
+		{
+			throw::std::bad_alloc();
+		}
+		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
+		auto ptr = reinterpret_cast<T *>( &mem );
+		const T *self = static_cast<const T *>( self );
+		copyConstructor<T>::apply( ptr, self );
+		ptr->is_device_ptr = !ptr->is_device_ptr;
+		return std::move( *ptr );
+	}
+	void emitAndReplace()
+	{
+		if ( is_device_ptr )
+		{
+			throw::std::bad_alloc();
+		}
+		T *self = static_cast<T *>( self );
+		copyConstructor<T>::apply( self, self );
+		is_device_ptr = !is_device_ptr;
+	}
+	T fetch() const
+	{
+		if ( !is_device_ptr )
+		{
+			throw::std::bad_alloc();
+		}
+		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
+		auto ptr = reinterpret_cast<T *>( &mem );
+		const T *self = static_cast<const T *>( self );
+		copyConstructor<T>::apply( ptr, *self );
+		ptr->is_device_ptr = !ptr->is_device_ptr;
+		return std::move( *ptr );
+	}
+	void fetchAndReplace()
+	{
+		if ( !is_device_ptr )
+		{
+			throw::std::bad_alloc();
+		}
+		T *self = static_cast<T *>( self );
+		copyConstructor<T>::apply( self, self );
+		is_device_ptr = !is_device_ptr;
+	}
+
+protected:
+	bool is_device_ptr = false;
+};
+
+}
+
+template <typename T>
+struct PolyStruct: __impl::Emittable<T>
 {
 	template <typename U>
 	friend struct PolyVectorView;
@@ -323,13 +389,10 @@ __global__ void move_construct( T *dest, T *src )
 
 #endif
 
-template <typename T, typename = void>
-struct copyConstructor;
-
 template <typename T>
 struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStruct<T>, T>::value>::type>
 {
-	inline static void apply( T *q, T *p )
+	inline static void apply( T *q, const T *p )
 	{
 		new ( q ) T( *p );
 	}
@@ -338,9 +401,9 @@ struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStruct<T>
 template <typename T>
 struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStruct<T>, T>::value>::type>
 {
-	inline static void apply( T *q, T *p )
+	inline static void apply( T *q, const T *p )
 	{
-		static_cast<PolyStruct<T> *>( q )->copyConstruct( p );
+		static_cast<PolyStruct<T> *>( q )->copyConstruct( *p );
 	}
 };
 
@@ -441,7 +504,7 @@ private:
 				}
 				for ( auto p = buf, q = host_value; p != buf + curr; ++p, ++q )
 				{
-					copyConstructor<T>::apply( q, p );
+					__impl::copyConstructor<T>::apply( q, p );
 				}
 				std::free( buf );  // don't call dtor because they exist on device
 			}
@@ -483,7 +546,7 @@ private:
 					}
 					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
-						copyConstructor<T>::apply( q, p );
+						__impl::copyConstructor<T>::apply( q, p );
 					}
 					__impl::move_construct<<<1, alloc_size>>>( device_value, buf );
 					cudaDeviceSynchronize();
@@ -494,7 +557,7 @@ private:
 					auto buf = (pointer)std::malloc( alloc_size );
 					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
-						copyConstructor<T>::apply( q, p );
+						__impl::copyConstructor<T>::apply( q, p );
 					}
 					if ( auto err = cudaMemcpy( device_value, buf, alloc_size, cudaMemcpyHostToDevice ) )
 					{

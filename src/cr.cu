@@ -6,17 +6,35 @@
 #include <vis/renderer.hpp>
 
 using namespace koishi;
+using namespace core;
 
-#if 0
-struct A
+#if 1
+struct A: PolyStruct<A>
 {
-	A( int i ): n( i ) {}
-	__host__ __device__ virtual int f() { return n; }
+	A( int i ): n( i ) 
+	{
+		PolyVector<int> vv;
+		for ( int i = 0; i != n; ++i )
+		{
+			vv.emplace_back( i );
+		}
+		v = std::move( vv );
+	}
+	__host__ __device__ virtual int f() 
+	{
+		int s = 0;
+		for ( int i = 0; i != v.size(); ++i )
+		{
+			s += v[ i ];
+		}
+		return s;
+	}
 private:
 	int n;
+	PolyVectorView<int> v;
 };
 
-__global__ void add( core::PolyVectorView<A> vec, core::PolyVectorView<int> res )
+__global__ void add( PolyVectorView<A> vec, PolyVectorView<int> res )
 {
 	res[0] = 0;
 	for (auto &e: vec)
@@ -26,15 +44,15 @@ __global__ void add( core::PolyVectorView<A> vec, core::PolyVectorView<int> res 
 
 int main( int argc, char **argv )
 {
-#if 0
-	core::PolyVector<A> vec;
+#if 1
+	PolyVector<A> vec;
 	for ( int i = 0; i != 10; ++i )
 	{
 		vec.emplace_back( i );
 	}
-	core::PolyVectorView<A> view = std::move( vec );
+	PolyVectorView<A> view = std::move( vec );
 	view.emitAndReplace();
-	core::PolyVectorView<int> res(3);
+	PolyVectorView<int> res(3);
 	res.emitAndReplace();
 	add<<<1, 1>>>( view.forward(), res.forward() );
 	cudaDeviceSynchronize();
@@ -52,8 +70,8 @@ int main( int argc, char **argv )
 		std::istringstream is( argv[ 3 ] );
 		is >> spp;
 
-		using TraceFn = core::Radiance<core::DRand48>;
-		core::Renderer<core::Tracer<TraceFn>> r{ 1024, 768 };
+		using TraceFn = Radiance<DRand48>;
+		Renderer<Tracer<TraceFn>> r{ 1024, 768 };
 
 		r.render( argv[ 1 ], argv[ 2 ], spp );
 	}
