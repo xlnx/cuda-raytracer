@@ -374,6 +374,13 @@ public:
 		copyConstructor<T>::apply( self, self );
 		is_device_ptr = !is_device_ptr;
 	}
+	T &&forward() const
+	{
+		static typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
+		auto ptr = reinterpret_cast<T *>( &mem );
+		std::memcpy( ptr, this, sizeof( *this ) );
+		return std::move( *ptr );
+	}
 
 protected:
 	bool is_device_ptr = false;
@@ -400,7 +407,7 @@ protected:
 private:
 	void copyConstruct( const T &other )
 	{
-	//	LOG("copyConstruct(const&)", typeid(T).name(), this);
+		//	LOG("copyConstruct(const&)", typeid(T).name(), this);
 		new ( static_cast<T *>( this ) ) T( other );
 	}
 };
@@ -451,7 +458,7 @@ struct Poly;
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
 template <typename T>
-struct PolyVectorView final
+struct PolyVectorView final : public Emittable<PolyVectorView>
 {
 	template <typename U>
 	friend class __impl::Poly;
@@ -642,7 +649,7 @@ private:
 #endif
 	void destroy()
 	{
-		if ( !is_forwarded && value != nullptr )
+		if ( value != nullptr )
 		{
 			LOG( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
@@ -683,61 +690,6 @@ private:
 				std::free( value );
 			}
 		}
-	}
-
-private:
-	struct PolyVectorViewTag
-	{
-		T *value;
-		size_type curr;
-		bool is_device_ptr;
-	};
-
-public:
-	PolyVectorView emit() const
-	{
-		if ( is_device_ptr )
-		{
-			throw std::bad_alloc();
-		}
-		PolyVectorView dev( *this );
-		return std::move( dev );
-	}
-	void emitAndReplace()
-	{
-		if ( is_device_ptr )
-		{
-			throw std::bad_alloc();
-		}
-		copyBetweenDevice( *this );
-	}
-	PolyVectorView fetch() const
-	{
-		if ( !is_device_ptr )
-		{
-			throw std::bad_alloc();
-		}
-		PolyVectorView dev( *this );
-		return std::move( dev );
-	}
-	void fetchAndReplace()
-	{
-		if ( !is_device_ptr )
-		{
-			throw std::bad_alloc();
-		}
-		copyBetweenDevice( *this );
-	}
-	PolyVectorViewTag forward() const
-	{
-		return PolyVectorViewTag{ value, curr, is_device_ptr };
-	}
-	PolyVectorView( const PolyVectorViewTag &other ) :
-	  value( other.value ),
-	  curr( other.curr ),
-	  is_device_ptr( other.is_device_ptr ),
-	  is_forwarded( true )
-	{
 	}
 
 public:
@@ -786,7 +738,6 @@ private:
 	T *value = nullptr;
 	size_type curr = 0;
 	bool is_device_ptr = false;
-	bool is_forwarded = false;
 };
 
 // template <typename T>
