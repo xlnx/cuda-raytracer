@@ -7,6 +7,7 @@
 
 using namespace koishi;
 
+#if 0
 struct A
 {
 	A( int i ): n( i ) {}
@@ -21,10 +22,11 @@ __global__ void add( core::PolyVectorView<A> vec, core::PolyVectorView<int> res 
 	for (auto &e: vec)
 		res[0] += e.f();
 }
+#endif
 
 int main( int argc, char **argv )
 {
-#if 1
+#if 0
 	core::PolyVector<A> vec;
 	for ( int i = 0; i != 10; ++i )
 	{

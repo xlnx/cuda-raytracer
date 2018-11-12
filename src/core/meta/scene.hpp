@@ -11,9 +11,9 @@ namespace koishi
 {
 namespace core
 {
-struct PolyStruct( Scene )
+struct Scene : PolyStruct<Scene>
 {
-	PolyBase( const std::string &path );
+	Scene( const std::string &path );
 
 	PolyVectorView<Mesh> mesh;
 	std::vector<jsel::Material> material;

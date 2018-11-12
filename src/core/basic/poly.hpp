@@ -287,60 +287,31 @@ private:
 	T *value = (pointer)std::malloc( sizeof( T ) * total );
 };
 
-namespace __impl
-{
 template <typename T>
-struct PolyBase;
-
-template <typename T>
-struct PolyEmitter
+struct PolyStruct
 {
-public:
-	T emit() const
-	{
-		if ( is_device_ptr )
-		{
-			throw std::bad_alloc();
-		}
-		T dev( static_cast<const T &>( *this ) );
-		dev.is_device_ptr = true;
-		return std::move( dev );
-	}
-	T fetch() const
-	{
-		if ( !is_device_ptr )
-		{
-			throw std::bad_alloc();
-		}
-		T dev( static_cast<const T &>( *this ) );
-		dev.is_device_ptr = false;
-		return std::move( dev );
-	}
-	//Tag forward() const
-	//{
-	//	// TODO:
-	//}
+	template <typename U>
+	friend struct PolyVectorView;
+	template <typename U>
+	friend struct PolyStruct;
 
-private:
-	bool is_device_ptr = false;
-};
-
-struct ProtectedCopyable
-{
-	template <typename T>
-	struct PolyBase;
-	template <typename T>
-	struct PolyEmitter;
-
-	KOISHI_HOST_DEVICE ProtectedCopyable() = default;
-	KOISHI_HOST_DEVICE ProtectedCopyable( ProtectedCopyable && ) = default;
-	KOISHI_HOST_DEVICE ProtectedCopyable &operator=( ProtectedCopyable && ) = default;
+	PolyStruct() = default;
+	KOISHI_HOST_DEVICE PolyStruct( PolyStruct && ) = default;
+	KOISHI_HOST_DEVICE PolyStruct &operator=( PolyStruct && ) = default;
 
 protected:
-	KOISHI_HOST_DEVICE ProtectedCopyable( const ProtectedCopyable & ) = default;
-	KOISHI_HOST_DEVICE ProtectedCopyable &operator=( const ProtectedCopyable & ) = default;
+	PolyStruct( const PolyStruct & ) = default;
+	PolyStruct &operator=( const PolyStruct & ) = default;
+
+private:
+	void copyConstruct( const T &other )
+	{
+		new ( static_cast<T *>( this ) ) T( other );
+	}
 };
 
+namespace __impl
+{
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
@@ -352,13 +323,34 @@ __global__ void move_construct( T *dest, T *src )
 
 #endif
 
+template <typename T, typename = void>
+struct copyConstructor;
+
+template <typename T>
+struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStruct<T>, T>::value>::type>
+{
+	inline static void apply( T *q, T *p )
+	{
+		new ( q ) T( *p );
+	}
+};
+
+template <typename T>
+struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStruct<T>, T>::value>::type>
+{
+	inline static void apply( T *q, T *p )
+	{
+		static_cast<PolyStruct<T> *>( q )->copyConstruct( p );
+	}
+};
+
 }  // namespace __impl
 
-#define PolyStruct( type )                                       \
-	__##type##_tag;                                              \
-	using type = koishi::core::__impl::PolyBase<__##type##_tag>; \
-	template <>                                                  \
-	struct koishi::core::__impl::PolyBase<__##type##_tag> : __impl::PolyEmitter<type>, __impl::ProtectedCopyable
+// #define PolyStruct( type )                                       \
+// 	__##type##_tag;                                              \
+// 	using type = koishi::core::__impl::PolyBase<__##type##_tag>; \
+// 	template <>                                                  \
+// 	struct koishi::core::__impl::PolyBase<__##type##_tag> : __impl::PolyEmitter<type>, __impl::ProtectedCopyable
 
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
@@ -366,7 +358,7 @@ template <typename T>
 struct PolyVectorView final
 {
 	template <typename U>
-	friend class __impl::PolyBase;
+	friend class PolyStruct;
 	template <typename U>
 	friend class PolyVectorView;
 
@@ -449,7 +441,7 @@ private:
 				}
 				for ( auto p = buf, q = host_value; p != buf + curr; ++p, ++q )
 				{
-					new ( q ) T( *p );
+					copyConstructor<T>::apply( q, p );
 				}
 				std::free( buf );  // don't call dtor because they exist on device
 			}
@@ -491,7 +483,7 @@ private:
 					}
 					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
-						new ( q ) T( *p );
+						copyConstructor<T>::apply( q, p );
 					}
 					__impl::move_construct<<<1, alloc_size>>>( device_value, buf );
 					cudaDeviceSynchronize();
@@ -502,7 +494,7 @@ private:
 					auto buf = (pointer)std::malloc( alloc_size );
 					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
-						new ( q ) T( *p );
+						copyConstructor<T>::apply( q, p );
 					}
 					if ( auto err = cudaMemcpy( device_value, buf, alloc_size, cudaMemcpyHostToDevice ) )
 					{
@@ -667,6 +659,36 @@ private:
 	bool is_device_ptr = false;
 	bool is_forwarded = false;
 };
+
+// template <typename T>
+// struct PolyPtr final
+// {
+// 	using element_type T;
+
+// 	// PolyPtr()
+
+// public:
+// 	KOISHI_HOST_DEVICE element_type &operator*() { return *ptr; }
+// 	KOISHI_HOST_DEVICE element_type const &operator*() const { return *ptr; }
+
+// 	KOISHI_HOST_DEVICE element_type *operator->() { return ptr; }
+// 	KOISHI_HOST_DEVICE element_type const *operator->() const { return ptr; }
+
+// 	KOISHI_HOST_DEVICE element_type *get() { return ptr; }
+// 	KOISHI_HOST_DEVICE element_type const *get() const { return ptr; }
+
+// 	KOISHI_HOST_DEVICE bool operator==( const PolyPtr &other ) const { return ptr == other.ptr; }
+// 	KOISHI_HOST_DEVICE bool operator!=( const PolyPtr &other ) const { return ptr != other.ptr; }
+// 	KOISHI_HOST_DEVICE bool operator<( const PolyPtr &other ) const { return ptr < other.ptr; }
+// 	KOISHI_HOST_DEVICE bool operator<=( const PolyPtr &other ) const { return ptr <= other.ptr; }
+// 	KOISHI_HOST_DEVICE bool operator>( const PolyPtr &other ) const { return ptr > other.ptr; }
+// 	KOISHI_HOST_DEVICE bool operator>=( const PolyPtr &other ) const { return ptr >= other.ptr; }
+
+// 	KOISHI_HOST_DEVICE operator bool() const { return ptr; }
+
+// private:
+// 	element_type *ptr == nullptr;
+// };
 
 }  // namespace core
 
