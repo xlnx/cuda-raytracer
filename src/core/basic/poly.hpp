@@ -12,7 +12,7 @@
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
-#define KOISHI_DEBUG
+//#define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) println( __VA_ARGS__ )
 #else
@@ -400,6 +400,7 @@ protected:
 private:
 	void copyConstruct( const T &other )
 	{
+	//	LOG("copyConstruct(const&)", typeid(T).name(), this);
 		new ( static_cast<T *>( this ) ) T( other );
 	}
 };
@@ -520,9 +521,16 @@ private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const PolyVectorView &other )
 	{
-		LOG( "copyBetweenDevice(const&)", typeid( T ).name(), this, &other );
-		auto alloc_size = sizeof( T ) * curr;
-		if ( other.is_device_ptr )
+		LOG( "copyBetweenDevice(const&)", typeid( T ).name(), this, &other, other.curr );
+		auto alloc_size = sizeof( T ) * other.curr;
+		if ( alloc_size == 0 )
+		{
+			destroy();
+			value = nullptr;
+			curr = other.curr;
+			is_device_ptr = !other.is_device_ptr;
+		}
+		else if ( other.is_device_ptr )
 		{
 			LOG( "copy from device to host" );
 			if ( &other != this )
@@ -572,7 +580,7 @@ private:
 			{
 				std::ostringstream os;
 				os << err;
-				throw std::logic_error( err.str() );
+				throw std::logic_error( os.str() );
 				THROW( cudaMalloc on device failed );
 			}
 			LOG( "allocated device ptr", device_value );
@@ -596,7 +604,7 @@ private:
 						__impl::copyConstructor<T>::apply( q, p );
 					}
 					LOG( "move construct", typeid( T ).name(), device_value, buf );
-					__impl::move_construct<<<1, alloc_size>>>( device_value, buf );
+					__impl::move_construct<<<1, curr>>>( device_value, buf );
 					cudaDeviceSynchronize();
 					cudaFree( buf );
 				}
@@ -639,7 +647,7 @@ private:
 			LOG( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
-				LOG( "is device ptr" );
+				LOG( "is device ptr", value );
 #ifdef KOISHI_USE_CUDA
 				auto alloc_size = sizeof( T ) * curr;
 				if ( !std::is_pod<T>::value )
@@ -664,7 +672,7 @@ private:
 			}
 			else
 			{
-				LOG( "not device ptr" );
+				LOG( "not device ptr", value );
 				if ( !std::is_pod<T>::value )
 				{
 					for ( auto p = value; p != value + curr; ++p )
@@ -734,7 +742,7 @@ public:
 
 public:
 	PolyVectorView( const buffer_type &other ) = delete;
-	KOISHI_HOST_DEVICE PolyVectorView( buffer_type &&other ) :
+	PolyVectorView( buffer_type &&other ) :
 	  value( other.value ),
 	  curr( other.curr ),
 	  is_device_ptr( false )
@@ -742,7 +750,7 @@ public:
 		other.value = nullptr;
 	}
 	PolyVectorView &operator=( const buffer_type &other ) = delete;
-	KOISHI_HOST_DEVICE PolyVectorView &operator=( buffer_type &&other )
+	PolyVectorView &operator=( buffer_type &&other )
 	{
 		value = other.value;
 		curr = other.curr;

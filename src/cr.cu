@@ -15,27 +15,19 @@ struct PolyStruct( A )
 	  n( i )
 	{
 		PolyVector<int> vv;
-		for ( int i = 0; i != n; ++i )
+		for ( int i = 0; i <= n; ++i )
 		{
 			vv.emplace_back( i );
 		}
 		v = std::move( vv );
 	}
-	KOISHI_HOST_DEVICE Poly(Poly &&other) = default;
-	Poly(const Poly &other):
-	  n( other.n ),
-	  v( other.v )
-	{
-		std::cout << other.n << " " << other.v.size() << " "<< other.v.data() << std::endl;
-		std::cout << n << " " <<  v.size() << " " << v.data() << std::endl;
-	}
 
 	__host__ __device__ virtual int f()
 	{
-		int s = 0;
+		int s = v.size() * 1000;
 		for ( int i = 0; i != v.size(); ++i )
 		{
-		//	s += v[ i ];
+			s += v[ i ];
 		}
 		return s;
 	}
@@ -44,10 +36,10 @@ struct PolyStruct( A )
 	PolyVectorView<int> v;
 };
 
-__global__ void add( PolyVectorView<A> vec, PolyVectorView<int*> res, PolyVectorView<int> n )
+__global__ void add( PolyVectorView<A> vec, PolyVectorView<int> n, PolyVectorView<int*> p )
 {
-	res[0] = vec[1].v.data();
-	n[0] = vec[1].v.size();
+	for (auto i = 0; i != vec.size(); ++i)
+		n[i] = vec[i].f(), p[i] = vec[i].v.data();
 }
 #endif
 
@@ -55,21 +47,24 @@ int main( int argc, char **argv )
 {
 #if 1
 	PolyVector<A> vec;
-	for ( int i = 0; i != 2; ++i )
+	for ( int i = 0; i != 10; ++i )
 	{
 		vec.emplace_back( i );
 	}
 	PolyVectorView<A> view = std::move( vec );
 	view.emitAndReplace();
-	PolyVectorView<int*> res( 3 );
-	PolyVectorView<int> nn( 3 );
-	res.emitAndReplace();
+	
+	PolyVectorView<int> nn( view.size() );
+	PolyVectorView<int*> pp( view.size() );
 	nn.emitAndReplace();
-	add<<<1, 1>>>( view.forward(), res.forward(), nn.forward() );
+	pp.emitAndReplace();
+	add<<<1, 1>>>( view.forward(), nn.forward(), pp.forward() );
 	cudaDeviceSynchronize();
-	res.fetchAndReplace();
 	nn.fetchAndReplace();
-	std::cout << res[ 0 ] << " " << nn[0] << std::endl;
+	pp.fetchAndReplace();
+
+	for ( auto &e: nn )
+		std::cout << e << std::endl;
 	return 0;
 #endif
 
