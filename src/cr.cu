@@ -22,7 +22,7 @@ struct PolyStruct( A )
 		v = std::move( vv );
 	}
 
-	__host__ __device__ virtual int f()
+	__host__ __device__ virtual int f() const
 	{
 		int s = v.size() * 1000;
 		for ( int i = 0; i != v.size(); ++i )
@@ -36,9 +36,12 @@ struct PolyStruct( A )
 	PolyVectorView<int> v;
 };
 
-__global__ void add( PolyVectorView<A> vec, PolyVectorView<int> n, PolyVectorView<int*> p )
+__global__ void add( const PolyVectorView<A> &vec, PolyVectorView<int> &n, PolyVectorView<const int*> &p )
 {
+	//n[0] = 1; n[1] = 2;
+	//n[0] = 1;
 	for (auto i = 0; i != vec.size(); ++i)
+		//n[i] = 1;
 		n[i] = vec[i].f(), p[i] = vec[i].v.data();
 }
 #endif
@@ -47,46 +50,46 @@ int main( int argc, char **argv )
 {
 #if 1
 	PolyVector<A> vec;
-	for ( int i = 0; i != 2; ++i )
+	for ( int i = 0; i != 10; ++i )
 	{
 		vec.emplace_back( i );
 	}
 	PolyVectorView<A> view = std::move( vec );
 
-	LOG( view.size() );		
+	LOG( view.size(), view.data() );
 	
 	view.emitAndReplace();
 	
-	LOG( view.size() );		
-	PolyVectorView<int> nn( view.size() );
-	PolyVectorView<int*> pp( view.size() );
+	LOG( view.size(), view.data() );
 	
-	LOG(nn.space());
-	LOG(pp.space());
+	PolyVectorView<int> nn( view.size() );
+	PolyVectorView<const int*> pp( view.size() );
+	
+	LOG(nn.space(), nn.data() );
+	LOG(pp.space(), pp.data() );
 	
 	LOG("size of nn", nn.size());
 
 	nn.emitAndReplace();
 	pp.emitAndReplace();
 
-	LOG(nn.space());
-	LOG(pp.space());
+	LOG(nn.space(), nn.data());
+	LOG(pp.space(), pp.data());
 	
 	LOG("size of nn", nn.size());
 
-	add<<<1, 1>>>( view.forward(), nn.forward(), pp.forward() );
-	cudaDeviceSynchronize();
+	kernel(add, 1, 1)(view, nn, pp);
 	
-	LOG(nn.space());
-	LOG(pp.space());
+	LOG(nn.space(), nn.data());
+	LOG(pp.space(), pp.data());
 
 	LOG("size of nn", nn.size());
 	
 	nn.fetchAndReplace();
 	pp.fetchAndReplace();
 	
-	LOG(nn.space());
-	LOG(pp.space());
+	LOG(nn.space(), nn.data());
+	LOG(pp.space(), pp.data());
 
 	LOG("size of nn", nn.size());
 

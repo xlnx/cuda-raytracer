@@ -12,7 +12,7 @@
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
-#define KOISHI_DEBUG
+//#define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) println( __VA_ARGS__ )
 #else
@@ -324,9 +324,17 @@ template <typename T>
 struct Emittable
 {
 protected:
-	Emittable( bool is_device_ptr = false ) :
-	  is_device_ptr( is_device_ptr )
+	Emittable() = default;
+	KOISHI_HOST_DEVICE Emittable( Emittable &&other) = default;
+	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = default;
+	Emittable( const Emittable &other ):
+	  is_device_ptr( !other.is_device_ptr )
 	{
+	}
+	Emittable &operator=( const Emittable &other )
+	{
+		is_device_ptr = !other.is_device_ptr;
+		return *this;
 	}
 
 public:
@@ -342,7 +350,6 @@ public:
 		auto ptr = reinterpret_cast<T *>( &mem );
 		const T *self = static_cast<const T *>( this );
 		copyConstructor<T>::apply( ptr, self );
-		ptr->is_device_ptr = !ptr->is_device_ptr;
 		return std::move( *ptr );
 	}
 	void emitAndReplace()
@@ -354,7 +361,6 @@ public:
 		}
 		T *self = static_cast<T *>( this );
 		copyConstructor<T>::apply( self, self );
-		is_device_ptr = !is_device_ptr;
 	}
 	T fetch() const
 	{
@@ -367,7 +373,6 @@ public:
 		auto ptr = reinterpret_cast<T *>( &mem );
 		const T *self = static_cast<const T *>( this );
 		copyConstructor<T>::apply( ptr, *self );
-		ptr->is_device_ptr = !ptr->is_device_ptr;
 		return std::move( *ptr );
 	}
 	void fetchAndReplace()
@@ -379,9 +384,8 @@ public:
 		}
 		T *self = static_cast<T *>( this );
 		copyConstructor<T>::apply( self, self );
-		is_device_ptr = !is_device_ptr;
 	}
-	bool space() const
+	KOISHI_HOST_DEVICE bool space() const
 	{
 		return is_device_ptr;
 	}
@@ -401,10 +405,7 @@ struct PolyStructImpl : Emittable<T>
 	template <typename U, typename X>
 	friend struct copyConstructor;
 
-	PolyStructImpl( bool is = false ) :
-	  Emittable<T>( is )
-	{
-	}
+	PolyStructImpl() = default;
 	KOISHI_HOST_DEVICE PolyStructImpl( PolyStructImpl && ) = default;
 	KOISHI_HOST_DEVICE PolyStructImpl &operator=( PolyStructImpl && ) = default;
 
@@ -459,20 +460,26 @@ struct arguments;
 template <typename T, typename... Args>
 struct arguments<T, Args...> : arguments<Args...>
 {
+	using value_type = typename std::remove_reference<
+		typename std::remove_cv<T>::type>::type;
+
 	arguments( T &&x, Args &&... args ) :
 	  arguments<Args...>( std::forward<Args>( args )... )
 	{
-		cudaMalloc( &data, sizeof( T ) );
-		cudaMemcpy( data, &x, sizeof( T ), cudaMemcpyHostToDevice );
+		LOG("constructed augument with", typeid(value_type).name());
+		cudaMalloc( &data, sizeof( value_type ) );
+		cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
 	}
 	~arguments()
 	{
+		LOG("free", typeid(value_type).name());
 		cudaFree( data );
 	}
 
 	template <typename X, std::size_t N, std::size_t Id>
 	const X &forward()
 	{
+		LOG("forwarding", typeid(X).name());
 		static_assert( N - Id - 1 != sizeof...( Args ) ||
 						 std::is_same<X, T>::value,
 					   "wrong parameter type" );
@@ -487,33 +494,37 @@ struct arguments<T, Args...> : arguments<Args...>
 	}
 
 private:
-	T *data;
+	value_type *data;
 };
 
 template <typename T>
 struct arguments<T>
 {
+	using value_type = typename std::remove_reference<
+		typename std::remove_cv<T>::type>::type;
+	
 	arguments( const T &x )
 	{
-		cudaMalloc( &data, sizeof( T ) );
-		cudaMemcpy( data, &x, sizeof( T ), cudaMemcpyHostToDevice );
+		LOG("constructed augument with", typeid(value_type).name());
+		cudaMalloc( &data, sizeof( value_type ) );
+		cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
 	}
 	~arguments()
 	{
+		LOG("free", typeid(value_type).name());
 		cudaFree( data );
 	}
 
 	template <typename X, std::size_t N, std::size_t Id>
 	const X &forward()
 	{
+		LOG("forwarding", typeid(X).name());
 		return reinterpret_cast<const X &>( *data );
 	}
 
 private:
-	T *data;
+	value_type *data;
 };
-
-#if 0
 
 template <std::size_t... Is>
 struct indices
@@ -530,6 +541,8 @@ template <std::size_t... Is>
 struct build_indices<0, Is...> : indices<Is...>
 {
 };
+
+#if 0
 
 template <typename... Args>
 struct types
@@ -582,6 +595,7 @@ struct callable<void ( * )( Args... )>
 	template <typename... Given>
 	void operator()( Given &&... given )
 	{
+		LOG("calling");
 		do_call( build_indices<sizeof...( Given )>{}, std::forward<Given>( given )... );
 	}
 
@@ -589,9 +603,10 @@ private:
 	template <typename... Given, std::size_t... Is>
 	void do_call( indices<Is...>, Given &&... given )
 	{
+		LOG("calling");
 		arguments<Given...> argval( std::forward<Given>( given )... );
-		f( argval.template forward<Given, sizeof...( Given ), Is>()... );
-		//		cudaDeviceSynchronize();
+		f<<<a, b>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
+		cudaDeviceSynchronize();
 	}
 
 private:
@@ -646,14 +661,18 @@ public:
 	using buffer_type = PolyVector<T>;
 
 public:
-	PolyVectorView() = default;
+	PolyVectorView():
+	  value( nullptr ),
+	  curr( 0 )
+	{
+	}
 	PolyVectorView( size_type count ) :
 	  value( (pointer)std::malloc( sizeof( T ) * count ) ),
 	  curr( count )
 	{
 	}
 	KOISHI_HOST_DEVICE PolyVectorView( PolyVectorView &&other ) :
-	  Super( other ),
+	  Super( std::forward<PolyVectorView>( other ) ),
 	  value( other.value ),
 	  curr( other.curr )
 	{
@@ -661,9 +680,10 @@ public:
 	}
 	KOISHI_HOST_DEVICE PolyVectorView &operator=( PolyVectorView &&other )
 	{
+		destroy();
+		Super::operator=( std::forward<PolyVectorView>( other ) );
 		value = other.value;
 		curr = other.curr;
-		this->is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
 		return *this;
 	}
@@ -673,13 +693,12 @@ public:
 	}
 
 private:
-	PolyVectorView( const PolyVectorView &other ) :
-	  Super( copyBetweenDevice( other ) ),
-	  value( value ),
-	  curr( curr )
+	PolyVectorView( const PolyVectorView &other ):
+	  Super( std::move( *this ) )
 #ifdef KOISHI_USE_CUDA
 	{
 		LOG( "PolyVectorView(const&)", typeid( T ).name(), this, &other );
+		copyBetweenDevice( other );
 	}
 #else
 	  = delete;
@@ -688,7 +707,6 @@ private:
 #ifdef KOISHI_USE_CUDA
 	{
 		LOG( "PolyVectorView=(const&)", typeid( T ).name(), this, &other );
-		// this->is_device_ptr = other->is_device_ptr;
 		copyBetweenDevice( other );
 		return *this;
 	}
@@ -696,7 +714,7 @@ private:
 	  = delete;
 #endif
 #ifdef KOISHI_USE_CUDA
-	const PolyVectorView &copyBetweenDevice( const PolyVectorView &other )
+	void copyBetweenDevice( const PolyVectorView &other )
 	{
 		LOG( "copyBetweenDevice(const&)", typeid( T ).name(), this, &other, other.curr );
 		auto alloc_size = sizeof( T ) * other.curr;
@@ -705,6 +723,7 @@ private:
 			destroy();
 			value = nullptr;
 			curr = other.curr;
+			this->is_device_ptr = !other.is_device_ptr;
 		}
 		else if ( other.is_device_ptr )
 		{
@@ -740,6 +759,7 @@ private:
 			}
 			value = host_value;
 			LOG( "value", value );
+			this->is_device_ptr = false;
 		}
 		else
 		{
@@ -810,8 +830,8 @@ private:
 			}
 			value = device_value;
 			LOG( "value", value );
+			this->is_device_ptr = true;
 		}
-		return other;
 	}
 
 #endif
@@ -871,6 +891,7 @@ public:
 	PolyVectorView &operator=( const buffer_type &other ) = delete;
 	PolyVectorView &operator=( buffer_type &&other )
 	{
+		destroy();
 		value = other.value;
 		curr = other.curr;
 		this->is_device_ptr = false;
@@ -902,8 +923,8 @@ public:
 	KOISHI_HOST_DEVICE size_type size() const { return curr; }
 
 private:
-	T *value = nullptr;
-	size_type curr = 0;
+	T *value;
+	size_type curr;
 };
 
 // template <typename T>
