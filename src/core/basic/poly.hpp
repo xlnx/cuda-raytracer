@@ -325,9 +325,9 @@ struct Emittable
 {
 protected:
 	Emittable() = default;
-	KOISHI_HOST_DEVICE Emittable( Emittable &&other) = default;
+	KOISHI_HOST_DEVICE Emittable( Emittable &&other ) = default;
 	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = default;
-	Emittable( const Emittable &other ):
+	Emittable( const Emittable &other ) :
 	  is_device_ptr( !other.is_device_ptr )
 	{
 	}
@@ -461,25 +461,25 @@ template <typename T, typename... Args>
 struct arguments<T, Args...> : arguments<Args...>
 {
 	using value_type = typename std::remove_reference<
-		typename std::remove_cv<T>::type>::type;
+	  typename std::remove_cv<T>::type>::type;
 
 	arguments( T &&x, Args &&... args ) :
 	  arguments<Args...>( std::forward<Args>( args )... )
 	{
-		LOG("constructed augument with", typeid(value_type).name());
+		LOG( "constructed augument with", typeid( value_type ).name() );
 		cudaMalloc( &data, sizeof( value_type ) );
 		cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
 	}
 	~arguments()
 	{
-		LOG("free", typeid(value_type).name());
+		LOG( "free", typeid( value_type ).name() );
 		cudaFree( data );
 	}
 
 	template <typename X, std::size_t N, std::size_t Id>
 	const X &forward()
 	{
-		LOG("forwarding", typeid(X).name());
+		LOG( "forwarding", typeid( X ).name() );
 		static_assert( N - Id - 1 != sizeof...( Args ) ||
 						 std::is_same<X, T>::value,
 					   "wrong parameter type" );
@@ -501,24 +501,24 @@ template <typename T>
 struct arguments<T>
 {
 	using value_type = typename std::remove_reference<
-		typename std::remove_cv<T>::type>::type;
-	
+	  typename std::remove_cv<T>::type>::type;
+
 	arguments( const T &x )
 	{
-		LOG("constructed augument with", typeid(value_type).name());
+		LOG( "constructed augument with", typeid( value_type ).name() );
 		cudaMalloc( &data, sizeof( value_type ) );
 		cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
 	}
 	~arguments()
 	{
-		LOG("free", typeid(value_type).name());
+		LOG( "free", typeid( value_type ).name() );
 		cudaFree( data );
 	}
 
 	template <typename X, std::size_t N, std::size_t Id>
 	const X &forward()
 	{
-		LOG("forwarding", typeid(X).name());
+		LOG( "forwarding", typeid( X ).name() );
 		return reinterpret_cast<const X &>( *data );
 	}
 
@@ -595,7 +595,7 @@ struct callable<void ( * )( Args... )>
 	template <typename... Given>
 	void operator()( Given &&... given )
 	{
-		LOG("calling");
+		LOG( "calling" );
 		do_call( build_indices<sizeof...( Given )>{}, std::forward<Given>( given )... );
 	}
 
@@ -603,7 +603,7 @@ private:
 	template <typename... Given, std::size_t... Is>
 	void do_call( indices<Is...>, Given &&... given )
 	{
-		LOG("calling");
+		LOG( "calling" );
 		arguments<Given...> argval( std::forward<Given>( given )... );
 		f<<<a, b>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
 		cudaDeviceSynchronize();
@@ -627,7 +627,11 @@ struct Poly;
 
 }  // namespace __impl
 
+#ifdef KOISHI_USE_CUDA
+
 using __impl::kernel;
+
+#endif
 
 #define PolyStruct( type )                                   \
 	__##type##_tag;                                          \
@@ -661,7 +665,7 @@ public:
 	using buffer_type = PolyVector<T>;
 
 public:
-	PolyVectorView():
+	PolyVectorView() :
 	  value( nullptr ),
 	  curr( 0 )
 	{
@@ -693,9 +697,10 @@ public:
 	}
 
 private:
-	PolyVectorView( const PolyVectorView &other ):
-	  Super( std::move( *this ) )
+	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
+	  :
+	  Super( std::move( *this ) )
 	{
 		LOG( "PolyVectorView(const&)", typeid( T ).name(), this, &other );
 		copyBetweenDevice( other );

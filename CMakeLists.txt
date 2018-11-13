@@ -15,10 +15,19 @@ include_directories(
 )
 
 file(GLOB_RECURSE SOURCES 
-	${CMAKE_SOURCE_DIR}/src/*.cpp 
-	${CMAKE_SOURCE_DIR}/src/*.cu
+	${CMAKE_SOURCE_DIR}/src/**/*.cpp 
+	${CMAKE_SOURCE_DIR}/src/**/*.cu
 )
 
+enable_testing()
+find_package(GTest REQUIRED)
+include_directories(${GTEST_INCLUDE_DIR})
+
+file(GLOB TEST_SOURCES 
+	${CMAKE_SOURCE_DIR}/test/*.cpp
+	${CMAKE_SOURCE_DIR}/test/*.cu
+)
+	
 # find_package(assimp REQUIRED)
 # if (assimp_FOUND)
 #     link_directories(${ASSIMP_LIBRARY_DIRS})
@@ -41,11 +50,36 @@ if (${CUDA} STREQUAL "ON")
 	add_definitions(-DKOISHI_USE_CUDA)
 	set(CUDA_NVCC_FLAGS "${CMAKE_NVCC_FLAGS} -std=c++11 -O3 "
 		" -Xcudafe \"--diag_suppress=\\\"set_but_not_used,code_is_unreachable\\\"\" ")
-	#link_libraries(assimp)
-	cuda_add_executable(cr ${SOURCES})
+	# cuda_add_executable(cr ${SOURCES})
 else ()
-	#link_libraries(assimpd)
 	set_source_files_properties(${SOURCES} PROPERTIES LANGUAGE CXX)
 	add_compile_options(-Wno-narrowing -x c++)
-	add_executable(cr ${SOURCES})
+	# add_executable(cr ${SOURCES})
 endif ()
+
+function (koishi_add_executable EXE_NAME )
+	if (${CUDA} STREQUAL "ON")
+		cuda_add_executable(${EXE_NAME} ${ARGN})
+	else ()
+		set_source_files_properties(${ARGN} PROPERTIES LANGUAGE CXX)
+		add_executable(${EXE_NAME} ${ARGN})
+	endif ()
+endfunction ()
+
+foreach(TEST_FILE ${TEST_SOURCES})
+	string(REGEX MATCH "^(.*)\\.[^.]*$" dummy ${TEST_FILE})
+	string(REGEX MATCH "^.*/([^\\\\/]+)$" dummy ${CMAKE_MATCH_1})
+	set(TEST_EXECUTABLE_NAME "t_${CMAKE_MATCH_1}")
+	koishi_add_executable(${TEST_EXECUTABLE_NAME} ${SOURCES} ${TEST_FILE})
+	target_link_libraries(
+		${TEST_EXECUTABLE_NAME}
+		${GTEST_LIBRARY} 
+		${GTEST_MAIN_LIBRARY}
+	)
+	add_test(
+		${TEST_EXECUTABLE_NAME}
+		${TEST_EXECUTABLE_NAME}
+	)
+endforeach(TEST_FILE)
+
+koishi_add_executable(cr ${SOURCES} ${CMAKE_SOURCE_DIR}/src/cr.cu)
