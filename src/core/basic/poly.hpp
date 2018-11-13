@@ -47,7 +47,8 @@ struct Device
 
 inline void println()
 {
-	std::cout << std::endl << std::flush;
+	std::cout << std::endl
+			  << std::flush;
 }
 
 template <typename X, typename... Args>
@@ -323,15 +324,16 @@ template <typename T>
 struct Emittable
 {
 protected:
-	Emittable( bool is_device_ptr = false ):
+	Emittable( bool is_device_ptr = false ) :
 	  is_device_ptr( is_device_ptr )
 	{
 	}
+
 public:
 #ifdef KOISHI_USE_CUDA
 	T emit() const
 	{
-		LOG("emitting", typeid(T).name(), this);
+		LOG( "emitting", typeid( T ).name(), this );
 		if ( is_device_ptr )
 		{
 			THROW( unable to emit device ptr );
@@ -345,7 +347,7 @@ public:
 	}
 	void emitAndReplace()
 	{
-		LOG("emit&replacing", typeid(T).name(), this);
+		LOG( "emit&replacing", typeid( T ).name(), this );
 		if ( is_device_ptr )
 		{
 			THROW( unable to emit device ptr );
@@ -356,7 +358,7 @@ public:
 	}
 	T fetch() const
 	{
-		LOG("fetching", typeid(T).name(), this);
+		LOG( "fetching", typeid( T ).name(), this );
 		if ( !is_device_ptr )
 		{
 			THROW( unable to fetch host ptr );
@@ -370,7 +372,7 @@ public:
 	}
 	void fetchAndReplace()
 	{
-		LOG("fetch&replacing", typeid(T).name(), this);
+		LOG( "fetch&replacing", typeid( T ).name(), this );
 		if ( !is_device_ptr )
 		{
 			THROW( unable to fetch host ptr );
@@ -379,18 +381,7 @@ public:
 		copyConstructor<T>::apply( self, self );
 		is_device_ptr = !is_device_ptr;
 	}
-	T &&forward() const
-	{
-		if ( !is_device_ptr )
-		{
-			THROW( unable to forward host-ptr );
-		}
-		static typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
-		auto ptr = reinterpret_cast<T *>( &mem );
-		cudaMemcpy( ptr, this, sizeof( T ), cudaMemcpyHostToHost );
-		return std::move( *ptr );
-	}
-	bool space() const 
+	bool space() const
 	{
 		return is_device_ptr;
 	}
@@ -410,7 +401,7 @@ struct PolyStructImpl : Emittable<T>
 	template <typename U, typename X>
 	friend struct copyConstructor;
 
-	PolyStructImpl( bool is = false ):
+	PolyStructImpl( bool is = false ) :
 	  Emittable<T>( is )
 	{
 	}
@@ -460,10 +451,168 @@ struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStructImpl
 	}
 };
 
+#ifdef KOISHI_USE_CUDA
+
+template <typename... Args>
+struct arguments;
+
+template <typename T, typename... Args>
+struct arguments<T, Args...> : arguments<Args...>
+{
+	arguments( T &&x, Args &&... args ) :
+	  arguments<Args...>( std::forward<Args>( args )... )
+	{
+		cudaMalloc( &data, sizeof( T ) );
+		cudaMemcpy( data, &x, sizeof( T ), cudaMemcpyHostToDevice );
+	}
+	~arguments()
+	{
+		cudaFree( data );
+	}
+
+	template <typename X, std::size_t N, std::size_t Id>
+	const X &forward()
+	{
+		static_assert( N - Id - 1 != sizeof...( Args ) ||
+						 std::is_same<X, T>::value,
+					   "wrong parameter type" );
+		if ( N - Id - 1 == sizeof...( Args ) )
+		{
+			return reinterpret_cast<const X &>( *data );
+		}
+		else
+		{
+			return arguments<Args...>::template forward<X, N, Id>();
+		}
+	}
+
+private:
+	T *data;
+};
+
+template <typename T>
+struct arguments<T>
+{
+	arguments( const T &x )
+	{
+		cudaMalloc( &data, sizeof( T ) );
+		cudaMemcpy( data, &x, sizeof( T ), cudaMemcpyHostToDevice );
+	}
+	~arguments()
+	{
+		cudaFree( data );
+	}
+
+	template <typename X, std::size_t N, std::size_t Id>
+	const X &forward()
+	{
+		return reinterpret_cast<const X &>( *data );
+	}
+
+private:
+	T *data;
+};
+
+#if 0
+
+template <std::size_t... Is>
+struct indices
+{
+	using type = indices<Is...>;
+};
+
+template <std::size_t N, std::size_t... Is>
+struct build_indices : build_indices<N - 1, N - 1, Is...>
+{
+};
+
+template <std::size_t... Is>
+struct build_indices<0, Is...> : indices<Is...>
+{
+};
+
+template <typename... Args>
+struct types
+{
+	using type = types<Args...>;
+};
+
+template <std::size_t N, typename T, typename... Args>
+struct nth_type : nth_type<N - 1, Args...>
+{
+};
+
+template <typename T, typename... Args>
+struct nth_type<0, T, Args...> : types<T>
+{
+};
+
+template <typename T, typename U, typename X>
+struct do_front_n_types;
+
+template <std::size_t N, std::size_t... Is, typename T, typename... Bin, typename... Args>
+struct do_front_n_types<indices<N, Is...>, types<Bin...>, types<T, Args...>> : do_front_n_types<indices<Is...>, types<Bin..., T>, types<Args...>>
+{
+};
+
+template <std::size_t... Is, typename... Bin, typename... Args>
+struct do_front_n_types<indices<Is...>, types<Bin...>, types<Args...>> : types<Bin...>
+{
+};
+
+template <std::size_t N, typename... Args>
+struct front_n_types : do_front_n_types<typename build_indices<N>::type, types<>, types<Args...>>
+{
+};
+
+#endif
+
+template <typename F>
+struct callable;
+
+template <typename... Args>
+struct callable<void ( * )( Args... )>
+{
+	using F = void ( * )( Args... );
+
+	callable( F f, int a, int b ) :
+	  f( f ), a( a ), b( b )
+	{
+	}
+	template <typename... Given>
+	void operator()( Given &&... given )
+	{
+		do_call( build_indices<sizeof...( Given )>{}, std::forward<Given>( given )... );
+	}
+
+private:
+	template <typename... Given, std::size_t... Is>
+	void do_call( indices<Is...>, Given &&... given )
+	{
+		arguments<Given...> argval( std::forward<Given>( given )... );
+		f( argval.template forward<Given, sizeof...( Given ), Is>()... );
+		//		cudaDeviceSynchronize();
+	}
+
+private:
+	F f;
+	int a, b;
+};
+
+template <typename F>
+callable<F> kernel( F f, int a, int b )
+{
+	return callable<F>( f, a, b );
+}
+
+#endif
+
 template <typename T>
 struct Poly;
 
 }  // namespace __impl
+
+using __impl::kernel;
 
 #define PolyStruct( type )                                   \
 	__##type##_tag;                                          \
@@ -524,7 +673,7 @@ public:
 	}
 
 private:
-	PolyVectorView( const PolyVectorView &other ):
+	PolyVectorView( const PolyVectorView &other ) :
 	  Super( copyBetweenDevice( other ) ),
 	  value( value ),
 	  curr( curr )
