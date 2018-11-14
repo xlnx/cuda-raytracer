@@ -60,45 +60,63 @@ TEST( first_poly_vector_test_case, struct_with_non_standard_layout )
 	}
 	PolyVectorView<A> view = std::move( vec );
 
-	LOG( view.size(), view.data() );
+	EXPECT_EQ( view.size(), 10 );
+	LOG( view.data() );
 
 	view.emitAndReplace();
 
-	LOG( view.size(), view.data() );
+	EXPECT_EQ( view.size(), 10 );
+	LOG( view.data() );
 
 	PolyVectorView<int> nn( view.size() );
 	PolyVectorView<const int *> pp( view.size() );
 
-	LOG( nn.space(), nn.data() );
-	LOG( pp.space(), pp.data() );
+	EXPECT_EQ( nn.space(), 0 );
+	LOG( nn.data() );
+	EXPECT_EQ( pp.space(), 0 );
+	LOG( pp.data() );
 
-	LOG( "size of nn", nn.size() );
+	EXPECT_EQ( 10, nn.size() );
 
 	nn.emitAndReplace();
 	pp.emitAndReplace();
 
-	LOG( nn.space(), nn.data() );
-	LOG( pp.space(), pp.data() );
+	EXPECT_EQ( nn.space(), 1 );
+	LOG( nn.data() );
+	EXPECT_EQ( pp.space(), 1 );
+	LOG( pp.data() );
 
-	LOG( "size of nn", nn.size() );
+	EXPECT_EQ( 10, nn.size() );
 
 	kernel( add, 1, 1 )( view, nn, pp );
 
-	LOG( nn.space(), nn.data() );
-	LOG( pp.space(), pp.data() );
+	EXPECT_EQ( nn.space(), 1 );
+	LOG( nn.data() );
+	EXPECT_EQ( pp.space(), 1 );
+	LOG( pp.data() );
 
-	LOG( "size of nn", nn.size() );
+	EXPECT_EQ( 10, nn.size() );
 
 	nn.fetchAndReplace();
 	pp.fetchAndReplace();
 
-	LOG( nn.space(), nn.data() );
-	LOG( pp.space(), pp.data() );
+	EXPECT_EQ( nn.space(), 0 );
+	LOG( nn.data() );
+	EXPECT_EQ( pp.space(), 0 );
+	LOG( pp.data() );
 
-	LOG( "size of nn", nn.size() );
+	EXPECT_EQ( 10, nn.size() );
 
 	for ( auto &e : nn )
 		std::cout << e << std::endl;
+	
+	int ss = 0;
+
+	for (int i = 0; i != nn.size(); ++i)
+	{
+		ss += i;
+		EXPECT_EQ( nn[i], ss + 1000 * ( i + 1 ) );
+	}
 
 	LOG( "normal exit" );
 #else
