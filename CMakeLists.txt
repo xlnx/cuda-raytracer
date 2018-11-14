@@ -48,7 +48,7 @@ endif ()
 if (${CUDA} STREQUAL "ON")
 	find_package(CUDA REQUIRED)
 	add_definitions(-DKOISHI_USE_CUDA)
-	set(CUDA_NVCC_FLAGS "${CMAKE_NVCC_FLAGS} -std=c++14 -O3 "
+	set(CUDA_NVCC_FLAGS "${CMAKE_NVCC_FLAGS} -std=c++14 -O3 -w "
 		" -Xcudafe \"--diag_suppress=\\\"set_but_not_used,code_is_unreachable\\\"\" ")
 	# cuda_add_executable(cr ${SOURCES})
 else ()
