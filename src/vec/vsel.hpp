@@ -41,31 +41,31 @@ template <typename T, typename = typename std::enable_if<koishi::trait::is_in<T,
 														 koishi::trait::is_vec1<T>::value>::type>
 void from_json( const nlohmann::json &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
+	v.x = j[ 0 ].get<typename koishi::trait::com<T>::type>();
 }
 
 template <typename T, typename = void, typename = typename std::enable_if<koishi::trait::is_in<T, KOISHI_VEC>::value && koishi::trait::is_vec2<T>::value>::type>
 void from_json( const nlohmann::json &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
-	j[ 1 ].get_to( v.y );
+	v.x = j[ 0 ].get<typename koishi::trait::com<T>::type>();
+	v.y = j[ 1 ].get<typename koishi::trait::com<T>::type>();
 }
 
 template <typename T, typename = void, typename = void, typename = typename std::enable_if<koishi::trait::is_in<T, KOISHI_VEC>::value && koishi::trait::is_vec3<T>::value>::type>
 void from_json( const nlohmann::json &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
-	j[ 1 ].get_to( v.y );
-	j[ 2 ].get_to( v.z );
+	v.x = j[ 0 ].get<typename koishi::trait::com<T>::type>();
+	v.y = j[ 1 ].get<typename koishi::trait::com<T>::type>();
+	v.z = j[ 2 ].get<typename koishi::trait::com<T>::type>();
 }
 
 template <typename T, typename = void, typename = void, typename = void, typename = typename std::enable_if<koishi::trait::is_in<T, KOISHI_VEC>::value && koishi::trait::is_vec4<T>::value>::type>
 void from_json( const nlohmann::json &j, T &v )
 {
-	j[ 0 ].get_to( v.x );
-	j[ 1 ].get_to( v.y );
-	j[ 2 ].get_to( v.z );
-	j[ 3 ].get_to( v.w );
+	v.x = j[ 0 ].get<typename koishi::trait::com<T>::type>();
+	v.y = j[ 1 ].get<typename koishi::trait::com<T>::type>();
+	v.z = j[ 2 ].get<typename koishi::trait::com<T>::type>();
+	v.w = j[ 3 ].get<typename koishi::trait::com<T>::type>();
 }
 
 #if !defined( KOISHI_USE_CUDA )

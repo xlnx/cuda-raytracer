@@ -75,7 +75,7 @@ protected:
 			  [=]( const nlohmann::json &j, T &t ) {
 				  if ( j.find( name ) != j.end() )
 				  {
-					  j.at( name ).get_to( t.*offset );
+					  t.*offset = j.at( name ).get<U>();
 				  }
 				  else
 				  {
@@ -97,7 +97,7 @@ protected:
 			  [=]( const nlohmann::json &j, T &t ) {
 				  if ( j.find( name ) != j.end() )
 				  {
-					  j.at( name ).get_to( t.*offset );
+					  t.*offset = j.at( name ).get<U>();
 				  }
 				  else
 				  {
