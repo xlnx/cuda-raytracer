@@ -340,7 +340,7 @@ public:
 		}
 		char *self = (char *)this + to_T;
 		isTransferring() = true;
-		cctor( self, self );
+		__copy_construct( self, self );
 		isTransferring() = false;
 	}
 	void fetchAndReplace()
@@ -352,7 +352,7 @@ public:
 		}
 		char *self = (char *)this + to_T;
 		isTransferring() = true;
-		cctor( self, self );
+		__copy_construct( self, self );
 		isTransferring() = false;
 	}
 	KOISHI_HOST_DEVICE bool space() const
@@ -593,7 +593,7 @@ public:
 	  :
 	  Emittable( std::move( *this ) )
 	{
-		if ( !__impl::Emittable::isTransferring() )
+		if ( !Emittable::isTransferring() )
 		{
 			THROW( invalid use of PolyVectorView( const & ) );
 		}
@@ -608,7 +608,7 @@ public:
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		if ( !__impl::Emittable::isTransferring() )
+		if ( !Emittable::isTransferring() )
 		{
 			THROW( invalid use of PolyVectorView( const & ) );
 		}
