@@ -323,9 +323,9 @@ struct copyConstructor;
 struct Emittable
 {
 protected:
-	Emittable() = default;
-	KOISHI_HOST_DEVICE Emittable( Emittable &&other ) = delete;
-	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = delete;
+	KOISHI_HOST_DEVICE Emittable() = default;
+	KOISHI_HOST_DEVICE Emittable( Emittable &&other ) = default;
+	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = default;
 	Emittable( const Emittable &other ) :
 	  is_device_ptr( !other.is_device_ptr )
 	{
@@ -376,8 +376,8 @@ protected:
 	}
 
 protected:
-	void ( *cctor )( char *, const char * );
-	std::ptrdiff_t to_T;
+	void ( *cctor )( char *, const char * ) = nullptr;
+	std::ptrdiff_t to_T = 0;
 	bool is_device_ptr = false;
 };
 
