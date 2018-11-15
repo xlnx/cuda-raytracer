@@ -12,7 +12,7 @@
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
-#define KOISHI_DEBUG
+//#define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) println( __VA_ARGS__ )
 #else
