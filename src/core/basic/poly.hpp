@@ -324,8 +324,8 @@ struct Emittable
 {
 protected:
 	Emittable() = default;
-	KOISHI_HOST_DEVICE Emittable( Emittable &&other ) = default;
-	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = default;
+	KOISHI_HOST_DEVICE Emittable( Emittable &&other ) = delete;
+	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = delete;
 	Emittable( const Emittable &other ) :
 	  is_device_ptr( !other.is_device_ptr )
 	{
@@ -376,8 +376,8 @@ protected:
 	}
 
 protected:
-	void ( *cctor )( char *, const char * ) = nullptr;
-	std::ptrdiff_t to_T = 0;
+	void ( *cctor )( char *, const char * );
+	std::ptrdiff_t to_T;
 	bool is_device_ptr = false;
 };
 
@@ -403,8 +403,19 @@ protected:
 			Emittable::to_T = (char *)static_cast<T *>( this ) - (char *)static_cast<Emittable *>( this );
 		}
 	}
-	KOISHI_HOST_DEVICE PolyStructImpl( PolyStructImpl && ) = default;
-	KOISHI_HOST_DEVICE PolyStructImpl &operator=( PolyStructImpl && ) = default;
+	KOISHI_HOST_DEVICE PolyStructImpl( PolyStructImpl &&other )
+	{
+		Emittable::cctor = other.cctor;
+		Emittable::to_T = other.to_T;
+		Emittable::is_device_ptr = other.is_device_ptr;
+	}
+	KOISHI_HOST_DEVICE PolyStructImpl &operator=( PolyStructImpl &&other )
+	{
+		Emittable::cctor = other.cctor;
+		Emittable::to_T = other.to_T;
+		Emittable::is_device_ptr = other.is_device_ptr;
+		return *this;
+	}
 	PolyStructImpl( const PolyStructImpl & ) = default;
 	PolyStructImpl &operator=( const PolyStructImpl & ) = default;
 
@@ -705,7 +716,7 @@ private:
 				{
 					__impl::copyConstructor<T>::apply( q, p );
 				}
-				LOG("deleted", buf);
+				LOG( "deleted", buf );
 				std::free( buf );  // don't call dtor because they exist on device
 			}
 			else
@@ -756,7 +767,7 @@ private:
 					LOG( "move construct", typeid( T ).name(), device_value, buf );
 					__impl::move_construct<<<1, other.curr>>>( device_value, buf );
 					cudaDeviceSynchronize();
-					LOG("deleted", buf);
+					LOG( "deleted", buf );
 					cudaFree( buf );
 				}
 				else
@@ -772,7 +783,7 @@ private:
 						THROW( cudaMemcpy to device failed );
 						//						throw err;  // buf objects are constructed on host, but used on device
 					}
-					LOG("deleted", buf);
+					LOG( "deleted", buf );
 					std::free( buf );  // don't call dtor because they exist on device
 				}
 			}
@@ -817,10 +828,10 @@ private:
 					{
 						p->~T();
 					}
-					LOG("deleted", buf);
+					LOG( "deleted", buf );
 					std::free( buf );
 				}
-				LOG("deleted", value);
+				LOG( "deleted", value );
 				cudaFree( value );
 #else
 				throw ::std::bad_alloc();
@@ -836,7 +847,7 @@ private:
 						p->~T();
 					}
 				}
-				LOG("deleted", value);
+				LOG( "deleted", value );
 				std::free( value );
 			}
 		}
