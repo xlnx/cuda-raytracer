@@ -17,7 +17,7 @@ namespace core
 {
 template <typename Radiance, typename Alloc = HostAllocator, uint MaxThreads = -1u>
 PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
-  ( util::Image<3> & image, const PolyVectorView<Ray> &rays, const Scene &scene, uint spp )->void {
+  ( util::Image<3> & image, PolyVectorView<Ray> &rays, Scene &scene, uint spp )->void {
 	  Alloc pool;
 
 	  uint w = image.width();
@@ -58,7 +58,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 namespace cuda
 {
 template <typename Radiance, typename Alloc>
-__global__ void intergrate( double3 *buffer, PolyVectorView<Ray> rays, Scene scene, uint h )
+__global__ void intergrate( double3 *buffer, const PolyVectorView<Ray> &rays, const Scene &scene, uint h )
 {
 	Alloc pool;
 
@@ -82,7 +82,7 @@ __global__ void intergrate( double3 *buffer, PolyVectorView<Ray> rays, Scene sce
 
 template <typename Radiance, typename Alloc = DeviceAllocator>
 PolyFunction( Tracer, Require<Host> )(
-  ( util::Image<3> & image, const PolyVectorView<Ray> &rays, const Scene &scene, uint spp )->void {
+  ( util::Image<3> & image, PolyVectorView<Ray> &rays, Scene &scene, uint spp )->void {
 	  static_assert( std::is_base_of<Device, Radiance>::value, "Radiance must be host callable" );
 	  static_assert( std::is_base_of<Device, Alloc>::value, "Alloc must be host callable" );
 
@@ -92,8 +92,8 @@ PolyFunction( Tracer, Require<Host> )(
 	  float gridDim = w;
 	  float blockDim = spp;
 
-	  auto devRays = std::move( rays.emit() );
-	  auto devScene = std::move( scene.emit() );
+	  rays.emitAndReplace();
+	  scene.emitAndReplace();
 	  PolyVectorView<double3> buffer( w * h );
 	  buffer.emitAndReplace();
 

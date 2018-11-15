@@ -12,7 +12,7 @@
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
-//#define KOISHI_DEBUG
+#define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) println( __VA_ARGS__ )
 #else
@@ -432,7 +432,6 @@ struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStructImp
 {
 	inline static void apply( T *q, const T *p )
 	{
-		LOG( "copyConstructor<T>()", typeid( T ).name(), q, p );
 		new ( q ) T( *p );
 	}
 };
@@ -442,7 +441,6 @@ struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStructImpl
 {
 	inline static void apply( T *q, const T *p )
 	{
-		LOG( "copyConstructor<PolyStruct>()", typeid( T ).name(), q, p );
 		static_cast<PolyStructImpl<T> *>( q )->copyConstruct( *p );
 	}
 };
@@ -650,7 +648,7 @@ public:
 	  :
 	  Super( std::move( *this ) )
 	{
-		if ( !Emittable::isTransferring() )
+		if ( !__impl::Emittable::isTransferring() )
 		{
 			THROW( invalid use of PolyVectorView( const & ) );
 		}
@@ -665,7 +663,7 @@ public:
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		if ( !Emittable::isTransferring() )
+		if ( !__impl::Emittable::isTransferring() )
 		{
 			THROW( invalid use of PolyVectorView( const & ) );
 		}
@@ -707,6 +705,7 @@ private:
 				{
 					__impl::copyConstructor<T>::apply( q, p );
 				}
+				LOG("deleted", buf);
 				std::free( buf );  // don't call dtor because they exist on device
 			}
 			else
@@ -757,6 +756,7 @@ private:
 					LOG( "move construct", typeid( T ).name(), device_value, buf );
 					__impl::move_construct<<<1, other.curr>>>( device_value, buf );
 					cudaDeviceSynchronize();
+					LOG("deleted", buf);
 					cudaFree( buf );
 				}
 				else
@@ -772,6 +772,7 @@ private:
 						THROW( cudaMemcpy to device failed );
 						//						throw err;  // buf objects are constructed on host, but used on device
 					}
+					LOG("deleted", buf);
 					std::free( buf );  // don't call dtor because they exist on device
 				}
 			}
@@ -816,8 +817,10 @@ private:
 					{
 						p->~T();
 					}
+					LOG("deleted", buf);
 					std::free( buf );
 				}
+				LOG("deleted", value);
 				cudaFree( value );
 #else
 				throw ::std::bad_alloc();
@@ -833,6 +836,7 @@ private:
 						p->~T();
 					}
 				}
+				LOG("deleted", value);
 				std::free( value );
 			}
 		}

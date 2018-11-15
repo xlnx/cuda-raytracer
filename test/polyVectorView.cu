@@ -46,20 +46,24 @@ __global__ void add( const PolyVectorView<A> &vec, PolyVectorView<int> &n, PolyV
 
 TEST( test_poly_vector, struct_with_non_standard_layout )
 {
+//	testing::internal::CaptureStdout();
 #ifdef KOISHI_USE_CUDA
 	PolyVector<A> vec;
-	for ( int i = 0; i != 10; ++i )
+	
+	int n = 2;
+	
+	for ( int i = 0; i != n; ++i )
 	{
 		vec.emplace_back( i );
 	}
 	PolyVectorView<A> view = std::move( vec );
 
-	EXPECT_EQ( view.size(), 10 );
+	EXPECT_EQ( view.size(), n );
 	LOG( view.data() );
 
 	view.emitAndReplace();
 
-	EXPECT_EQ( view.size(), 10 );
+	EXPECT_EQ( view.size(), n );
 	LOG( view.data() );
 
 	PolyVectorView<int> nn( view.size() );
@@ -70,7 +74,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	EXPECT_EQ( pp.space(), 0 );
 	LOG( pp.data() );
 
-	EXPECT_EQ( 10, nn.size() );
+	EXPECT_EQ( n, nn.size() );
 
 	nn.emitAndReplace();
 	pp.emitAndReplace();
@@ -80,7 +84,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	EXPECT_EQ( pp.space(), 1 );
 	LOG( pp.data() );
 
-	EXPECT_EQ( 10, nn.size() );
+	EXPECT_EQ( n, nn.size() );
 
 	kernel( add, 1, 1 )( view, nn, pp );
 
@@ -89,7 +93,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	EXPECT_EQ( pp.space(), 1 );
 	LOG( pp.data() );
 
-	EXPECT_EQ( 10, nn.size() );
+	EXPECT_EQ( n, nn.size() );
 
 	nn.fetchAndReplace();
 	pp.fetchAndReplace();
@@ -99,7 +103,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	EXPECT_EQ( pp.space(), 0 );
 	LOG( pp.data() );
 
-	EXPECT_EQ( 10, nn.size() );
+	EXPECT_EQ( n, nn.size() );
 
 	for ( auto &e : nn )
 		std::cout << e << std::endl;
