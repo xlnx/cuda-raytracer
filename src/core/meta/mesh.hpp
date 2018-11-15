@@ -23,7 +23,7 @@ struct BVHNode
 
 using BVHTree = PolyVectorView<BVHNode>;
 
-struct PolyStruct( Mesh )
+struct Mesh : Poly<Mesh>
 {
 	PolyVectorView<double3> vertices;
 	PolyVectorView<double3> normals;

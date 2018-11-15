@@ -1,20 +1,14 @@
-#include <sstream>
-#include <core/tracer.hpp>
-#include <core/random.hpp>
-#include <core/radiance.hpp>
-#include <core/renderer.hpp>
-#include <vis/renderer.hpp>
-
+#include <core/basic/poly.hpp>
 #include <gtest/gtest.h>
 
 using namespace koishi;
 using namespace core;
 
-#if KOISHI_USE_CUDA
+#ifdef KOISHI_USE_CUDA
 
-struct PolyStruct( A )
+struct A : Poly<A>
 {
-	Poly( int i ) :
+	A( int i ) :
 	  n( i )
 	{
 		PolyVector<int> vv;
@@ -50,9 +44,9 @@ __global__ void add( const PolyVectorView<A> &vec, PolyVectorView<int> &n, PolyV
 
 #endif
 
-TEST( first_poly_vector_test_case, struct_with_non_standard_layout )
+TEST( test_poly_vector, struct_with_non_standard_layout )
 {
-#if KOISHI_USE_CUDA
+#ifdef KOISHI_USE_CUDA
 	PolyVector<A> vec;
 	for ( int i = 0; i != 10; ++i )
 	{
@@ -109,19 +103,15 @@ TEST( first_poly_vector_test_case, struct_with_non_standard_layout )
 
 	for ( auto &e : nn )
 		std::cout << e << std::endl;
-	
+
 	int ss = 0;
 
-	for (int i = 0; i != nn.size(); ++i)
+	for ( int i = 0; i != nn.size(); ++i )
 	{
 		ss += i;
-		EXPECT_EQ( nn[i], ss + 1000 * ( i + 1 ) );
+		EXPECT_EQ( nn[ i ], ss + 1000 * ( i + 1 ) );
 	}
-
-	LOG( "normal exit" );
 #else
 	LOG( "no cuda toolkit provided" );
-
-	EXPECT_EQ( 1, 1 );
 #endif
 }

@@ -320,7 +320,6 @@ struct PolyStructImpl;
 template <typename T, typename = void>
 struct copyConstructor;
 
-template <typename T>
 struct Emittable
 {
 protected:
@@ -339,51 +338,29 @@ protected:
 
 public:
 #ifdef KOISHI_USE_CUDA
-	T emit() const
-	{
-		LOG( "emitting", typeid( T ).name(), this );
-		if ( is_device_ptr )
-		{
-			THROW( unable to emit device ptr );
-		}
-		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
-		auto ptr = reinterpret_cast<T *>( &mem );
-		const T *self = static_cast<const T *>( this );
-		copyConstructor<T>::apply( ptr, self );
-		return std::move( *ptr );
-	}
 	void emitAndReplace()
 	{
-		LOG( "emit&replacing", typeid( T ).name(), this );
+		LOG( "emit&replacing", this );
 		if ( is_device_ptr )
 		{
 			THROW( unable to emit device ptr );
 		}
-		T *self = static_cast<T *>( this );
-		copyConstructor<T>::apply( self, self );
-	}
-	T fetch() const
-	{
-		LOG( "fetching", typeid( T ).name(), this );
-		if ( !is_device_ptr )
-		{
-			THROW( unable to fetch host ptr );
-		}
-		typename std::aligned_storage<sizeof( T ), alignof( T )>::type mem;
-		auto ptr = reinterpret_cast<T *>( &mem );
-		const T *self = static_cast<const T *>( this );
-		copyConstructor<T>::apply( ptr, *self );
-		return std::move( *ptr );
+		char *self = (char *)this + to_T;
+		isTransferring() = true;
+		cctor( self, self );
+		isTransferring() = false;
 	}
 	void fetchAndReplace()
 	{
-		LOG( "fetch&replacing", typeid( T ).name(), this );
+		LOG( "fetch&replacing", this );
 		if ( !is_device_ptr )
 		{
 			THROW( unable to fetch host ptr );
 		}
-		T *self = static_cast<T *>( this );
-		copyConstructor<T>::apply( self, self );
+		char *self = (char *)this + to_T;
+		isTransferring() = true;
+		cctor( self, self );
+		isTransferring() = false;
 	}
 	KOISHI_HOST_DEVICE bool space() const
 	{
@@ -392,11 +369,20 @@ public:
 
 #endif
 protected:
+	static bool &isTransferring()
+	{
+		static bool is_transferring = false;
+		return is_transferring;
+	}
+
+protected:
+	void ( *cctor )( char *, const char * ) = nullptr;
+	std::ptrdiff_t to_T = 0;
 	bool is_device_ptr = false;
 };
 
 template <typename T>
-struct PolyStructImpl : Emittable<T>
+struct PolyStructImpl : virtual Emittable
 {
 	template <typename U>
 	friend struct PolyVectorView;
@@ -405,11 +391,20 @@ struct PolyStructImpl : Emittable<T>
 	template <typename U, typename X>
 	friend struct copyConstructor;
 
-	PolyStructImpl() = default;
+protected:
+	PolyStructImpl()
+	{
+		if ( !Emittable::cctor )
+		{
+			Emittable::cctor = (void ( * )( char *, const char * ))copyConstructor<T>::apply;
+		}
+		if ( !Emittable::to_T )
+		{
+			Emittable::to_T = (char *)static_cast<T *>( this ) - (char *)static_cast<Emittable *>( this );
+		}
+	}
 	KOISHI_HOST_DEVICE PolyStructImpl( PolyStructImpl && ) = default;
 	KOISHI_HOST_DEVICE PolyStructImpl &operator=( PolyStructImpl && ) = default;
-
-protected:
 	PolyStructImpl( const PolyStructImpl & ) = default;
 	PolyStructImpl &operator=( const PolyStructImpl & ) = default;
 
@@ -542,44 +537,6 @@ struct build_indices<0, Is...> : indices<Is...>
 {
 };
 
-#if 0
-
-template <typename... Args>
-struct types
-{
-	using type = types<Args...>;
-};
-
-template <std::size_t N, typename T, typename... Args>
-struct nth_type : nth_type<N - 1, Args...>
-{
-};
-
-template <typename T, typename... Args>
-struct nth_type<0, T, Args...> : types<T>
-{
-};
-
-template <typename T, typename U, typename X>
-struct do_front_n_types;
-
-template <std::size_t N, std::size_t... Is, typename T, typename... Bin, typename... Args>
-struct do_front_n_types<indices<N, Is...>, types<Bin...>, types<T, Args...>> : do_front_n_types<indices<Is...>, types<Bin..., T>, types<Args...>>
-{
-};
-
-template <std::size_t... Is, typename... Bin, typename... Args>
-struct do_front_n_types<indices<Is...>, types<Bin...>, types<Args...>> : types<Bin...>
-{
-};
-
-template <std::size_t N, typename... Args>
-struct front_n_types : do_front_n_types<typename build_indices<N>::type, types<>, types<Args...>>
-{
-};
-
-#endif
-
 template <typename F>
 struct callable;
 
@@ -622,9 +579,6 @@ callable<F> kernel( F f, int a, int b )
 
 #endif
 
-template <typename T>
-struct Poly;
-
 }  // namespace __impl
 
 #ifdef KOISHI_USE_CUDA
@@ -633,19 +587,14 @@ using __impl::kernel;
 
 #endif
 
-#define PolyStruct( type )                                   \
-	__##type##_tag;                                          \
-	using type = koishi::core::__impl::Poly<__##type##_tag>; \
-	template <>                                              \
-	struct koishi::core::__impl::Poly<__##type##_tag> : __impl::PolyStructImpl<type>
+template <typename T>
+using Poly = __impl::PolyStructImpl<T>;
 
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
 template <typename T>
-struct PolyVectorView final : public __impl::PolyStructImpl<PolyVectorView<T>>
+struct PolyVectorView final : public Poly<PolyVectorView<T>>
 {
-	template <typename U>
-	friend class __impl::Poly;
 	template <typename U>
 	friend class PolyVectorView;
 	template <typename U>
@@ -696,28 +645,40 @@ public:
 		destroy();
 	}
 
-private:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	  :
 	  Super( std::move( *this ) )
 	{
+		if ( !Emittable::isTransferring() )
+		{
+			THROW( invalid use of PolyVectorView( const & ) );
+		}
 		LOG( "PolyVectorView(const&)", typeid( T ).name(), this, &other );
 		copyBetweenDevice( other );
 	}
 #else
-	  = delete;
+	{
+		THROW( invalid use of PolyVectorView( const & ) );
+	}
 #endif
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
+		if ( !Emittable::isTransferring() )
+		{
+			THROW( invalid use of PolyVectorView( const & ) );
+		}
 		LOG( "PolyVectorView=(const&)", typeid( T ).name(), this, &other );
 		copyBetweenDevice( other );
 		return *this;
 	}
 #else
-	  = delete;
+	{
+		THROW( invalid use of PolyVectorView( const & ) );
+	}
 #endif
+private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const PolyVectorView &other )
 	{
@@ -733,22 +694,16 @@ private:
 		else if ( other.is_device_ptr )
 		{
 			LOG( "copy from device to host" );
-			if ( &other != this )
-			{
-				destroy();
-				value = other.value;
-				curr = other.curr;
-			}
 			pointer host_value = (pointer)std::malloc( alloc_size );
 			if ( !std::is_pod<T>::value )
 			{
 				LOG( "using trivial copy for class", typeid( T ).name() );
 				auto buf = (pointer)std::malloc( alloc_size );
-				if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
+				if ( auto err = cudaMemcpy( buf, other.value, alloc_size, cudaMemcpyDeviceToHost ) )
 				{
 					THROW( cudaMemcpy to host failed );
 				}
-				for ( auto p = buf, q = host_value; p != buf + curr; ++p, ++q )
+				for ( auto p = buf, q = host_value; p != buf + other.curr; ++p, ++q )
 				{
 					__impl::copyConstructor<T>::apply( q, p );
 				}
@@ -757,24 +712,20 @@ private:
 			else
 			{
 				LOG( "using plain copy for class", typeid( T ).name() );
-				if ( auto err = cudaMemcpy( host_value, value, alloc_size, cudaMemcpyDeviceToHost ) )
+				if ( auto err = cudaMemcpy( host_value, other.value, alloc_size, cudaMemcpyDeviceToHost ) )
 				{
 					THROW( cudaMemcpy to host failed );
 				}
 			}
+			destroy();
 			value = host_value;
+			curr = other.curr;
 			LOG( "value", value );
 			this->is_device_ptr = false;
 		}
 		else
 		{
 			LOG( "copy from host to device" );
-			if ( &other != this )
-			{
-				destroy();
-				value = other.value;
-				curr = other.curr;
-			}
 			pointer device_value;
 			if ( auto err = cudaMalloc( &device_value, alloc_size ) )
 			{
@@ -799,12 +750,12 @@ private:
 						THROW( cudaMallocManaged failed );
 					}
 					LOG( "allocated union ptr", buf );
-					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
+					for ( auto p = other.value, q = buf; p != other.value + other.curr; ++p, ++q )
 					{
 						__impl::copyConstructor<T>::apply( q, p );
 					}
 					LOG( "move construct", typeid( T ).name(), device_value, buf );
-					__impl::move_construct<<<1, curr>>>( device_value, buf );
+					__impl::move_construct<<<1, other.curr>>>( device_value, buf );
 					cudaDeviceSynchronize();
 					cudaFree( buf );
 				}
@@ -812,7 +763,7 @@ private:
 				{
 					LOG( "using trival copy for class", typeid( T ).name() );
 					auto buf = (pointer)std::malloc( alloc_size );
-					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
+					for ( auto p = other.value, q = buf; p != other.value + other.curr; ++p, ++q )
 					{
 						__impl::copyConstructor<T>::apply( q, p );
 					}
@@ -827,13 +778,15 @@ private:
 			else
 			{
 				LOG( "using plain copy for class", typeid( T ).name() );
-				if ( auto err = cudaMemcpy( device_value, value, alloc_size, cudaMemcpyHostToDevice ) )
+				if ( auto err = cudaMemcpy( device_value, other.value, alloc_size, cudaMemcpyHostToDevice ) )
 				{
 					THROW( cudaMemcpy to device failed );
 					//					throw err;  // buf objects are constructed on host, but used on device
 				}
 			}
+			destroy();
 			value = device_value;
+			curr = other.curr;
 			LOG( "value", value );
 			this->is_device_ptr = true;
 		}
