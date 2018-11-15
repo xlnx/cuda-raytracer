@@ -23,8 +23,10 @@ struct BVHNode
 
 using BVHTree = PolyVectorView<BVHNode>;
 
-struct Mesh : Poly<Mesh>
+struct Mesh : Emittable
 {
+	PolyStruct( Mesh );
+
 	PolyVectorView<double3> vertices;
 	PolyVectorView<double3> normals;
 	PolyVectorView<uint> indices;

@@ -11,8 +11,10 @@ namespace koishi
 {
 namespace core
 {
-struct Scene : Poly<Scene>
+struct Scene : Emittable
 {
+	PolyStruct( Scene );
+
 	Scene( const std::string &path );
 
 	PolyVectorView<Mesh> mesh;

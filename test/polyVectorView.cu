@@ -6,8 +6,10 @@ using namespace core;
 
 #ifdef KOISHI_USE_CUDA
 
-struct A : Poly<A>
+struct A : Emittable
 {
+	PolyStruct( A );
+
 	A( int i ) :
 	  n( i )
 	{
@@ -49,9 +51,9 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 //	testing::internal::CaptureStdout();
 #ifdef KOISHI_USE_CUDA
 	PolyVector<A> vec;
-	
+
 	int n = 2;
-	
+
 	for ( int i = 0; i != n; ++i )
 	{
 		vec.emplace_back( i );
