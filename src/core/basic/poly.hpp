@@ -643,39 +643,75 @@ private:
 		else if ( other.is_device_ptr )
 		{
 			LOG( "copy from device to host" );
+			if ( &other != this )
+			{
+				destroy();
+				value = other.value;
+				curr = other.curr;
+			}
 			pointer host_value = (pointer)std::malloc( alloc_size );
 			if ( !std::is_pod<T>::value )
 			{
-				LOG( "using trivial copy for class", typeid( T ).name() );
-				auto buf = (pointer)std::malloc( alloc_size );
-				if ( auto err = cudaMemcpy( buf, other.value, alloc_size, cudaMemcpyDeviceToHost ) )
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
+				if ( !std::is_standard_layout<T>::value )
+#else
+				if ( !std::is_trivially_copyable<T>::value )
+#endif
 				{
-					THROW( cudaMemcpy to host failed );
+					LOG( "using non-trival copy for class", typeid( T ).name() );
+					pointer buf;
+					if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
+					{
+						THROW( cudaMallocManaged failed );
+					}
+					LOG( "allocated union ptr", buf );
+					if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
+					{
+						THROW( cudaMemcpy to host failed );
+					}
+					for ( auto q = host_value, p = buf; p != buf + curr; ++p, ++q )
+					{
+						new ( q ) T( std::move( *p ) );
+					}
+					LOG( "move construct", typeid( T ).name(), host_value, buf );
+					cudaFree( buf );
 				}
-				for ( auto p = buf, q = host_value; p != buf + other.curr; ++p, ++q )
+				else
 				{
-					new ( q ) T( *p );
+					LOG( "using trivial copy for class", typeid( T ).name() );
+					auto buf = (pointer)std::malloc( alloc_size );
+					if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
+					{
+						THROW( cudaMemcpy to host failed );
+					}
+					for ( auto p = buf, q = host_value; p != buf + curr; ++p, ++q )
+					{
+						new ( q ) T( *p );
+					}
+					std::free( buf );  // don't call dtor because they exist on device
 				}
-				LOG( "deleted", buf );
-				std::free( buf );  // don't call dtor because they exist on device
 			}
 			else
 			{
 				LOG( "using plain copy for class", typeid( T ).name() );
-				if ( auto err = cudaMemcpy( host_value, other.value, alloc_size, cudaMemcpyDeviceToHost ) )
+				if ( auto err = cudaMemcpy( host_value, value, alloc_size, cudaMemcpyDeviceToHost ) )
 				{
 					THROW( cudaMemcpy to host failed );
 				}
 			}
-			destroy();
 			value = host_value;
-			curr = other.curr;
 			LOG( "value", value );
 			this->is_device_ptr = false;
 		}
 		else
 		{
 			LOG( "copy from host to device" );
+			if ( &other != this )
+			{
+				destroy();
+				value = other.value;
+				curr = other.curr;
+			}
 			pointer device_value;
 			if ( auto err = cudaMalloc( &device_value, alloc_size ) )
 			{
@@ -700,21 +736,20 @@ private:
 						THROW( cudaMallocManaged failed );
 					}
 					LOG( "allocated union ptr", buf );
-					for ( auto p = other.value, q = buf; p != other.value + other.curr; ++p, ++q )
+					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
 						new ( q ) T( *p );
 					}
 					LOG( "move construct", typeid( T ).name(), device_value, buf );
-					__impl::move_construct<<<1, other.curr>>>( device_value, buf );
+					__impl::move_construct<<<1, curr>>>( device_value, buf );
 					cudaDeviceSynchronize();
-					LOG( "deleted", buf );
 					cudaFree( buf );
 				}
 				else
 				{
 					LOG( "using trival copy for class", typeid( T ).name() );
 					auto buf = (pointer)std::malloc( alloc_size );
-					for ( auto p = other.value, q = buf; p != other.value + other.curr; ++p, ++q )
+					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
 					{
 						new ( q ) T( *p );
 					}
@@ -723,22 +758,19 @@ private:
 						THROW( cudaMemcpy to device failed );
 						//						throw err;  // buf objects are constructed on host, but used on device
 					}
-					LOG( "deleted", buf );
 					std::free( buf );  // don't call dtor because they exist on device
 				}
 			}
 			else
 			{
 				LOG( "using plain copy for class", typeid( T ).name() );
-				if ( auto err = cudaMemcpy( device_value, other.value, alloc_size, cudaMemcpyHostToDevice ) )
+				if ( auto err = cudaMemcpy( device_value, value, alloc_size, cudaMemcpyHostToDevice ) )
 				{
 					THROW( cudaMemcpy to device failed );
 					//					throw err;  // buf objects are constructed on host, but used on device
 				}
 			}
-			destroy();
 			value = device_value;
-			curr = other.curr;
 			LOG( "value", value );
 			this->is_device_ptr = true;
 		}
@@ -758,20 +790,46 @@ private:
 				if ( !std::is_pod<T>::value )
 				{
 					LOG( "not pod" );
-					auto buf = (pointer)std::malloc( alloc_size );
-					if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
+					if ( !std::is_standard_layout<T>::value )
+#else
+					if ( !std::is_trivially_copyable<T>::value )
+#endif
 					{
-						THROW( cudaMemcpy to host failed );
-						//						throw err;  // buf objects are constructed on host, but used on device
+						LOG( "using non-trival copy for class", typeid( T ).name() );
+						pointer buf;
+						if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
+						{
+							THROW( cudaMallocManaged failed );
+						}
+						LOG( "allocated union ptr", buf );
+						if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
+						{
+							THROW( cudaMemcpy to host failed );
+						}
+						for ( auto p = buf; p != buf + curr; ++p )
+						{
+							new ( p ) T( std::move( *p ) );
+							p->~T();
+						}
+						LOG( "move construct", typeid( T ).name(), value, buf );
+						cudaFree( buf );
 					}
-					for ( auto p = buf; p != buf + curr; ++p )
+					else
 					{
-						p->~T();
+						auto buf = (pointer)std::malloc( alloc_size );
+						if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
+						{
+							THROW( cudaMemcpy to host failed );
+							//						throw err;  // buf objects are constructed on host, but used on device
+						}
+						for ( auto p = buf; p != buf + curr; ++p )
+						{
+							p->~T();
+						}
+						std::free( buf );
 					}
-					LOG( "deleted", buf );
-					std::free( buf );
 				}
-				LOG( "deleted", value );
 				cudaFree( value );
 #else
 				throw ::std::bad_alloc();
@@ -787,7 +845,6 @@ private:
 						p->~T();
 					}
 				}
-				LOG( "deleted", value );
 				std::free( value );
 			}
 		}
