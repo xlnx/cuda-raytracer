@@ -312,18 +312,11 @@ private:
 	T *value = (pointer)std::malloc( sizeof( T ) * total );
 };
 
-namespace __impl
-{
-template <typename T>
-struct PolyStructImpl;
-
-template <typename T, typename = void>
-struct copyConstructor;
-
 struct Emittable
 {
 protected:
-	KOISHI_HOST_DEVICE Emittable() = default;
+	Emittable() = default;
+	virtual ~Emittable() = default;
 	KOISHI_HOST_DEVICE Emittable( Emittable &&other ) = default;
 	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = default;
 	Emittable( const Emittable &other ) :
@@ -376,56 +369,14 @@ protected:
 	}
 
 protected:
-	void ( *cctor )( char *, const char * ) = nullptr;
+	virtual void __copy_construct( char *, const char * ) = 0;
+
 	std::ptrdiff_t to_T = 0;
 	bool is_device_ptr = false;
 };
 
-template <typename T>
-struct PolyStructImpl : virtual Emittable
+namespace __impl
 {
-	template <typename U>
-	friend struct PolyVectorView;
-	template <typename U>
-	friend struct PolyStructImpl;
-	template <typename U, typename X>
-	friend struct copyConstructor;
-
-protected:
-	PolyStructImpl()
-	{
-		if ( !Emittable::cctor )
-		{
-			Emittable::cctor = (void ( * )( char *, const char * ))copyConstructor<T>::apply;
-		}
-		if ( !Emittable::to_T )
-		{
-			Emittable::to_T = (char *)static_cast<T *>( this ) - (char *)static_cast<Emittable *>( this );
-		}
-	}
-	KOISHI_HOST_DEVICE PolyStructImpl( PolyStructImpl &&other )
-	{
-		Emittable::cctor = other.cctor;
-		Emittable::to_T = other.to_T;
-		Emittable::is_device_ptr = other.is_device_ptr;
-	}
-	KOISHI_HOST_DEVICE PolyStructImpl &operator=( PolyStructImpl &&other )
-	{
-		Emittable::cctor = other.cctor;
-		Emittable::to_T = other.to_T;
-		Emittable::is_device_ptr = other.is_device_ptr;
-		return *this;
-	}
-	PolyStructImpl( const PolyStructImpl & ) = default;
-	PolyStructImpl &operator=( const PolyStructImpl & ) = default;
-
-private:
-	void copyConstruct( const T &other )
-	{
-		new ( static_cast<T *>( this ) ) T( other );
-	}
-};
-
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
@@ -435,28 +386,6 @@ __global__ void move_construct( T *dest, T *src )
 	auto idx = threadIdx.x;
 	new ( dest + idx ) T( std::move( src[ idx ] ) );
 }
-
-#endif
-
-template <typename T>
-struct copyConstructor<T, typename std::enable_if<!std::is_base_of<PolyStructImpl<T>, T>::value>::type>
-{
-	inline static void apply( T *q, const T *p )
-	{
-		new ( q ) T( *p );
-	}
-};
-
-template <typename T>
-struct copyConstructor<T, typename std::enable_if<std::is_base_of<PolyStructImpl<T>, T>::value>::type>
-{
-	inline static void apply( T *q, const T *p )
-	{
-		static_cast<PolyStructImpl<T> *>( q )->copyConstruct( *p );
-	}
-};
-
-#ifdef KOISHI_USE_CUDA
 
 template <typename... Args>
 struct arguments;
@@ -596,21 +525,26 @@ using __impl::kernel;
 
 #endif
 
-template <typename T>
-using Poly = __impl::PolyStructImpl<T>;
+#define PolyStruct( T )                                                                                \
+	T()                                                                                                \
+	{                                                                                                  \
+		Emittable::to_T = (char *)static_cast<T *>( this ) - (char *)static_cast<Emittable *>( this ); \
+	}                                                                                                  \
+                                                                                                       \
+protected:                                                                                             \
+	void __copy_construct( char *q, const char *p ) override                                           \
+	{                                                                                                  \
+		new ( (T *)q ) T( *(const T *)p );                                                             \
+	}                                                                                                  \
+                                                                                                       \
+public:                                                                                                \
+	using type = T
 
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
 template <typename T>
-struct PolyVectorView final : public Poly<PolyVectorView<T>>
+struct PolyVectorView final : public Emittable
 {
-	template <typename U>
-	friend class PolyVectorView;
-	template <typename U>
-	friend class __impl::PolyStructImpl;
-	using Super = __impl::PolyStructImpl<PolyVectorView<T>>;
-
-public:
 	using value_type = T;
 	using size_type = std::size_t;
 	using difference_type = std::ptrdiff_t;
@@ -634,7 +568,7 @@ public:
 	{
 	}
 	KOISHI_HOST_DEVICE PolyVectorView( PolyVectorView &&other ) :
-	  Super( std::forward<PolyVectorView>( other ) ),
+	  Emittable( std::forward<PolyVectorView>( other ) ),
 	  value( other.value ),
 	  curr( other.curr )
 	{
@@ -643,7 +577,7 @@ public:
 	KOISHI_HOST_DEVICE PolyVectorView &operator=( PolyVectorView &&other )
 	{
 		destroy();
-		Super::operator=( std::forward<PolyVectorView>( other ) );
+		Emittable::operator=( std::forward<PolyVectorView>( other ) );
 		value = other.value;
 		curr = other.curr;
 		other.value = nullptr;
@@ -657,7 +591,7 @@ public:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	  :
-	  Super( std::move( *this ) )
+	  Emittable( std::move( *this ) )
 	{
 		if ( !__impl::Emittable::isTransferring() )
 		{
@@ -687,6 +621,12 @@ public:
 		THROW( invalid use of PolyVectorView( const & ) );
 	}
 #endif
+protected:
+	void __copy_construct( char *q, const char *p ) override
+	{
+		new ( (PolyVectorView *)q ) PolyVectorView( *(const PolyVectorView *)p );
+	}
+
 private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const PolyVectorView &other )
@@ -714,7 +654,7 @@ private:
 				}
 				for ( auto p = buf, q = host_value; p != buf + other.curr; ++p, ++q )
 				{
-					__impl::copyConstructor<T>::apply( q, p );
+					new ( q ) T( *p );
 				}
 				LOG( "deleted", buf );
 				std::free( buf );  // don't call dtor because they exist on device
@@ -762,7 +702,7 @@ private:
 					LOG( "allocated union ptr", buf );
 					for ( auto p = other.value, q = buf; p != other.value + other.curr; ++p, ++q )
 					{
-						__impl::copyConstructor<T>::apply( q, p );
+						new ( q ) T( *p );
 					}
 					LOG( "move construct", typeid( T ).name(), device_value, buf );
 					__impl::move_construct<<<1, other.curr>>>( device_value, buf );
@@ -776,7 +716,7 @@ private:
 					auto buf = (pointer)std::malloc( alloc_size );
 					for ( auto p = other.value, q = buf; p != other.value + other.curr; ++p, ++q )
 					{
-						__impl::copyConstructor<T>::apply( q, p );
+						new ( q ) T( *p );
 					}
 					if ( auto err = cudaMemcpy( device_value, buf, alloc_size, cudaMemcpyHostToDevice ) )
 					{
