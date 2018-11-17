@@ -12,7 +12,7 @@
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
-#define KOISHI_DEBUG
+//#define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) println( __VA_ARGS__ )
 #else
@@ -718,7 +718,7 @@ public:
 	  curr( other.curr ),
 	  is_device_ptr( other.is_device_ptr )
 	{
-		copyBetweenDevice();
+		copyBetweenDevice( other );
 	}
 #else
 	{
@@ -732,7 +732,7 @@ public:
 		value = other.value;
 		curr = other.curr;
 		is_device_ptr = other.is_device_ptr;
-		copyBetweenDevice();
+		copyBetweenDevice( other );
 		return *this;
 	}
 #else
@@ -743,7 +743,7 @@ public:
 
 private:
 #ifdef KOISHI_USE_CUDA
-	void copyBetweenDevice()
+	void copyBetweenDevice( const PolyVectorView &other )
 	{
 		if ( !__impl::Emittable::isTransferring() )
 		{
@@ -764,7 +764,10 @@ private:
 			}
 			__impl::Mover<T>::host_to_device( new_ptr, value, curr );
 		}
-		destroy();
+		if ( &other == this )
+		{
+			destroy();
+		}
 		value = new_ptr;
 		is_device_ptr = !is_device_ptr;
 		LOG( "value", value );
@@ -775,7 +778,7 @@ private:
 	{
 		if ( value != nullptr )
 		{
-			//LOG( "destroy()", typeid( T ).name(), this );
+			LOG( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA

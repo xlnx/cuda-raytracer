@@ -50,7 +50,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 #ifdef KOISHI_USE_CUDA
 	PolyVector<A> vec;
 
-	int n = 2;
+	int n = 200;
 
 	for ( int i = 0; i != n; ++i )
 	{
