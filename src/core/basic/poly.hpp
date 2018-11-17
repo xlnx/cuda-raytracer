@@ -312,6 +312,8 @@ private:
 	T *value = (pointer)std::malloc( sizeof( T ) * total );
 };
 
+namespace __impl
+{
 struct Emittable
 {
 protected:
@@ -331,28 +333,26 @@ protected:
 
 public:
 #ifdef KOISHI_USE_CUDA
-	void emitAndReplace()
+	void emit()
 	{
 		LOG( "emit&replacing", this );
 		if ( is_device_ptr )
 		{
 			THROW( unable to emit device ptr );
 		}
-		char *self = (char *)this + to_T;
 		isTransferring() = true;
-		__copy_construct( self, self );
+		__copy_construct();
 		isTransferring() = false;
 	}
-	void fetchAndReplace()
+	void fetch()
 	{
 		LOG( "fetch&replacing", this );
 		if ( !is_device_ptr )
 		{
 			THROW( unable to fetch host ptr );
 		}
-		char *self = (char *)this + to_T;
 		isTransferring() = true;
-		__copy_construct( self, self );
+		__copy_construct();
 		isTransferring() = false;
 	}
 	KOISHI_HOST_DEVICE bool space() const
@@ -369,23 +369,156 @@ protected:
 	}
 
 protected:
-	virtual void __copy_construct( char *, const char * ) = 0;
+	KOISHI_HOST_DEVICE virtual void __copy_construct() = 0;
+	KOISHI_HOST_DEVICE virtual void __move_construct() = 0;
 
-	std::ptrdiff_t to_T = 0;
 	bool is_device_ptr = false;
 };
-
-namespace __impl
-{
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
-__global__ void move_construct( T *dest, T *src )
+__global__ inline void move_construct( T *dest, T *src )
 {
 	//LOG("move_construct()", typeid(T).name(), dest, src);
 	auto idx = threadIdx.x;
 	new ( dest + idx ) T( std::move( src[ idx ] ) );
 }
+
+template <typename T>
+struct Mover
+{
+	static void union_to_device( T *device_ptr, T *union_ptr, uint count = 1 )
+	{
+		move_construct<<<1, count>>>( device_ptr, union_ptr );
+		cudaDeviceSynchronize();
+	}
+
+	static void device_to_union( T *union_ptr, T *device_ptr, uint count = 1 )
+	{
+		move_construct<<<1, count>>>( union_ptr, device_ptr );
+		cudaDeviceSynchronize();
+	}
+
+	static void union_to_host( T *host_ptr, T *union_ptr, uint count = 1 )
+	{
+		for ( auto q = host_ptr, p = union_ptr; p != union_ptr + count; ++p, ++q )
+		{
+			new ( q ) T( static_cast<const T &>( *p ) );
+		}
+	}
+
+	static void host_to_union( T *union_ptr, T *host_ptr, uint count = 1 )
+	{
+		for ( auto q = host_ptr, p = union_ptr; p != union_ptr + count; ++p, ++q )
+		{
+			new ( p ) T( static_cast<const T &>( *q ) );
+		}
+	}
+
+	static void host_to_device( T *device_ptr, T *host_ptr, uint count = 1 )
+	{
+		LOG( "move from host to device", typeid( T ).name(), count );
+		std::size_t alloc_size = sizeof( T ) * count;
+		if ( !std::is_pod<T>::value )
+		{
+			// #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
+			// 		if ( !std::is_standard_layout<T>::value )
+			// #else
+			// 		if ( !std::is_trivially_copyable<T>::value )
+			// #endif
+			// 		{
+			LOG( "using non-trival copy for class", typeid( T ).name() );
+			pointer union_ptr;
+			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
+			{
+				THROW( cudaMallocManaged failed );
+			}
+			host_to_union( union_ptr, host_ptr, count );
+			union_to_device( device_ptr, union_ptr, count );
+			cudaFree( union_ptr );
+			// }
+		}
+		else
+		{
+			LOG( "using plain copy for class", typeid( T ).name() );
+			if ( auto err = cudaMemcpy( device_ptr, host_ptr, alloc_size, cudaMemcpyHostToDevice ) )
+			{
+				THROW( cudaMemcpy to device failed );
+			}
+		}
+	}
+
+	static void device_to_host( T *host_ptr, T *device_ptr, uint count = 1 )
+	{
+		LOG( "move from device to host", typeid( T ).name(), count );
+		std::size_t alloc_size = sizeof( T ) * count;
+		if ( !std::is_pod<T>::value )
+		{
+			// #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
+			// 			if ( !std::is_standard_layout<T>::value )
+			// #else
+			// 			if ( !std::is_trivially_copyable<T>::value )
+			// #endif
+			// 			{
+			LOG( "using non-trival copy for class", typeid( T ).name() );
+			pointer union_ptr;
+			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
+			{
+				THROW( cudaMallocManaged failed );
+			}
+			device_to_union( union_ptr, device_ptr, count );
+			union_to_host( host_ptr, union_ptr, count );
+			cudaFree( union_ptr );
+			// }
+		}
+		else
+		{
+			LOG( "using plain copy for class", typeid( T ).name() );
+			if ( auto err = cudaMemcpy( host_ptr, device_ptr, alloc_size, cudaMemcpyDeviceToHost ) )
+			{
+				THROW( cudaMemcpy to host failed );
+			}
+		}
+	}
+};
+
+#endif
+
+template <typename T>
+struct Destroyer
+{
+#ifdef KOISHI_USE_CUDA
+	static void destroy_device( T *device_ptr, uint count = 1 )
+	{
+		LOG( "destroying device objects", typeid( T ).name(), count );
+		std::size_t alloc_size = sizeof( T ) * count;
+		if ( !std::is_pod<T>::value )
+		{
+			pointer union_ptr;
+			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
+			{
+				THROW( cudaMallocManaged failed );
+			}
+			Mover<T>::device_to_union( union_ptr, device_ptr, count );
+			for ( auto p = union_ptr; p != union_ptr + count; ++p )
+			{
+				p->~T();
+			}
+			cudaFree( union_ptr );
+		}
+	}
+#endif
+
+	static void destroy_host( T *host_ptr, uint count = 1 )
+	{
+		for ( auto p = host_ptr; p != host_ptr + count; ++p )
+		{
+			p->~T();
+		}
+	}
+};
+
+#ifdef KOISHI_USE_CUDA
 
 template <typename... Args>
 struct arguments;
@@ -399,28 +532,12 @@ struct arguments<T, Args...> : arguments<Args...>
 	arguments( T &&x, Args &&... args ) :
 	  arguments<Args...>( std::forward<Args>( args )... )
 	{
-		LOG( "constructed augument with", typeid( value_type ).name() );
 		cudaMalloc( &data, sizeof( value_type ) );
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
-		if ( !std::is_standard_layout<T>::value )
-#else
-		if ( !std::is_trivially_copyable<T>::value )
-#endif
-		{
-			value_type *union_ptr;
-			cudaMallocManaged( &union_ptr, sizeof( value_type ) );
-			cudaMemcpy( union_ptr, &x, sizeof( value_type ), cudaMemcpyHostToHost );
-			move_construct<<<1, 1>>>( data, union_ptr );
-			cudaFree( union_ptr );
-		}
-		else
-		{
-			cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
-		}
+		Mover<value_type>::host_to_device( data, &x );
 	}
 	~arguments()
 	{
-		LOG( "free", typeid( value_type ).name() );
+		Mover<value_type>::device_to_host( &x, data );
 		cudaFree( data );
 	}
 
@@ -453,13 +570,12 @@ struct arguments<T>
 
 	arguments( const T &x )
 	{
-		LOG( "constructed augument with", typeid( value_type ).name() );
 		cudaMalloc( &data, sizeof( value_type ) );
-		cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
+		Mover<value_type>::host_to_device( data, &x );
 	}
 	~arguments()
 	{
-		LOG( "free", typeid( value_type ).name() );
+		Mover<value_type>::device_to_host( &x, data );
 		cudaFree( data );
 	}
 
@@ -540,25 +656,26 @@ using __impl::kernel;
 
 #endif
 
-#define PolyStruct( T )                                                                                \
-	T()                                                                                                \
-	{                                                                                                  \
-		Emittable::to_T = (char *)static_cast<T *>( this ) - (char *)static_cast<Emittable *>( this ); \
-	}                                                                                                  \
-                                                                                                       \
-protected:                                                                                             \
-	void __copy_construct( char *q, const char *p ) override                                           \
-	{                                                                                                  \
-		new ( (T *)q ) T( *(const T *)p );                                                             \
-	}                                                                                                  \
-                                                                                                       \
-public:                                                                                                \
-	using type = T
+template <typename T>
+struct Emittable : virtual __impl::Emittable
+{
+private:
+	KOISHI_HOST_DEVICE void __copy_construct() override
+	{
+		auto p = static_cast<T *>( this );
+		new ( p ) T( *p );
+	}
+	KOISHI_HOST_DEVICE void __move_construct() override
+	{
+		auto p = static_cast<T *>( this );
+		new ( p ) T( *p );
+	}
+};
 
 // PolyVectorView holds a read-only data vector for either cpu or gpu
 // use std::move to make
 template <typename T>
-struct PolyVectorView final : public Emittable
+struct PolyVectorView final : Emittable<PolyVectorView<T>>
 {
 	using value_type = T;
 	using size_type = std::size_t;
@@ -583,7 +700,7 @@ public:
 	{
 	}
 	KOISHI_HOST_DEVICE PolyVectorView( PolyVectorView &&other ) :
-	  Emittable( std::forward<PolyVectorView>( other ) ),
+	  __impl::Emittable( std::forward<PolyVectorView>( other ) ),
 	  value( other.value ),
 	  curr( other.curr )
 	{
@@ -592,7 +709,7 @@ public:
 	KOISHI_HOST_DEVICE PolyVectorView &operator=( PolyVectorView &&other )
 	{
 		destroy();
-		Emittable::operator=( std::forward<PolyVectorView>( other ) );
+		__impl::Emittable::operator=( std::forward<PolyVectorView>( other ) );
 		value = other.value;
 		curr = other.curr;
 		other.value = nullptr;
@@ -606,14 +723,13 @@ public:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	  :
-	  Emittable( std::move( *this ) )
+	  __impl::Emittable( other )
 	{
-		if ( !Emittable::isTransferring() )
+		if ( !__impl::Emittable::isTransferring() )
 		{
 			THROW( invalid use of PolyVectorView( const & ) );
 		}
-		LOG( "PolyVectorView(const&)", typeid( T ).name(), this, &other );
-		copyBetweenDevice( other );
+		copyBetweenDevice();
 	}
 #else
 	{
@@ -623,12 +739,12 @@ public:
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		if ( !Emittable::isTransferring() )
+		__impl::Emittable::operator=( other );
+		if ( !__impl::Emittable::isTransferring() )
 		{
 			THROW( invalid use of PolyVectorView( const & ) );
 		}
-		LOG( "PolyVectorView=(const&)", typeid( T ).name(), this, &other );
-		copyBetweenDevice( other );
+		copyBetweenDevice();
 		return *this;
 	}
 #else
@@ -636,159 +752,29 @@ public:
 		THROW( invalid use of PolyVectorView( const & ) );
 	}
 #endif
-protected:
-	void __copy_construct( char *q, const char *p ) override
-	{
-		new ( (PolyVectorView *)q ) PolyVectorView( *(const PolyVectorView *)p );
-	}
 
 private:
 #ifdef KOISHI_USE_CUDA
-	void copyBetweenDevice( const PolyVectorView &other )
+	void copyBetweenDevice( const PolyVectorView & )
 	{
-		LOG( "copyBetweenDevice(const&)", typeid( T ).name(), this, &other, other.curr );
-		auto alloc_size = sizeof( T ) * other.curr;
-		if ( alloc_size == 0 )
+		pointer new_ptr;
+		auto alloc_size = sizeof( T ) * curr;
+		else if ( !this->is_device_ptr )
 		{
-			destroy();
-			value = nullptr;
-			curr = other.curr;
-			this->is_device_ptr = !other.is_device_ptr;
-		}
-		else if ( other.is_device_ptr )
-		{
-			LOG( "copy from device to host" );
-			if ( &other != this )
-			{
-				destroy();
-				value = other.value;
-				curr = other.curr;
-			}
-			pointer host_value = (pointer)std::malloc( alloc_size );
-			if ( !std::is_pod<T>::value )
-			{
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
-				if ( !std::is_standard_layout<T>::value )
-#else
-				if ( !std::is_trivially_copyable<T>::value )
-#endif
-			{
-					LOG( "using non-trival copy for class", typeid( T ).name() );
-					pointer buf;
-					if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
-					{
-						THROW( cudaMallocManaged failed );
-					}
-					LOG( "allocated union ptr", buf );
-					if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
-					{
-						THROW( cudaMemcpy to host failed );
-					}
-					for ( auto q = host_value, p = buf; p != buf + curr; ++p, ++q )
-					{
-						new ( q ) T( std::move( *p ) );
-					}
-					LOG( "move construct", typeid( T ).name(), host_value, buf );
-					cudaFree( buf );
-				}
-				else
-				{
-					LOG( "using trivial copy for class", typeid( T ).name() );
-					auto buf = (pointer)std::malloc( alloc_size );
-					if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
-					{
-						THROW( cudaMemcpy to host failed );
-					}
-					for ( auto p = buf, q = host_value; p != buf + curr; ++p, ++q )
-					{
-						new ( q ) T( *p );
-					}
-					std::free( buf );  // don't call dtor because they exist on device
-				}
-			}
-			else
-			{
-				LOG( "using plain copy for class", typeid( T ).name() );
-				if ( auto err = cudaMemcpy( host_value, value, alloc_size, cudaMemcpyDeviceToHost ) )
-				{
-					THROW( cudaMemcpy to host failed );
-				}
-			}
-			value = host_value;
-			LOG( "value", value );
-			this->is_device_ptr = false;
+			new_ptr = (pointer)std::malloc( alloc_size );
+			__impl::Mover<T>::device_to_host( new_ptr, value, curr );
 		}
 		else
 		{
-			LOG( "copy from host to device" );
-			if ( &other != this )
+			if ( auto err = cudaMalloc( &new_ptr, alloc_size ) )
 			{
-				destroy();
-				value = other.value;
-				curr = other.curr;
-			}
-			pointer device_value;
-			if ( auto err = cudaMalloc( &device_value, alloc_size ) )
-			{
-				std::ostringstream os;
-				os << err;
-				throw std::logic_error( os.str() );
 				THROW( cudaMalloc on device failed );
 			}
-			LOG( "allocated device ptr", device_value );
-			if ( !std::is_pod<T>::value )
-			{
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
-				if ( !std::is_standard_layout<T>::value )
-#else
-				if ( !std::is_trivially_copyable<T>::value )
-#endif
-				{
-					LOG( "using non-trival copy for class", typeid( T ).name() );
-					pointer buf;
-					if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
-					{
-						THROW( cudaMallocManaged failed );
-					}
-					LOG( "allocated union ptr", buf );
-					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
-					{
-						new ( q ) T( *p );
-					}
-					LOG( "move construct", typeid( T ).name(), device_value, buf );
-					__impl::move_construct<<<1, curr>>>( device_value, buf );
-					cudaDeviceSynchronize();
-					cudaFree( buf );
-				}
-				else
-				{
-					LOG( "using trival copy for class", typeid( T ).name() );
-					auto buf = (pointer)std::malloc( alloc_size );
-					for ( auto p = value, q = buf; p != value + curr; ++p, ++q )
-					{
-						new ( q ) T( *p );
-					}
-					if ( auto err = cudaMemcpy( device_value, buf, alloc_size, cudaMemcpyHostToDevice ) )
-					{
-						THROW( cudaMemcpy to device failed );
-						//						throw err;  // buf objects are constructed on host, but used on device
-					}
-					std::free( buf );  // don't call dtor because they exist on device
-				}
-			}
-			else
-			{
-				LOG( "using plain copy for class", typeid( T ).name() );
-				if ( auto err = cudaMemcpy( device_value, value, alloc_size, cudaMemcpyHostToDevice ) )
-				{
-					THROW( cudaMemcpy to device failed );
-					//					throw err;  // buf objects are constructed on host, but used on device
-				}
-			}
-			value = device_value;
-			LOG( "value", value );
-			this->is_device_ptr = true;
+			__impl::Mover<T>::host_to_device( new_ptr, value, curr );
 		}
+		destroy();
+		value = new_ptr;
+		LOG( "value", value );
 	}
 
 #endif
@@ -799,67 +785,16 @@ private:
 			LOG( "destroy()", typeid( T ).name(), this );
 			if ( this->is_device_ptr )
 			{
-				LOG( "is device ptr", value );
 #ifdef KOISHI_USE_CUDA
-				auto alloc_size = sizeof( T ) * curr;
-				if ( !std::is_pod<T>::value )
-				{
-					LOG( "not pod" );
-#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
-					if ( !std::is_standard_layout<T>::value )
-#else
-					if ( !std::is_trivially_copyable<T>::value )
-#endif
-					{
-						LOG( "using non-trival copy for class", typeid( T ).name() );
-						pointer buf;
-						if ( auto err = cudaMallocManaged( &buf, alloc_size ) )
-						{
-							THROW( cudaMallocManaged failed );
-						}
-						LOG( "allocated union ptr", buf );
-						if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
-						{
-							THROW( cudaMemcpy to host failed );
-						}
-						for ( auto p = buf; p != buf + curr; ++p )
-						{
-							new ( p ) T( std::move( *p ) );
-							p->~T();
-						}
-						LOG( "move construct", typeid( T ).name(), value, buf );
-						cudaFree( buf );
-					}
-					else
-					{
-						auto buf = (pointer)std::malloc( alloc_size );
-						if ( auto err = cudaMemcpy( buf, value, alloc_size, cudaMemcpyDeviceToHost ) )
-						{
-							THROW( cudaMemcpy to host failed );
-							//						throw err;  // buf objects are constructed on host, but used on device
-						}
-						for ( auto p = buf; p != buf + curr; ++p )
-						{
-							p->~T();
-						}
-						std::free( buf );
-					}
-				}
+				__impl::Destroyer<T>::destroy_device( value, curr );
 				cudaFree( value );
 #else
-				throw ::std::bad_alloc();
+				THROW( invalid internal state );
 #endif
 			}
 			else
 			{
-				LOG( "not device ptr", value );
-				if ( !std::is_pod<T>::value )
-				{
-					for ( auto p = value; p != value + curr; ++p )
-					{
-						p->~T();
-					}
-				}
+				__impl::Destroyer<T>::destroy_host( value, curr );
 				std::free( value );
 			}
 		}

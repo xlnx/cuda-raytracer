@@ -11,16 +11,14 @@ namespace koishi
 {
 namespace core
 {
-struct Scene : Emittable
+struct Scene : Emittable<Scene>
 {
-	PolyStruct( Scene );
-
 	Scene( const std::string &path );
 
 	PolyVectorView<Mesh> mesh;
-	//std::vector<jsel::Material> material;
+	std::vector<jsel::Material> material;
 
-	//std::vector<jsel::Camera> camera;
+	PolyVectorView<jsel::Camera> camera;
 
 	operator bool() const { return valid; }
 

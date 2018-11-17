@@ -4,14 +4,14 @@
 #include <vector>
 #include <string>
 #include <vec/vec.hpp>
-// #include <core/meta/material.hpp>
+#include <core/basic/poly.hpp>
 #include <util/jsel.hpp>
 
 namespace koishi
 {
 namespace jsel
 {
-struct Serializable( Camera )
+struct Camera : Serializable<Camera>, core::Emittable<Camera>
 {
 	Property( double, fovx, 90 );
 	Property( double, aspect, 0 );
@@ -22,9 +22,11 @@ struct Serializable( Camera )
 	Property( double, zFar, 1e5 );
 };
 
-struct Serializable( Material ){};
+struct Material : Serializable<Material>, core::Emittable<Material>
+{
+};
 
-struct Serializable( Scene )
+struct Scene : Serializable<Scene>
 {
 	using TMaterials = std::map<std::string, jsel::Material>;
 	Property( std::vector<Camera>, camera, {} );

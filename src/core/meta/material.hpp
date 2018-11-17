@@ -10,10 +10,8 @@ namespace koishi
 {
 namespace core
 {
-struct Material : Emittable
+struct Material : Emittable<Material>
 {
-	PolyStruct( Material );
-
 	KOISHI_HOST_DEVICE virtual void fetchTo( Interreact &res, Allocator &pool ) const = 0;
 };
 

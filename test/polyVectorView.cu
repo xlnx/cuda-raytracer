@@ -6,10 +6,8 @@ using namespace core;
 
 #ifdef KOISHI_USE_CUDA
 
-struct A : Emittable
+struct A : Emittable<A>
 {
-	PolyStruct( A );
-
 	A( int i ) :
 	  n( i )
 	{
