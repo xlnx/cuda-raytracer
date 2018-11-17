@@ -18,11 +18,13 @@
 #else
 #define LOG( ... )
 #endif
-#define STR(x) _STR(x)
-#define _STR(x) #x
-#define THROW( ... ) { \
-		throw std::logic_error( STR(__FILE__) ":" STR(__LINE__) ": " #__VA_ARGS__ );\
-	} while ( 0 )
+#define STR( x ) _STR( x )
+#define _STR( x ) #x
+#define THROW( ... )                                                                     \
+	{                                                                                    \
+		throw std::logic_error( STR( __FILE__ ) ":" STR( __LINE__ ) ": " #__VA_ARGS__ ); \
+	}                                                                                    \
+	while ( 0 )
 
 namespace koishi
 {
@@ -318,7 +320,6 @@ private:
 
 namespace __impl
 {
-
 #ifdef KOISHI_USE_CUDA
 
 template <typename... Args>
@@ -328,7 +329,6 @@ struct arguments;
 
 struct Emittable
 {
-
 #ifdef KOISHI_USE_CUDA
 
 	template <typename... Args>
@@ -339,8 +339,8 @@ struct Emittable
 protected:
 	Emittable() = default;
 	virtual ~Emittable() = default;
-	KOISHI_HOST_DEVICE Emittable( Emittable &&other ) = default;
-	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other ) = default;
+	Emittable( Emittable &&other ) = delete;
+	Emittable &operator=( Emittable &&other ) = delete;
 	Emittable( const Emittable &other ) :
 	  is_device_ptr( !other.is_device_ptr )
 	{
@@ -394,6 +394,7 @@ protected:
 
 	bool is_device_ptr = false;
 };
+
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
@@ -590,7 +591,7 @@ struct arguments<T>
 	using value_type = typename std::remove_reference<
 	  typename std::remove_cv<T>::type>::type;
 
-	arguments( const T &x ):
+	arguments( const T &x ) :
 	  param_ptr( const_cast<value_type *>( &x ) )
 	{
 		cudaMalloc( &data, sizeof( value_type ) );
@@ -685,6 +686,19 @@ using __impl::kernel;
 template <typename T>
 struct Emittable : virtual __impl::Emittable
 {
+protected:
+	Emittable() = default;
+	KOISHI_HOST_DEVICE Emittable( Emittable &&other )
+	{
+		this->is_device_ptr = other.is_device_ptr;
+	}
+	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other )
+	{
+		this->is_device_ptr = other.is_device_ptr;
+	}
+	Emittable( const Emittable & ) = default;
+	Emittable &operator=( const Emittable & ) = default;
+
 private:
 	KOISHI_HOST_DEVICE void __copy_construct() override
 	{
@@ -726,7 +740,7 @@ public:
 	{
 	}
 	KOISHI_HOST_DEVICE PolyVectorView( PolyVectorView &&other ) :
-	  __impl::Emittable( std::forward<PolyVectorView>( other ) ),
+	  Emittable<PolyVectorView<T>>( std::forward<PolyVectorView>( other ) ),
 	  value( other.value ),
 	  curr( other.curr )
 	{
@@ -735,7 +749,7 @@ public:
 	KOISHI_HOST_DEVICE PolyVectorView &operator=( PolyVectorView &&other )
 	{
 		destroy();
-		__impl::Emittable::operator=( std::forward<PolyVectorView>( other ) );
+		Emittable<PolyVectorView<T>>::operator=( std::forward<PolyVectorView>( other ) );
 		value = other.value;
 		curr = other.curr;
 		other.value = nullptr;
@@ -749,7 +763,7 @@ public:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	  :
-	  __impl::Emittable( std::move( const_cast<PolyVectorView &>( other ) ) ),
+	  Emittable<PolyVectorView<T>>( std::move( const_cast<PolyVectorView &>( other ) ) ),
 	  value( other.value ),
 	  curr( other.curr )
 	{
@@ -763,7 +777,7 @@ public:
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		__impl::Emittable::operator=( std::move( const_cast<PolyVectorView &>( other ) ) );
+		Emittable<PolyVectorView<T>>::operator=( std::move( const_cast<PolyVectorView &>( other ) ) );
 		value = other.value;
 		curr = other.curr;
 		copyBetweenDevice();
