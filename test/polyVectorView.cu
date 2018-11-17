@@ -50,18 +50,13 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 #ifdef KOISHI_USE_CUDA
 	PolyVector<A> vec;
 
-	int n = 20;
+	int n = 2;
 
 	for ( int i = 0; i != n; ++i )
 	{
 		vec.emplace_back( i );
 	}
 	PolyVectorView<A> view = std::move( vec );
-
-	EXPECT_EQ( view.size(), n );
-	LOG( view.data() );
-
-	view.emitAndReplace();
 
 	EXPECT_EQ( view.size(), n );
 	LOG( view.data() );
@@ -75,28 +70,10 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	LOG( pp.data() );
 
 	EXPECT_EQ( n, nn.size() );
-
-	nn.emitAndReplace();
-	pp.emitAndReplace();
-
-	EXPECT_EQ( nn.space(), 1 );
-	LOG( nn.data() );
-	EXPECT_EQ( pp.space(), 1 );
-	LOG( pp.data() );
-
-	EXPECT_EQ( n, nn.size() );
+	EXPECT_EQ( n, pp.size() );
+	EXPECT_EQ( n, view.size() );
 
 	kernel( add, 1, 1 )( view, nn, pp );
-
-	EXPECT_EQ( nn.space(), 1 );
-	LOG( nn.data() );
-	EXPECT_EQ( pp.space(), 1 );
-	LOG( pp.data() );
-
-	EXPECT_EQ( n, nn.size() );
-
-	nn.fetchAndReplace();
-	pp.fetchAndReplace();
 
 	EXPECT_EQ( nn.space(), 0 );
 	LOG( nn.data() );
@@ -105,8 +82,12 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 
 	EXPECT_EQ( n, nn.size() );
 
-	for ( auto &e : nn )
-		std::cout << e << std::endl;
+	EXPECT_EQ( nn.space(), 0 );
+	LOG( nn.data() );
+	EXPECT_EQ( pp.space(), 0 );
+	LOG( pp.data() );
+
+	EXPECT_EQ( n, nn.size() );
 
 	int ss = 0;
 
@@ -114,6 +95,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	{
 		ss += i;
 		EXPECT_EQ( nn[ i ], ss + 1000 * ( i + 1 ) );
+		std::cout << nn[i] << std::endl;
 	}
 #else
 	LOG( "no cuda toolkit provided" );

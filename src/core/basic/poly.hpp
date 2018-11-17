@@ -12,13 +12,17 @@
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
-//#define KOISHI_DEBUG
+#define KOISHI_DEBUG
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) println( __VA_ARGS__ )
 #else
 #define LOG( ... )
 #endif
-#define THROW( ... ) throw std::logic_error( #__VA_ARGS__ )
+#define STR(x) _STR(x)
+#define _STR(x) #x
+#define THROW( ... ) { \
+		throw std::logic_error( STR(__FILE__) ":" STR(__LINE__) ": " #__VA_ARGS__ );\
+	} while ( 0 )
 
 namespace koishi
 {
@@ -314,8 +318,24 @@ private:
 
 namespace __impl
 {
+
+#ifdef KOISHI_USE_CUDA
+
+template <typename... Args>
+struct arguments;
+
+#endif
+
 struct Emittable
 {
+
+#ifdef KOISHI_USE_CUDA
+
+	template <typename... Args>
+	friend struct arguments;
+
+#endif
+
 protected:
 	Emittable() = default;
 	virtual ~Emittable() = default;
@@ -428,7 +448,7 @@ struct Mover
 			// #endif
 			// 		{
 			LOG( "using non-trival copy for class", typeid( T ).name() );
-			pointer union_ptr;
+			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
 				THROW( cudaMallocManaged failed );
@@ -461,7 +481,7 @@ struct Mover
 			// #endif
 			// 			{
 			LOG( "using non-trival copy for class", typeid( T ).name() );
-			pointer union_ptr;
+			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
 				THROW( cudaMallocManaged failed );
@@ -494,7 +514,7 @@ struct Destroyer
 		std::size_t alloc_size = sizeof( T ) * count;
 		if ( !std::is_pod<T>::value )
 		{
-			pointer union_ptr;
+			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
 				THROW( cudaMallocManaged failed );
@@ -520,9 +540,6 @@ struct Destroyer
 
 #ifdef KOISHI_USE_CUDA
 
-template <typename... Args>
-struct arguments;
-
 template <typename T, typename... Args>
 struct arguments<T, Args...> : arguments<Args...>
 {
@@ -530,14 +547,19 @@ struct arguments<T, Args...> : arguments<Args...>
 	  typename std::remove_cv<T>::type>::type;
 
 	arguments( T &&x, Args &&... args ) :
-	  arguments<Args...>( std::forward<Args>( args )... )
+	  arguments<Args...>( std::forward<Args>( args )... ),
+	  param_ptr( const_cast<value_type *>( &x ) )
 	{
 		cudaMalloc( &data, sizeof( value_type ) );
-		Mover<value_type>::host_to_device( data, &x );
+		Emittable::isTransferring() = true;
+		Mover<value_type>::host_to_device( data, param_ptr );
+		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
-		Mover<value_type>::device_to_host( &x, data );
+		Emittable::isTransferring() = true;
+		Mover<value_type>::device_to_host( param_ptr, data );
+		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
 
@@ -559,7 +581,7 @@ struct arguments<T, Args...> : arguments<Args...>
 	}
 
 private:
-	value_type *data;
+	value_type *data, *param_ptr;
 };
 
 template <typename T>
@@ -568,14 +590,19 @@ struct arguments<T>
 	using value_type = typename std::remove_reference<
 	  typename std::remove_cv<T>::type>::type;
 
-	arguments( const T &x )
+	arguments( const T &x ):
+	  param_ptr( const_cast<value_type *>( &x ) )
 	{
 		cudaMalloc( &data, sizeof( value_type ) );
-		Mover<value_type>::host_to_device( data, &x );
+		Emittable::isTransferring() = true;
+		Mover<value_type>::host_to_device( data, param_ptr );
+		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
-		Mover<value_type>::device_to_host( &x, data );
+		Emittable::isTransferring() = true;
+		Mover<value_type>::device_to_host( param_ptr, data );
+		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
 
@@ -587,7 +614,7 @@ struct arguments<T>
 	}
 
 private:
-	value_type *data;
+	value_type *data, *param_ptr;
 };
 
 template <std::size_t... Is>
@@ -621,7 +648,6 @@ struct callable<void ( * )( Args... )>
 	template <typename... Given>
 	void operator()( Given &&... given )
 	{
-		LOG( "calling" );
 		do_call( build_indices<sizeof...( Given )>{}, std::forward<Given>( given )... );
 	}
 
@@ -723,12 +749,10 @@ public:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	  :
-	  __impl::Emittable( other )
+	  __impl::Emittable( std::move( const_cast<PolyVectorView &>( other ) ) ),
+	  value( other.value ),
+	  curr( other.curr )
 	{
-		if ( !__impl::Emittable::isTransferring() )
-		{
-			THROW( invalid use of PolyVectorView( const & ) );
-		}
 		copyBetweenDevice();
 	}
 #else
@@ -739,11 +763,9 @@ public:
 	PolyVectorView &operator=( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		__impl::Emittable::operator=( other );
-		if ( !__impl::Emittable::isTransferring() )
-		{
-			THROW( invalid use of PolyVectorView( const & ) );
-		}
+		__impl::Emittable::operator=( std::move( const_cast<PolyVectorView &>( other ) ) );
+		value = other.value;
+		curr = other.curr;
 		copyBetweenDevice();
 		return *this;
 	}
@@ -755,11 +777,15 @@ public:
 
 private:
 #ifdef KOISHI_USE_CUDA
-	void copyBetweenDevice( const PolyVectorView & )
+	void copyBetweenDevice()
 	{
+		if ( !__impl::Emittable::isTransferring() )
+		{
+			THROW( invalid use of PolyVectorView( const & ) );
+		}
 		pointer new_ptr;
 		auto alloc_size = sizeof( T ) * curr;
-		else if ( !this->is_device_ptr )
+		if ( this->is_device_ptr )
 		{
 			new_ptr = (pointer)std::malloc( alloc_size );
 			__impl::Mover<T>::device_to_host( new_ptr, value, curr );
@@ -774,6 +800,7 @@ private:
 		}
 		destroy();
 		value = new_ptr;
+		this->is_device_ptr = !this->is_device_ptr;
 		LOG( "value", value );
 	}
 
@@ -782,7 +809,7 @@ private:
 	{
 		if ( value != nullptr )
 		{
-			LOG( "destroy()", typeid( T ).name(), this );
+			//LOG( "destroy()", typeid( T ).name(), this );
 			if ( this->is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA

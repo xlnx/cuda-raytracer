@@ -92,15 +92,15 @@ PolyFunction( Tracer, Require<Host> )(
 	  float gridDim = w;
 	  float blockDim = spp;
 
-	  rays.emitAndReplace();
-	  scene.emitAndReplace();
+	  //rays.emitAndReplace();
+	  //scene.emitAndReplace();
 	  PolyVectorView<double3> buffer( w * h );
-	  buffer.emitAndReplace();
+	  //buffer.emitAndReplace();
 
 	  kernel(intergrate<Radiance, Alloc>, gridDim, blockDim, h * sizeof(double3)) 
 		  (buffer, rays, scene, h);
 
-	  buffer.fetchAndReplace();
+	  //buffer.fetchAndReplace();
 
 	  for ( uint j = 0; j != h; ++j )
 	  {
