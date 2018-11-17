@@ -58,7 +58,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 namespace cuda
 {
 template <typename Radiance, typename Alloc>
-__global__ void intergrate( double3 *buffer, const PolyVectorView<Ray> &rays, const Scene &scene, uint h )
+__global__ void intergrate( PolyVectorView<double3> &buffer, const PolyVectorView<Ray> &rays, const Scene &scene, uint h )
 {
 	Alloc pool;
 
@@ -97,8 +97,8 @@ PolyFunction( Tracer, Require<Host> )(
 	  PolyVectorView<double3> buffer( w * h );
 	  buffer.emitAndReplace();
 
-	  //intergrate<Radiance, Alloc><<<gridDim, blockDim, h * sizeof( double3 )>>>(
-	//	buffer.forward(), rays.forward(), scene.forward(), h );
+	  kernel(intergrate<Radiance, Alloc>, gridDim, blockDim, h * sizeof(double3)) 
+		  (buffer, rays, scene, h);
 
 	  buffer.fetchAndReplace();
 

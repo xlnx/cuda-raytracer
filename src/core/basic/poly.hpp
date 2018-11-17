@@ -401,7 +401,22 @@ struct arguments<T, Args...> : arguments<Args...>
 	{
 		LOG( "constructed augument with", typeid( value_type ).name() );
 		cudaMalloc( &data, sizeof( value_type ) );
-		cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
+#if __GNUC__ == 4 && __GNUC_MINOR__ < 9
+		if ( !std::is_standard_layout<T>::value )
+#else
+		if ( !std::is_trivially_copyable<T>::value )
+#endif
+		{
+			value_type *union_ptr;
+			cudaMallocManaged( &union_ptr, sizeof( value_type ) );
+			cudaMemcpy( union_ptr, &x, sizeof( value_type ), cudaMemcpyHostToHost );
+			move_construct<<<1, 1>>>( data, union_ptr );
+			cudaFree( union_ptr );
+		}
+		else
+		{
+			cudaMemcpy( data, &x, sizeof( value_type ), cudaMemcpyHostToDevice );
+		}
 	}
 	~arguments()
 	{
@@ -483,8 +498,8 @@ struct callable<void ( * )( Args... )>
 {
 	using F = void ( * )( Args... );
 
-	callable( F f, int a, int b ) :
-	  f( f ), a( a ), b( b )
+	callable( F f, int a, int b, int c ) :
+	  f( f ), a( a ), b( b ), c( c )
 	{
 	}
 	template <typename... Given>
@@ -500,19 +515,19 @@ private:
 	{
 		LOG( "calling" );
 		arguments<Given...> argval( std::forward<Given>( given )... );
-		f<<<a, b>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
+		f<<<a, b, c>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
 		cudaDeviceSynchronize();
 	}
 
 private:
 	F f;
-	int a, b;
+	int a, b, c;
 };
 
 template <typename F>
-callable<F> kernel( F f, int a, int b )
+callable<F> kernel( F f, int a, int b, int c = 0 )
 {
-	return callable<F>( f, a, b );
+	return callable<F>( f, a, b, c );
 }
 
 #endif
@@ -657,7 +672,7 @@ private:
 #else
 				if ( !std::is_trivially_copyable<T>::value )
 #endif
-				{
+			{
 					LOG( "using non-trival copy for class", typeid( T ).name() );
 					pointer buf;
 					if ( auto err = cudaMallocManaged( &buf, alloc_size ) )

@@ -20,6 +20,11 @@ PolyFunction( DRand48, Require<Host> )(
 	  return ( (double)x / (double)m );
   } );
 
+PolyFunction( FakeRand, Require<Device>, Require<Host> )(
+  ()->double {
+	  return 0.5;
+  } );
+
 }  // namespace core
 
 }  // namespace koishi

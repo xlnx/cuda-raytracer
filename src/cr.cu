@@ -19,8 +19,8 @@ int main( int argc, char **argv )
 		std::istringstream is( argv[ 3 ] );
 		is >> spp;
 
-		using TraceFn = Radiance<DRand48>;
-		Renderer<Tracer<TraceFn>> r{ 1024, 768 };
+		using TraceFn = Radiance<FakeRand>;
+		Renderer<cuda::Tracer<TraceFn>> r{ 1024, 768 };
 
 		r.render( argv[ 1 ], argv[ 2 ], spp );
 	}

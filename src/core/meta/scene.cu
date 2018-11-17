@@ -50,7 +50,7 @@ Scene::Scene( const std::string &path )
 					cc.position = { position.x, position.y, position.z };
 					cc.zNear = conf->mClipPlaneNear;
 					cc.zFar = conf->mClipPlaneFar;
-					camera.emplace_back( cc );
+					//camera.emplace_back( cc );
 				}
 			}
 			if ( scene->HasLights() )
@@ -107,7 +107,7 @@ Scene::Scene( const std::string &path )
 		importer.FreeScene();
 	}
 
-	material.resize( mats.size() );
+	//material.resize( mats.size() );
 	for ( uint i = 0; i != mats.size(); ++i )
 	{
 		//if ( config.material.find( mats[ i ] ) != config.material.end() )
