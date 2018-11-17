@@ -64,9 +64,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	PolyVectorView<int> nn( view.size() );
 	PolyVectorView<const int *> pp( view.size() );
 
-	EXPECT_EQ( nn.space(), 0 );
 	LOG( nn.data() );
-	EXPECT_EQ( pp.space(), 0 );
 	LOG( pp.data() );
 
 	EXPECT_EQ( n, nn.size() );
@@ -75,16 +73,12 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 
 	kernel( add, 1, 1 )( view, nn, pp );
 
-	EXPECT_EQ( nn.space(), 0 );
 	LOG( nn.data() );
-	EXPECT_EQ( pp.space(), 0 );
 	LOG( pp.data() );
 
 	EXPECT_EQ( n, nn.size() );
 
-	EXPECT_EQ( nn.space(), 0 );
 	LOG( nn.data() );
-	EXPECT_EQ( pp.space(), 0 );
 	LOG( pp.data() );
 
 	EXPECT_EQ( n, nn.size() );

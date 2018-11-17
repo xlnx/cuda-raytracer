@@ -16,7 +16,7 @@ struct Scene : Emittable<Scene>
 	Scene( const std::string &path );
 
 	PolyVectorView<Mesh> mesh;
-	std::vector<jsel::Material> material;
+	PolyVectorView<jsel::Material> material;
 
 	PolyVectorView<jsel::Camera> camera;
 
