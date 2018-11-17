@@ -336,48 +336,18 @@ struct Emittable
 
 #endif
 
-protected:
-	Emittable() = default;
-	virtual ~Emittable() = default;
-	Emittable( Emittable &&other ) = delete;
-	Emittable &operator=( Emittable &&other ) = delete;
-	Emittable( const Emittable &other ) :
-	  is_device_ptr( !other.is_device_ptr )
-	{
-	}
-	Emittable &operator=( const Emittable &other )
-	{
-		is_device_ptr = !other.is_device_ptr;
-		return *this;
-	}
-
-public:
 #ifdef KOISHI_USE_CUDA
 	void emit()
 	{
-		LOG( "emit&replacing", this );
-		if ( is_device_ptr )
-		{
-			THROW( unable to emit device ptr );
-		}
 		isTransferring() = true;
 		__copy_construct();
 		isTransferring() = false;
 	}
 	void fetch()
 	{
-		LOG( "fetch&replacing", this );
-		if ( !is_device_ptr )
-		{
-			THROW( unable to fetch host ptr );
-		}
 		isTransferring() = true;
 		__copy_construct();
 		isTransferring() = false;
-	}
-	KOISHI_HOST_DEVICE bool space() const
-	{
-		return is_device_ptr;
 	}
 
 #endif
@@ -391,8 +361,6 @@ protected:
 protected:
 	KOISHI_HOST_DEVICE virtual void __copy_construct() = 0;
 	KOISHI_HOST_DEVICE virtual void __move_construct() = 0;
-
-	bool is_device_ptr = false;
 };
 
 #ifdef KOISHI_USE_CUDA
@@ -684,21 +652,8 @@ using __impl::kernel;
 #endif
 
 template <typename T>
-struct Emittable : virtual __impl::Emittable
+struct Emittable : __impl::Emittable
 {
-protected:
-	Emittable() = default;
-	KOISHI_HOST_DEVICE Emittable( Emittable &&other )
-	{
-		this->is_device_ptr = other.is_device_ptr;
-	}
-	KOISHI_HOST_DEVICE Emittable &operator=( Emittable &&other )
-	{
-		this->is_device_ptr = other.is_device_ptr;
-	}
-	Emittable( const Emittable & ) = default;
-	Emittable &operator=( const Emittable & ) = default;
-
 private:
 	KOISHI_HOST_DEVICE void __copy_construct() override
 	{
@@ -729,29 +684,25 @@ struct PolyVectorView final : Emittable<PolyVectorView<T>>
 	using buffer_type = PolyVector<T>;
 
 public:
-	PolyVectorView() :
-	  value( nullptr ),
-	  curr( 0 )
-	{
-	}
+	PolyVectorView() = default;
 	PolyVectorView( size_type count ) :
 	  value( (pointer)std::malloc( sizeof( T ) * count ) ),
 	  curr( count )
 	{
 	}
 	KOISHI_HOST_DEVICE PolyVectorView( PolyVectorView &&other ) :
-	  Emittable<PolyVectorView<T>>( std::forward<PolyVectorView>( other ) ),
 	  value( other.value ),
-	  curr( other.curr )
+	  curr( other.curr ),
+	  is_device_ptr( other.is_device_ptr )
 	{
 		other.value = nullptr;
 	}
 	KOISHI_HOST_DEVICE PolyVectorView &operator=( PolyVectorView &&other )
 	{
 		destroy();
-		Emittable<PolyVectorView<T>>::operator=( std::forward<PolyVectorView>( other ) );
 		value = other.value;
 		curr = other.curr;
+		is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
 		return *this;
 	}
@@ -763,9 +714,9 @@ public:
 	PolyVectorView( const PolyVectorView &other )
 #ifdef KOISHI_USE_CUDA
 	  :
-	  Emittable<PolyVectorView<T>>( std::move( const_cast<PolyVectorView &>( other ) ) ),
 	  value( other.value ),
-	  curr( other.curr )
+	  curr( other.curr ),
+	  is_device_ptr( other.is_device_ptr )
 	{
 		copyBetweenDevice();
 	}
@@ -780,6 +731,7 @@ public:
 		Emittable<PolyVectorView<T>>::operator=( std::move( const_cast<PolyVectorView &>( other ) ) );
 		value = other.value;
 		curr = other.curr;
+		is_device_ptr = other.is_device_ptr;
 		copyBetweenDevice();
 		return *this;
 	}
@@ -799,7 +751,7 @@ private:
 		}
 		pointer new_ptr;
 		auto alloc_size = sizeof( T ) * curr;
-		if ( this->is_device_ptr )
+		if ( is_device_ptr )
 		{
 			new_ptr = (pointer)std::malloc( alloc_size );
 			__impl::Mover<T>::device_to_host( new_ptr, value, curr );
@@ -814,7 +766,7 @@ private:
 		}
 		destroy();
 		value = new_ptr;
-		this->is_device_ptr = !this->is_device_ptr;
+		is_device_ptr = !is_device_ptr;
 		LOG( "value", value );
 	}
 
@@ -824,7 +776,7 @@ private:
 		if ( value != nullptr )
 		{
 			//LOG( "destroy()", typeid( T ).name(), this );
-			if ( this->is_device_ptr )
+			if ( is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA
 				__impl::Destroyer<T>::destroy_device( value, curr );
@@ -855,7 +807,7 @@ public:
 		destroy();
 		value = other.value;
 		curr = other.curr;
-		this->is_device_ptr = false;
+		is_device_ptr = false;
 		other.value = nullptr;
 		return *this;
 	}
@@ -884,8 +836,9 @@ public:
 	KOISHI_HOST_DEVICE size_type size() const { return curr; }
 
 private:
-	T *value;
-	size_type curr;
+	T *value = nullptr;
+	size_type curr = 0;
+	bool is_device_ptr = false;
 };
 
 // template <typename T>
