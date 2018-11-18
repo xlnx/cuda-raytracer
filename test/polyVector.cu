@@ -54,7 +54,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 
 	for ( int i = 0; i != n; ++i )
 	{
-		vec.emplace_back( i );
+		view.emplace_back( i );
 	}
 
 	EXPECT_EQ( view.size(), n );
