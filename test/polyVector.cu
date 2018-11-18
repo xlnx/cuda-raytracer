@@ -94,3 +94,17 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	LOG( "no cuda toolkit provided" );
 #endif
 }
+
+TEST( test_poly_vector, initializer_list )
+{
+	PolyVector<int> a = { 1, 2, 3 };
+	PolyVector<int> b{};
+	a = {};
+	for ( int i = 0; i != 10000; ++i )
+	{
+		a.emplace_back( i );
+		b.emplace_back( i );
+	}
+	a.resize( 0 );
+	b.resize( 0 );
+}

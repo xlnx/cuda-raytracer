@@ -1,6 +1,8 @@
 #pragma once
 
 #include <utility>
+#include <vector>
+#include <initializer_list>
 #include <type_traits>
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
@@ -28,12 +30,83 @@ struct PolyVector final : Emittable<PolyVector<T>>
 	using const_iterator = const T *;
 	using buffer_type = PolyVector<T>;
 
+private:
+	static constexpr size_type min_size = 4;
+
 public:
 	PolyVector() = default;
 	PolyVector( size_type count, const T &val = T() )
 	{
 		resize( count, val );
 	}
+	PolyVector( std::initializer_list<T> l ) :
+	  total( std::max( l.size(), min_size ) ),
+	  curr( l.size() )
+	{
+		for ( auto p = value, q = &*l.begin(); p != value + curr; ++p, ++q )
+		{
+			new ( p ) T( std::move( *q ) );
+		}
+	}
+	PolyVector &operator=( std::initializer_list<T> l )
+	{
+		destroy();
+		total = std::max( l.size(), min_size );
+		curr = l.size();
+		value = (T *)std::malloc( sizeof( T ) * total );
+		for ( auto p = value, q = &*l.begin(); p != value + curr; ++p, ++q )
+		{
+			new ( p ) T( std::move( *q ) );
+		}
+		is_device_ptr = false;
+		return *this;
+	}
+	PolyVector( const std::vector<T> &other ) :
+	  total( std::max( other.capacity(), min_size ) ),
+	  curr( other.size() )
+	{
+		for ( auto p = value, q = &other[ 0 ]; p != value + curr; ++p, ++q )
+		{
+			new ( p ) T( *q );
+		}
+	}
+	PolyVector( std::vector<T> &&other ) :
+	  total( std::max( other.capacity(), min_size ) ),
+	  curr( other.size() )
+	{
+		for ( auto p = value, q = &other[ 0 ]; p != value + curr; ++p, ++q )
+		{
+			new ( p ) T( std::move( *q ) );
+		}
+	}
+	PolyVector &operator=( const std::vector<T> &other )
+	{
+		destroy();
+		total = std::max( other.capacity(), min_size );
+		curr = other.size();
+		value = (T *)std::malloc( sizeof( T ) * total );
+		for ( auto p = value, q = &other[ 0 ]; p != value + curr; ++p, ++q )
+		{
+			new ( p ) T( *q );
+		}
+		is_device_ptr = false;
+		return *this;
+	}
+	PolyVector &operator=( std::vector<T> &&other )
+	{
+		destroy();
+		total = std::max( other.capacity(), min_size );
+		curr = other.size();
+		value = (T *)std::malloc( sizeof( T ) * total );
+		for ( auto p = value, q = &other[ 0 ]; p != value + curr; ++p, ++q )
+		{
+			new ( p ) T( std::move( *q ) );
+		}
+		is_device_ptr = false;
+		return *this;
+	}
+
+public:
 	KOISHI_HOST_DEVICE PolyVector( PolyVector &&other ) :
 	  total( other.total ),
 	  curr( other.curr ),
@@ -211,8 +284,9 @@ public:
 		else
 		{
 			destroy();
-			value = (pointer)std::malloc( sizeof( T ) * count );
-			total = curr = count;
+			total = std::max( min_size, count );
+			curr = count;
+			value = (pointer)std::malloc( sizeof( T ) * total );
 			for ( auto p = value; p != value + curr; ++p )
 			{
 				new ( p ) T( val );
@@ -221,7 +295,7 @@ public:
 	}
 
 private:
-	std::size_t total = 4;
+	std::size_t total = min_size;
 	size_type curr = 0;
 	T *value = (pointer)std::malloc( sizeof( T ) * total );
 	bool is_device_ptr = false;

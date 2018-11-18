@@ -50,58 +50,62 @@ Scene::Scene( const std::string &path )
 					cc.position = { position.x, position.y, position.z };
 					cc.zNear = conf->mClipPlaneNear;
 					cc.zFar = conf->mClipPlaneFar;
-					//camera.emplace_back( cc );
+					camera.emplace_back( cc );
 				}
 			}
 			if ( scene->HasLights() )
 			{
-				// for ( auto i = 0u; i != scene->mNumLights; ++i )
-				// {
-				// 	auto &conf = scene->mLights[ i ];
-				// 	auto trans = scene->mRootNode->FindNode( conf->mName )->mTransformation;
-				// 	auto rot = trans;
-				// 	rot.a4 = rot.b4 = rot.c4 = 0.f;
-				// 	rot.d4 = 1.f;
-				// 	if ( conf->mType == aiLightSource_AREA )
-				// 	{
-				// 		auto dir = conf->mDirection;
-				// 		auto p = conf->mPosition;
-				// 		auto u = dir ^ conf->mUp;
-				// 		u.Normalize();
-				// 		auto v = u ^ dir;
-				// 		v.Normalize();
-				// 		conf->mSize *= .5;
+				for ( auto i = 0u; i != scene->mNumLights; ++i )
+				{
+					auto &conf = scene->mLights[ i ];
+					auto trans = scene->mRootNode->FindNode( conf->mName )->mTransformation;
+					auto rot = trans;
+					rot.a4 = rot.b4 = rot.c4 = 0.f;
+					rot.d4 = 1.f;
+					if ( conf->mType == aiLightSource_AREA )
+					{
+						auto dir = conf->mDirection;
+						auto p = conf->mPosition;
+						auto u = dir ^ conf->mUp;
+						u.Normalize();
+						auto v = u ^ dir;
+						v.Normalize();
+						conf->mSize *= .5;
 
-				// 		std::vector<aiVector3D> avs = {
-				// 			trans * ( p + conf->mSize.x * u + conf->mSize.y * v ),
-				// 			trans * ( p + conf->mSize.x * u - conf->mSize.y * v ),
-				// 			trans * ( p - conf->mSize.x * u - conf->mSize.y * v ),
-				// 			trans * ( p - conf->mSize.x * u + conf->mSize.y * v )
-				// 		};
-				// 		std::vector<double3> vertices = {
-				// 			{ avs[ 0 ].x, avs[ 0 ].y, avs[ 0 ].z },
-				// 			{ avs[ 1 ].x, avs[ 1 ].y, avs[ 1 ].z },
-				// 			{ avs[ 2 ].x, avs[ 2 ].y, avs[ 2 ].z },
-				// 			{ avs[ 3 ].x, avs[ 3 ].y, avs[ 3 ].z }
-				// 		};
-				// 		std::vector<double3> normals = {
-				// 			{ dir.x, dir.y, dir.z },
-				// 			{ dir.x, dir.y, dir.z },
-				// 			{ dir.x, dir.y, dir.z },
-				// 			{ dir.x, dir.y, dir.z }
-				// 		};
-				// 		std::vector<uint3> indices = {
-				// 			{ 0, 1, 2 },
-				// 			{ 0, 2, 3 }
-				// 		};
-				// 		// jsel::Mesh def;
-				// 		// def.emissive = double3{ 100, 100, 100 };
-				// 		for ( auto &m : core::PolyMesh( vertices, normals, indices ).mesh )
-				// 		{
-				// 			mesh.emplace_back( std::move( m ) );
-				// 		}
-				// 	}
-				// }
+						std::vector<aiVector3D> avs = {
+							trans * ( p + conf->mSize.x * u + conf->mSize.y * v ),
+							trans * ( p + conf->mSize.x * u - conf->mSize.y * v ),
+							trans * ( p - conf->mSize.x * u - conf->mSize.y * v ),
+							trans * ( p - conf->mSize.x * u + conf->mSize.y * v )
+						};
+						PolyVector<double3> vertices = {
+							{ avs[ 0 ].x, avs[ 0 ].y, avs[ 0 ].z },
+							{ avs[ 1 ].x, avs[ 1 ].y, avs[ 1 ].z },
+							{ avs[ 2 ].x, avs[ 2 ].y, avs[ 2 ].z },
+							{ avs[ 3 ].x, avs[ 3 ].y, avs[ 3 ].z }
+						};
+						PolyVector<double3> normals = {
+							{ dir.x, dir.y, dir.z },
+							{ dir.x, dir.y, dir.z },
+							{ dir.x, dir.y, dir.z },
+							{ dir.x, dir.y, dir.z }
+						};
+						std::vector<uint3> indices = {
+							{ 0, 1, 2 },
+							{ 0, 2, 3 }
+						};
+						// jsel::Mesh def;
+						// def.emissive = double3{ 100, 100, 100 };
+						for ( auto &m : core::PolyMesh(
+										  std::move( vertices ),
+										  std::move( normals ),
+										  indices )
+										  .mesh )
+						{
+							mesh.emplace_back( std::move( m ) );
+						}
+					}
+				}
 			}
 		}
 		importer.FreeScene();
