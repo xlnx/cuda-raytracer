@@ -13,7 +13,7 @@ struct Interreact
 
 	double3 n, p, u, v;
 
-	PolyVectorView<Mesh>::const_iterator mesh;
+	const Mesh *mesh;
 
 	BSDF *bsdf = nullptr;
 

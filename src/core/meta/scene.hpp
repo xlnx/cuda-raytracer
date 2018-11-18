@@ -15,16 +15,16 @@ struct Scene : Emittable<Scene>
 {
 	Scene( const std::string &path );
 
-	PolyVectorView<Mesh> mesh;
-	PolyVectorView<jsel::Material> material;
+	PolyVector<Mesh> mesh;
+	PolyVector<jsel::Material> material;
 
-	PolyVectorView<jsel::Camera> camera;
+	PolyVector<jsel::Camera> camera;
 
 	operator bool() const { return valid; }
 
 	KOISHI_HOST_DEVICE Interreact intersect( const Ray &r, Allocator &pool ) const
 	{
-		PolyVectorView<Mesh>::const_iterator pm = nullptr;
+		PolyVector<Mesh>::const_iterator pm = nullptr;
 		Hit hit;
 		for ( auto it = mesh.begin(); it != mesh.end(); ++it )
 		{

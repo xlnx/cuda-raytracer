@@ -3,7 +3,6 @@
 #include "poly/debug.hpp"
 #include "poly/function.hpp"
 #include "poly/vector.hpp"
-#include "poly/vectorView.hpp"
 
 namespace koishi
 {

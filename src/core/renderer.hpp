@@ -52,7 +52,7 @@ public:
 private:
 	using uchar = unsigned char;
 	std::vector<double3> buffer;
-	PolyVectorView<Ray> rays;
+	PolyVector<Ray> rays;
 	uint w, h;
 };
 

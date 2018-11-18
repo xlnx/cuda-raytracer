@@ -82,7 +82,7 @@ void Renderer::render( const std::string &path )
 		}
 		Camera camera( w, h, scene.camera[ 0 ] );
 		std::vector<Mesh> mesh;
-		// static_assert( std::is_same<core::PolyVectorView<core::Mesh> &, decltype( ( scene.mesh ) )>::value );
+		// static_assert( std::is_same<core::PolyVector<core::Mesh> &, decltype( ( scene.mesh ) )>::value );
 		// static_assert( std::is_same<const core::BVHTree &&, decltype( std::move( e.bvh ) )>::value );
 		for ( core::Mesh &e : scene.mesh )
 		{

@@ -17,7 +17,7 @@ struct Sampler
 	{
 	}
 
-	PolyVectorView<Ray> sample( const jsel::Camera &camera, uint spp ) const
+	PolyVector<Ray> sample( const jsel::Camera &camera, uint spp ) const
 	{
 		PolyVector<Ray> rays( spp * w * h );
 		double3 target = normalize( camera.target ) * double( w ) / ( 2 * tan( radians( camera.fovx * .5 ) ) );

@@ -10,6 +10,7 @@ namespace koishi
 namespace core
 {
 //#define KOISHI_DEBUG
+
 #ifdef KOISHI_DEBUG
 #define LOG( ... ) koishi::core::println( __VA_ARGS__ )
 #else
@@ -17,11 +18,24 @@ namespace core
 #endif
 #define STR( x ) _STR( x )
 #define _STR( x ) #x
-#define THROW( ... )                                                                     \
+#define THROW( ... ) _THROW( __VA_ARGS__ )
+#define _THROW( ... )                                                                    \
 	{                                                                                    \
 		throw std::logic_error( STR( __FILE__ ) ":" STR( __LINE__ ) ": " #__VA_ARGS__ ); \
 	}                                                                                    \
 	while ( 0 )
+#ifdef KOISHI_DEBUG
+#define ASSERT( ... )                                    \
+	{                                                    \
+		if ( !( __VA_ARGS__ ) )                          \
+		{                                                \
+			THROW( "assertion failed: ", #__VA_ARGS__ ); \
+		}                                                \
+	}                                                    \
+	while ( 0 )
+#else
+#define ASSERT( ... )
+#endif
 
 inline void println()
 {

@@ -21,13 +21,13 @@ struct BVHNode
 	uint begin, end, isleaf;
 };
 
-using BVHTree = PolyVectorView<BVHNode>;
+using BVHTree = PolyVector<BVHNode>;
 
 struct Mesh : Emittable<Mesh>
 {
-	PolyVectorView<double3> vertices;
-	PolyVectorView<double3> normals;
-	PolyVectorView<uint> indices;
+	PolyVector<double3> vertices;
+	PolyVector<double3> normals;
+	PolyVector<uint> indices;
 	BVHTree bvh;
 	uint matid;
 

@@ -30,10 +30,10 @@ struct A : Emittable<A>
 	}
 
 	int n;
-	PolyVectorView<int> v;
+	PolyVector<int> v;
 };
 
-__global__ void add( const PolyVectorView<A> &vec, PolyVectorView<int> &n, PolyVectorView<const int *> &p )
+__global__ void add( const PolyVector<A> &vec, PolyVector<int> &n, PolyVector<const int *> &p )
 {
 	//n[0] = 1; n[1] = 2;
 	//n[0] = 1;
@@ -48,7 +48,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 {
 //	testing::internal::CaptureStdout();
 #ifdef KOISHI_USE_CUDA
-	PolyVector<A> vec;
+	PolyVector<A> view;
 
 	int n = 200;
 
@@ -56,13 +56,12 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	{
 		vec.emplace_back( i );
 	}
-	PolyVectorView<A> view = std::move( vec );
 
 	EXPECT_EQ( view.size(), n );
 	LOG( view.data() );
 
-	PolyVectorView<int> nn( view.size() );
-	PolyVectorView<const int *> pp( view.size() );
+	PolyVector<int> nn( view.size() );
+	PolyVector<const int *> pp( view.size() );
 
 	LOG( nn.data() );
 	LOG( pp.data() );
@@ -89,7 +88,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	{
 		ss += i;
 		EXPECT_EQ( nn[ i ], ss + 1000 * ( i + 1 ) );
-		std::cout << nn[i] << std::endl;
+		std::cout << nn[ i ] << std::endl;
 	}
 #else
 	LOG( "no cuda toolkit provided" );
