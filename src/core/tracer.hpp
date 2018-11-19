@@ -58,26 +58,26 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 namespace cuda
 {
 template <typename Radiance, typename Alloc>
-__global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint h )
+__global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
 {
-	//Alloc pool;
+	Alloc pool;
 
-	extern __shared__ double3 rad[];
+	//extern __shared__ double3 rad[];
+	
+	double3 sum{ 0, 0, 0 };
 
-	auto index = threadIdx.x + blockIdx.x * blockDim.x;
-	auto stride = gridDim.x * blockDim.x;
-	for ( uint i = index, j = 0; i < rays.size(); i += stride, ++j )
+	auto index = blockIdx.x * blockDim.x + threadIdx.x;
+	auto rayIndex = index * spp;
+	//auto stride = gridDim.x * blockDim.x;
+	for ( uint i = rayIndex; i < rayIndex + spp; ++i )
 	{
-	//	rad[ j ] += Device::call<Radiance>( rays[ i ], scene, pool );
+		//sum += Device::call<Radiance>( rays[ i ], scene, pool );
 	//	clear( pool );
 	}
 
 	__syncthreads();
 
-	for ( uint i = threadIdx.x; i < h; i += blockDim.x )
-	{
-		buffer[ i * gridDim.x + blockIdx.x ] = rad[ i ];
-	}
+	buffer[ index ] = sum / spp;
 }
 
 template <typename Radiance, typename Alloc = DeviceAllocator>
@@ -93,7 +93,7 @@ PolyFunction( Tracer, Require<Host> )(
 
 	  LOG1( "start intergrating" );
 
-	  kernel( intergrate<Radiance, Alloc>, w, spp, h * sizeof( double3 ) )( buffer, rays, scene, h );
+	  kernel( intergrate<Radiance, Alloc>, h, w )( buffer, rays, scene, spp );
 
 	  LOG2( "finished intergrating" );
 
