@@ -12,6 +12,8 @@ int main( int argc, char **argv )
 {
 	if ( std::string( argv[ 2 ] ) == "-v" )
 	{
+		vis::Renderer r{ 1024, 768 };
+		r.render( argv[ 1 ] );
 	}
 	else
 	{

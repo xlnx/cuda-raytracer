@@ -11,7 +11,7 @@ namespace core
 {
 Scene::Scene( const std::string &path )
 {
-	auto pos = path.find_last_of( "." );
+	// auto pos = path.find_last_of( "." );
 	// if ( pos != path.npos && path.substr( pos ) == ".json" )
 	// {
 	jsel::Scene config;
@@ -124,6 +124,7 @@ Scene::Scene( const std::string &path )
 		//	valid = false;
 		//}
 	}
+	valid = true;
 }
 
 }  // namespace core

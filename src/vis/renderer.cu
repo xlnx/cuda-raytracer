@@ -81,7 +81,7 @@ void Renderer::render( const std::string &path )
 			throw "no camera in the scene.";
 		}
 		Camera camera( w, h, scene.camera[ 0 ] );
-		std::vector<Mesh> mesh;
+		core::PolyVector<Mesh> mesh;
 		// static_assert( std::is_same<core::PolyVector<core::Mesh> &, decltype( ( scene.mesh ) )>::value );
 		// static_assert( std::is_same<const core::BVHTree &&, decltype( std::move( e.bvh ) )>::value );
 		for ( core::Mesh &e : scene.mesh )

@@ -102,9 +102,13 @@ TEST( test_poly_vector, initializer_list )
 	a = {};
 	for ( int i = 0; i != 10000; ++i )
 	{
-		a.emplace_back( i );
+		a.resize( i + 1 );
+		a[ i ] = i;
 		b.emplace_back( i );
 	}
-	a.resize( 0 );
-	b.resize( 0 );
+	for ( int i = 0; i != 10000; ++i )
+	{
+		ASSERT_EQ( a[ i ], i );
+		ASSERT_EQ( b[ i ], i );
+	}
 }

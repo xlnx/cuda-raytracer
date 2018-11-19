@@ -28,7 +28,7 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 		uint index;
 		std::vector<TriangleInfo>::iterator begin, end;
 	};
-	BVHTree::buffer_type res( 2 );
+	BVHTree res( 2 );
 	std::queue<QueueItem> Q;
 	Q.emplace( QueueItem{ 1, info.begin(), info.end() } );
 	while ( !Q.empty() )
@@ -191,7 +191,7 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 		Mesh m;
 		// m.emissive = default_config.emissive;
 		// m.color = default_config.color;
-		m.bvh = createBVH( indices );
+		m.bvh = std::move( createBVH( indices ) );
 		std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
 		m.vertices = std::move( vertices );
 		m.normals = std::move( normals );
