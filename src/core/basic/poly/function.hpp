@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <utility>
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 

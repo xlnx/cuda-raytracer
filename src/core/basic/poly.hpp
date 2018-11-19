@@ -1,6 +1,5 @@
 #pragma once
 
-#include "poly/debug.hpp"
 #include "poly/function.hpp"
 #include "poly/vector.hpp"
 

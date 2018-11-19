@@ -60,7 +60,7 @@ namespace cuda
 template <typename Radiance, typename Alloc>
 __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint h )
 {
-	Alloc pool;
+	//Alloc pool;
 
 	extern __shared__ double3 rad[];
 
@@ -68,8 +68,8 @@ __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &
 	auto stride = gridDim.x * blockDim.x;
 	for ( uint i = index, j = 0; i < rays.size(); i += stride, ++j )
 	{
-		rad[ j ] += Device::call<Radiance>( rays[ i ], scene, pool );
-		clear( pool );
+	//	rad[ j ] += Device::call<Radiance>( rays[ i ], scene, pool );
+	//	clear( pool );
 	}
 
 	__syncthreads();
@@ -89,17 +89,13 @@ PolyFunction( Tracer, Require<Host> )(
 	  uint w = image.width();
 	  uint h = image.height();
 
-	  float gridDim = w;
-	  float blockDim = spp;
-
-	  //rays.emitAndReplace();
-	  //scene.emitAndReplace();
 	  PolyVector<double3> buffer( w * h );
-	  //buffer.emitAndReplace();
 
-	  kernel( intergrate<Radiance, Alloc>, gridDim, blockDim, h * sizeof( double3 ) )( buffer, rays, scene, h );
+	  LOG1( "start intergrating" );
 
-	  //buffer.fetchAndReplace();
+	  kernel( intergrate<Radiance, Alloc>, w, spp, h * sizeof( double3 ) )( buffer, rays, scene, h );
+
+	  LOG2( "finished intergrating" );
 
 	  for ( uint j = 0; j != h; ++j )
 	  {

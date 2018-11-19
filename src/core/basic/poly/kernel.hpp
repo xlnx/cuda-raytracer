@@ -4,8 +4,7 @@
 #include <type_traits>
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
-
-#include "debug.hpp"
+#include <util/debug.hpp>
 
 namespace koishi
 {
@@ -61,7 +60,7 @@ protected:
 template <typename T>
 __global__ inline void move_construct( T *dest, T *src )
 {
-	//LOG("move_construct()", typeid(T).name(), dest, src);
+	//LOG3("move_construct()", typeid(T).name(), dest, src);
 	auto idx = threadIdx.x;
 	new ( dest + idx ) T( std::move( src[ idx ] ) );
 }
@@ -99,7 +98,8 @@ struct Mover
 
 	static void host_to_device( T *device_ptr, T *host_ptr, uint count = 1 )
 	{
-		LOG( "move from host to device", typeid( T ).name(), count );
+		LOG3( "move from host to device", typeid( T ).name(), count );
+		if ( !count ) return;
 		std::size_t alloc_size = sizeof( T ) * count;
 		if ( !std::is_pod<T>::value )
 		{
@@ -109,7 +109,7 @@ struct Mover
 			// 		if ( !std::is_trivially_copyable<T>::value )
 			// #endif
 			// 		{
-			LOG( "using non-trival copy for class", typeid( T ).name() );
+			LOG3( "using non-trival copy for class", typeid( T ).name() );
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
@@ -122,7 +122,7 @@ struct Mover
 		}
 		else
 		{
-			LOG( "using plain copy for class", typeid( T ).name() );
+			LOG3( "using plain copy for class", typeid( T ).name() );
 			if ( auto err = cudaMemcpy( device_ptr, host_ptr, alloc_size, cudaMemcpyHostToDevice ) )
 			{
 				THROW( cudaMemcpy to device failed );
@@ -132,7 +132,8 @@ struct Mover
 
 	static void device_to_host( T *host_ptr, T *device_ptr, uint count = 1 )
 	{
-		LOG( "move from device to host", typeid( T ).name(), count );
+		LOG3( "move from device to host", typeid( T ).name(), count );
+		if ( !count ) return;
 		std::size_t alloc_size = sizeof( T ) * count;
 		if ( !std::is_pod<T>::value )
 		{
@@ -142,7 +143,7 @@ struct Mover
 			// 			if ( !std::is_trivially_copyable<T>::value )
 			// #endif
 			// 			{
-			LOG( "using non-trival copy for class", typeid( T ).name() );
+			LOG3( "using non-trival copy for class", typeid( T ).name() );
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
@@ -155,7 +156,7 @@ struct Mover
 		}
 		else
 		{
-			LOG( "using plain copy for class", typeid( T ).name() );
+			LOG3( "using plain copy for class", typeid( T ).name() );
 			if ( auto err = cudaMemcpy( host_ptr, device_ptr, alloc_size, cudaMemcpyDeviceToHost ) )
 			{
 				THROW( cudaMemcpy to host failed );
@@ -172,7 +173,7 @@ struct Destroyer
 #ifdef KOISHI_USE_CUDA
 	static void destroy_device( T *device_ptr, uint count = 1 )
 	{
-		LOG( "destroying device objects", typeid( T ).name(), count );
+		LOG3( "destroying device objects", typeid( T ).name(), count );
 		std::size_t alloc_size = sizeof( T ) * count;
 		if ( !std::is_pod<T>::value )
 		{
@@ -212,15 +213,15 @@ struct arguments<T, Args...> : arguments<Args...>
 	  arguments<Args...>( std::forward<Args>( args )... ),
 	  param_ptr( const_cast<value_type *>( &x ) )
 	{
-		cudaMalloc( &data, sizeof( value_type ) );
+		cudaMallocManaged( &data, sizeof( value_type ) );
 		Emittable::isTransferring() = true;
-		Mover<value_type>::host_to_device( data, param_ptr );
+		Mover<value_type>::host_to_union( data, param_ptr );
 		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
 		Emittable::isTransferring() = true;
-		Mover<value_type>::device_to_host( param_ptr, data );
+		Mover<value_type>::union_to_host( param_ptr, data );
 		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
@@ -228,12 +229,12 @@ struct arguments<T, Args...> : arguments<Args...>
 	template <typename X, std::size_t N, std::size_t Id>
 	const X &forward()
 	{
-		LOG( "forwarding", typeid( X ).name() );
 		static_assert( N - Id - 1 != sizeof...( Args ) ||
 						 std::is_same<X, T>::value,
 					   "wrong parameter type" );
 		if ( N - Id - 1 == sizeof...( Args ) )
 		{
+			LOG3( "forwarding", typeid( X ).name() );
 			return reinterpret_cast<const X &>( *data );
 		}
 		else
@@ -255,15 +256,15 @@ struct arguments<T>
 	arguments( const T &x ) :
 	  param_ptr( const_cast<value_type *>( &x ) )
 	{
-		cudaMalloc( &data, sizeof( value_type ) );
+		cudaMallocManaged( &data, sizeof( value_type ) );
 		Emittable::isTransferring() = true;
-		Mover<value_type>::host_to_device( data, param_ptr );
+		Mover<value_type>::host_to_union( data, param_ptr );
 		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
 		Emittable::isTransferring() = true;
-		Mover<value_type>::device_to_host( param_ptr, data );
+		Mover<value_type>::union_to_host( param_ptr, data );
 		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
@@ -271,7 +272,7 @@ struct arguments<T>
 	template <typename X, std::size_t N, std::size_t Id>
 	const X &forward()
 	{
-		LOG( "forwarding", typeid( X ).name() );
+		LOG3( "forwarding", typeid( X ).name() );
 		return reinterpret_cast<const X &>( *data );
 	}
 
@@ -317,10 +318,13 @@ private:
 	template <typename... Given, std::size_t... Is>
 	void do_call( indices<Is...>, Given &&... given )
 	{
-		LOG( "calling" );
+		LOG3( "calling" );
 		arguments<Given...> argval( std::forward<Given>( given )... );
+		LOG3( "dispatching cuda kernel function" );
 		f<<<a, b, c>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
+		LOG3( "waiting for device synchronization" );
 		cudaDeviceSynchronize();
+		LOG3( "kernel call done" );
 	}
 
 private:

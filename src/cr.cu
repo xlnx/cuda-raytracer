@@ -12,8 +12,10 @@ int main( int argc, char **argv )
 {
 	if ( std::string( argv[ 2 ] ) == "-v" )
 	{
+#ifdef KOISHI_USE_GL
 		vis::Renderer r{ 1024, 768 };
 		r.render( argv[ 1 ] );
+#endif
 	}
 	else
 	{
@@ -23,7 +25,7 @@ int main( int argc, char **argv )
 
 		using TraceFn = Radiance<FakeRand>;
 		Renderer<
-		  // cuda::
+		  cuda::
 		  Tracer<TraceFn>>
 		  r{ 1024, 768 };
 

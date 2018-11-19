@@ -4,6 +4,7 @@ project(cuda_raytracer)
 
 option( CUDA "use cuda as default target" OFF )
 option( GL "use opengl as default visualizer" ON )
+option( DEBUG_LEVEL "debug level" 0 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-parentheses -Wno-comment -Wvirtual-move-assign -Wno-stringop-overflow")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -pg -DDEBUG -g")
@@ -35,6 +36,8 @@ file(GLOB TEST_SOURCES
 # link_libraries (assimpd)
     link_libraries (assimp)
 # endif(assimp_FOUND)
+
+add_definitions(-DKOISHI_DEBUG=${DEBUG_LEVEL})
 
 if (${GL} STREQUAL "ON")
 	add_definitions(-DKOISHI_USE_GL)

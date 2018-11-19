@@ -6,9 +6,8 @@
 #include <type_traits>
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
-
+#include <util/debug.hpp>
 #include "kernel.hpp"
-#include "debug.hpp"
 
 #define MIN_SIZE std::size_t( 4 )
 
@@ -44,7 +43,9 @@ public:
 	  total( std::max( l.size(), MIN_SIZE ) ),
 	  curr( l.size() )
 	{
-		for ( auto p = value, q = &*l.begin(); p != value + curr; ++p, ++q )
+		auto p = value;
+		auto q = &*l.begin();
+		for ( ; p != value + curr; ++p, ++q )
 		{
 			new ( p ) T( std::move( *q ) );
 		}
@@ -55,7 +56,9 @@ public:
 		total = std::max( l.size(), MIN_SIZE );
 		curr = l.size();
 		value = (T *)std::malloc( sizeof( T ) * total );
-		for ( auto p = value, q = &*l.begin(); p != value + curr; ++p, ++q )
+		auto p = value;
+		auto q = &*l.begin();
+		for ( ; p != value + curr; ++p, ++q )
 		{
 			new ( p ) T( std::move( *q ) );
 		}
@@ -192,7 +195,7 @@ private:
 		}
 		value = new_ptr;
 		is_device_ptr = !is_device_ptr;
-		LOG( "value", value );
+		LOG3( "value", value );
 	}
 
 #endif
@@ -200,7 +203,7 @@ private:
 	{
 		if ( value != nullptr )
 		{
-			LOG( "destroy()", typeid( T ).name(), this );
+			LOG3( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA

@@ -112,3 +112,13 @@ TEST( test_poly_vector, initializer_list )
 		ASSERT_EQ( b[ i ], i );
 	}
 }
+
+TEST( test_poly_vector, emit_empty_vector )
+{
+#ifdef KOISHI_USE_CUDA
+	PolyVector<A> view;
+	PolyVector<int> a;
+	PolyVector<const int *> b;
+	kernel( add, 1, 1 )( view, a, b );
+#endif
+}
