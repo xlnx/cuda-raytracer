@@ -71,7 +71,8 @@ __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &
 	//auto stride = gridDim.x * blockDim.x;
 	for ( uint i = rayIndex; i < rayIndex + spp; ++i )
 	{
-		//sum += Device::call<Radiance>( rays[ i ], scene, pool );
+		//sum += rays[i].d;
+		sum += Device::call<Radiance>( rays[ i ], scene, pool );
 	//	clear( pool );
 	}
 
