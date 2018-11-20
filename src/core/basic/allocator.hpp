@@ -25,41 +25,56 @@ struct Allocator
 	KOISHI_HOST_DEVICE Allocator &operator=( const Allocator & ) = delete;
 };
 
-template <typename T, typename... Args>
-KOISHI_HOST_DEVICE inline T *alloc( Allocator &al, Args &&... args )
+template <typename T, typename Alloc, typename... Args>
+KOISHI_HOST_DEVICE inline T *create( Alloc &al, Args &&... args )
 {
 	auto ptr = reinterpret_cast<T *>( al.alloc( sizeof( T ) ) );
 	new ( ptr ) T( std::forward<Args>( args )... );
 	return ptr;
 }
 
-KOISHI_HOST_DEVICE inline void clear( Allocator &al )
+template <typename T, typename Alloc>
+KOISHI_HOST_DEVICE inline T *alloc_uninitialized( Alloc &al, std::size_t count )
+{
+	return reinterpret_cast<T *>( al.alloc( sizeof( T ) * count ) );
+}
+
+template <typename T, typename Alloc>
+KOISHI_HOST_DEVICE inline T *alloc( Alloc &al, std::size_t count )
+{
+	auto ptr = alloc_uninitialized<T>( al, count );
+	if ( !std::is_pod<T> )
+	{
+		for ( auto q = ptr; q != ptr + count; ++q )
+		{
+			new ( q ) T();
+		}
+	}
+	return ptr;
+}
+
+template <typename Alloc>
+KOISHI_HOST_DEVICE inline void clear( Alloc &al )
 {
 	al.clear();
 }
 
-struct HostAllocator : core::Allocator, Require<Host>
+struct HostAllocator : Require<Host>
 {
-	KOISHI_HOST HostAllocator() = default;
+	HostAllocator() = default;
 
-	KOISHI_HOST_DEVICE ~HostAllocator()
+	~HostAllocator()
 	{
 		destroy();
 	}
-	
-	KOISHI_HOST void destroy()
+
+	void destroy()
 	{
 		for ( auto &block : blocks ) { delete[] block.second; }
 	}
 
-	KOISHI_HOST_DEVICE char *alloc( std::size_t size ) override
-	{
-		return do_alloc( size );
-	}
-	KOISHI_HOST_DEVICE void clear() override { return do_clear(); }
-
 private:
-	KOISHI_HOST char *do_alloc( std::size_t size )
+	char *alloc( std::size_t size )
 	{
 		static constexpr std::size_t align =
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
@@ -90,7 +105,7 @@ private:
 		data += size, rest_size -= size;
 		return reinterpret_cast<char *>( ptr );
 	}
-	KOISHI_HOST void do_clear()
+	void clear()
 	{
 		rest_size = block_size;
 		curr_block = 0;
@@ -103,7 +118,7 @@ private:
 		const auto __intptr = reinterpret_cast<std::uintptr_t>( __ptr );
 		const auto __aligned = ( __intptr - 1u + __align ) & -__align;
 		const auto __diff = __aligned - __intptr;
-		if ( (__size + __diff) > __space )
+		if ( ( __size + __diff ) > __space )
 			return nullptr;
 		else
 		{

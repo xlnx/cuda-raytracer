@@ -11,28 +11,28 @@ namespace core
 {
 //#define KOISHI_DEBUG
 
-#ifdef KOISHI_DEBUG
-	#define LOG( ... ) koishi::core::println( __VA_ARGS__ )
-#else
-	#define LOG( ... )
-#endif
+// #ifdef KOISHI_DEBUG
+#define LOG( ... ) koishi::core::println( __VA_ARGS__ )
+// #else
+// 	#define LOG( ... )
+// #endif
 
 #if KOISHI_DEBUG >= 1
-	#define LOG1(...) LOG(__VA_ARGS__)
-#else 
-	#define LOG1(...)
+#define LOG1( ... ) LOG( __VA_ARGS__ )
+#else
+#define LOG1( ... )
 #endif
 
 #if KOISHI_DEBUG >= 2
-	#define LOG2(...) LOG(__VA_ARGS__)
-#else 
-	#define LOG2(...)
+#define LOG2( ... ) LOG( __VA_ARGS__ )
+#else
+#define LOG2( ... )
 #endif
 
 #if KOISHI_DEBUG >= 3
-	#define LOG3(...) LOG(__VA_ARGS__)
-#else 
-	#define LOG3(...)
+#define LOG3( ... ) LOG( __VA_ARGS__ )
+#else
+#define LOG3( ... )
 #endif
 
 #define STR( x ) _STR( x )

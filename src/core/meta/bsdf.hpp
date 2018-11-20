@@ -31,7 +31,7 @@ struct BSDF final
 							std::is_base_of<BxDF, T>::value>::type>
 	KOISHI_HOST_DEVICE void add( Allocator &pool )
 	{
-		bxdfs[ numBxdfs++ ] = alloc<T>( pool );
+		bxdfs[ numBxdfs++ ] = create<T>( pool );
 	}
 
 	KOISHI_HOST_DEVICE double3 f( const double3 &wo, const double3 &wi ) const

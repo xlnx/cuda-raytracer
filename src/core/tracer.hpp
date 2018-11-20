@@ -55,6 +55,9 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 
 #if defined( KOISHI_USE_CUDA )
 
+constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
+constexpr int sharedMemPerThread = 48 * b;
+
 namespace cuda
 {
 template <typename Radiance, typename Alloc>
@@ -62,23 +65,29 @@ __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &
 {
 	Alloc pool;
 
-	//extern __shared__ double3 rad[];
-	
-	double3 sum{ 0, 0, 0 };
+	extern __shared__ char sharedMem[];
 
-	auto index = blockIdx.x * blockDim.x + threadIdx.x;
-	auto rayIndex = index * spp;
-	//auto stride = gridDim.x * blockDim.x;
-	for ( uint i = rayIndex; i < rayIndex + spp; ++i )
+	char *threadMem = sharedMem + sharedMemPerThread * threadIdx.x;
+
+	int index = blockIdx.x * blockDim.x + threadIdx.x;
+	int stride = blockDim.x * gridDim.x;
+
+	double invSpp = 1.0 / spp;
+
+	for ( uint k = index; k < buffer.size(); k += stride )  // k is the k-th pixel
 	{
-		//sum += rays[i].d;
-		sum += Device::call<Radiance>( rays[ i ], scene, pool );
-	//	clear( pool );
+		int rayIndex = k * spp;
+		double3 sum{ 0, 0, 0 };
+
+		for ( uint i = rayIndex; i < rayIndex + spp; ++i )  // i is the i-th sample
+		{
+			//sum += rays[i].d;
+			sum += Device::call<Radiance>( rays[ i ], scene, pool );
+			//	clear( pool );
+		}
+
+		buffer[ k ] = sum * invSpp;
 	}
-
-	__syncthreads();
-
-	buffer[ index ] = sum / spp;
 }
 
 template <typename Radiance, typename Alloc = DeviceAllocator>
@@ -92,9 +101,30 @@ PolyFunction( Tracer, Require<Host> )(
 
 	  PolyVector<double3> buffer( w * h );
 
+	  int nDevices;
+	  cudaDeviceProp prop;
+	  cudaGetDeviceCount( &nDevices );
+	  cudaGetDeviceProperties( &prop, 0 );
+
+	  int threadPerBlock = prop.maxThreadsPerBlock;
+	  int threadShmLimit = prop.sharedMemPerBlock / sharedMemPerThread;
+	  if ( threadShmLimit > threadPerBlock )
+	  {
+		  LOG( "using", threadShmLimit, "of", threadPerBlock, "threads due to shared memory limit" );
+		  threadPerBlock = threadShmLimit;
+	  }
+	  else
+	  {
+		  LOG( "using", threadPerBlock, "threads" );
+	  }
+	  int sharedMemPerBlock = threadPerBlock * sharedMemPerThread;
+
 	  LOG1( "start intergrating" );
 
-	  kernel( intergrate<Radiance, Alloc>, h, w )( buffer, rays, scene, spp );
+	  kernel( intergrate<Radiance, Alloc>,
+			  prop.multiProcessorCount,
+			  threadPerBlock,
+			  sharedMemPerBlock )( buffer, rays, scene, spp );
 
 	  LOG2( "finished intergrating" );
 
