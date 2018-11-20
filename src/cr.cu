@@ -25,8 +25,10 @@ int main( int argc, char **argv )
 
 		using TraceFn = Radiance<FakeRand>;
 		Renderer<
+#ifdef KOISHI_USE_CUDA
 		  cuda::
-		  Tracer<TraceFn>>
+#endif
+			Tracer<TraceFn>>
 		  r{ 1024, 768 };
 
 		r.render( argv[ 1 ], argv[ 2 ], spp );
