@@ -167,29 +167,7 @@ struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
 
 private:
 	char *base, *finish, *curr;
-};  // namespace core
-
-// #if defined( KOISHI_USE_CUDA )
-
-// struct DeviceAllocator : core::Allocator, Require<Device>
-// {
-// 	KOISHI_DEVICE DeviceAllocator()
-// 	{
-// 	}
-
-// 	KOISHI_HOST_DEVICE char *alloc( std::size_t size ) override { return do_alloc( size ); }
-// 	KOISHI_HOST_DEVICE void clear() override { return do_clear(); }
-
-// private:
-// 	KOISHI_HOST_DEVICE char *do_alloc( std::size_t size )
-// 	{
-// 	}
-// 	KOISHI_HOST_DEVICE void do_clear()
-// 	{
-// 	}
-// };
-
-// #endif
+};
 
 }  // namespace core
 

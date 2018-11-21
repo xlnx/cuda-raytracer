@@ -1,8 +1,9 @@
 #include <sstream>
-#include <core/tracer.hpp>
 #include <core/random.hpp>
 #include <core/radiance.hpp>
 #include <core/renderer.hpp>
+#include <core/tracer/cpuMulticore.hpp>
+#include <core/tracer/cudaSingleGPU.hpp>
 #include <vis/renderer.hpp>
 
 using namespace koishi;
