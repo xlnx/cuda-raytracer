@@ -146,7 +146,7 @@ public:
 	}
 #else
 	{
-		THROW( invalid use of PolyVector( const & ) );
+		KTHROW( invalid use of PolyVector( const & ) );
 	}
 #endif
 	PolyVector &operator=( const PolyVector &other )
@@ -162,7 +162,7 @@ public:
 	}
 #else
 	{
-		THROW( invalid use of PolyVector( const & ) );
+		KTHROW( invalid use of PolyVector( const & ) );
 	}
 #endif
 
@@ -172,7 +172,7 @@ private:
 	{
 		if ( !__impl::Emittable::isTransferring() )
 		{
-			THROW( invalid use of PolyVector( const & ) );
+			KTHROW( invalid use of PolyVector( const & ) );
 		}
 		pointer new_ptr;
 		auto alloc_size = sizeof( T ) * total;
@@ -185,7 +185,7 @@ private:
 		{
 			if ( auto err = cudaMalloc( &new_ptr, alloc_size ) )
 			{
-				THROW( cudaMalloc on device failed );
+				KTHROW( cudaMalloc on device failed );
 			}
 			__impl::Mover<T>::host_to_device( new_ptr, value, curr );
 		}
@@ -195,7 +195,7 @@ private:
 		}
 		value = new_ptr;
 		is_device_ptr = !is_device_ptr;
-		LOG3( "value", value );
+		KLOG3( "value", value );
 	}
 
 #endif
@@ -203,14 +203,14 @@ private:
 	{
 		if ( value != nullptr )
 		{
-			LOG3( "destroy()", typeid( T ).name(), this );
+			KLOG3( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
 #ifdef KOISHI_USE_CUDA
 				__impl::Destroyer<T>::destroy_device( value, curr );
 				cudaFree( value );
 #else
-				THROW( invalid internal state );
+				KTHROW( invalid internal state );
 #endif
 			}
 			else
@@ -250,7 +250,7 @@ public:
 	template <typename... Args>
 	void emplace_back( Args &&... args )
 	{
-		ASSERT( !is_device_ptr );
+		KASSERT( !is_device_ptr );
 		if ( curr >= total )
 		{
 			auto newData = (pointer)std::malloc( sizeof( T ) * ( total *= 2 ) );
@@ -268,7 +268,7 @@ public:
 
 	void resize( size_type count, const value_type &val = T() )
 	{
-		ASSERT( !is_device_ptr );
+		KASSERT( !is_device_ptr );
 		if ( curr >= count )
 		{
 			for ( auto p = value + count; p != value + curr; ++p )

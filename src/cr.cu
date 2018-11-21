@@ -32,7 +32,7 @@ int main( int argc, char **argv )
 			  TraceFn
 #ifndef KOISHI_USE_CUDA
 		//   ,
-		//   HostAllocator,
+		//   HybridAllocator
 		//   1
 #endif
 			  >>

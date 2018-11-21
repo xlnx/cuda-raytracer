@@ -14,7 +14,7 @@ TEST( test_cyclic_queue, push_queue )
 {
 	HostAllocator al;
 	CyclicQueue<int> q( al );
-	LOG( q.capacity() );
+	KLOG( q.capacity() );
 	q.emplace( 1 );
 	q.emplace( 2 );
 	ASSERT_EQ( q.front(), 1 );

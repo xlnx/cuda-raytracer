@@ -108,7 +108,7 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 	{
 		if ( Q.overflow() )
 		{
-			THROW( cyclic queue overflow );
+			KTHROW( cyclic queue overflow );
 		}
 
 		auto i = Q.front();

@@ -4,6 +4,7 @@
 #include <sstream>
 #include <typeinfo>
 #include <stdexcept>
+#include <cassert>
 
 namespace koishi
 {
@@ -12,48 +13,52 @@ namespace core
 //#define KOISHI_DEBUG
 
 // #ifdef KOISHI_DEBUG
-#define LOG( ... ) koishi::core::println( __VA_ARGS__ )
+#define KLOG( ... ) koishi::core::println( __VA_ARGS__ )
 // #else
 // 	#define LOG( ... )
 // #endif
 
 #if KOISHI_DEBUG >= 1
-#define LOG1( ... ) LOG( __VA_ARGS__ )
+#define KLOG1( ... ) KLOG( __VA_ARGS__ )
 #else
-#define LOG1( ... )
+#define KLOG1( ... )
 #endif
 
 #if KOISHI_DEBUG >= 2
-#define LOG2( ... ) LOG( __VA_ARGS__ )
+#define KLOG2( ... ) KLOG( __VA_ARGS__ )
 #else
-#define LOG2( ... )
+#define KLOG2( ... )
 #endif
 
 #if KOISHI_DEBUG >= 3
-#define LOG3( ... ) LOG( __VA_ARGS__ )
+#define KLOG3( ... ) KLOG( __VA_ARGS__ )
 #else
-#define LOG3( ... )
+#define KLOG3( ... )
 #endif
 
-#define STR( x ) _STR( x )
-#define _STR( x ) #x
-#define THROW( ... ) _THROW( __VA_ARGS__ )
-#define _THROW( ... )                                                                    \
-	{                                                                                    \
-		throw std::logic_error( STR( __FILE__ ) ":" STR( __LINE__ ) ": " #__VA_ARGS__ ); \
-	}                                                                                    \
+#define KSTR( x ) K_STR( x )
+#define K_STR( x ) #x
+#define KTHROW( ... ) K_THROW( __VA_ARGS__ )
+#define K_THROW( ... )                                                                     \
+	{                                                                                      \
+		throw std::logic_error( KSTR( __FILE__ ) ":" KSTR( __LINE__ ) ": " #__VA_ARGS__ ); \
+	}                                                                                      \
 	while ( 0 )
 #ifdef KOISHI_DEBUG
-#define ASSERT( ... )                                    \
-	{                                                    \
-		if ( !( __VA_ARGS__ ) )                          \
-		{                                                \
-			THROW( "assertion failed: ", #__VA_ARGS__ ); \
-		}                                                \
-	}                                                    \
-	while ( 0 )
+#ifndef __CUDA_ARCH__
+#define KASSERT( ... )                                    \
+	do                                                    \
+	{                                                     \
+		if ( !( __VA_ARGS__ ) )                           \
+		{                                                 \
+			KTHROW( "assertion failed: ", #__VA_ARGS__ ); \
+		}                                                 \
+	} while ( 0 )
 #else
-#define ASSERT( ... )
+#define KASSERT assert
+#endif
+#else
+#define KASSERT( ... )
 #endif
 
 inline void println()

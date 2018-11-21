@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <memory>
 #include <vector>
+#include <util/debug.hpp>
 #include <vec/vmath.hpp>
 #include "poly.hpp"
 
@@ -141,27 +142,54 @@ private:
 	std::vector<std::pair<std::size_t, char_type *>> blocks{ { rest_size, data } };
 };
 
-#if defined( KOISHI_USE_CUDA )
-
-struct DeviceAllocator : core::Allocator, Require<Device>
+struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
 {
-	KOISHI_DEVICE DeviceAllocator()
+	KOISHI_DEVICE HybridAllocator( char *block, uint block_size ) :
+	  base( block ), finish( block + block_size ), curr( block )
 	{
 	}
 
-	KOISHI_HOST_DEVICE char *alloc( std::size_t size ) override { return do_alloc( size ); }
-	KOISHI_HOST_DEVICE void clear() override { return do_clear(); }
+	KOISHI_HOST_DEVICE char *alloc( std::size_t size ) override
+	{
+		KASSERT( finish - curr >= size );
+		auto ptr = curr;
+		curr += size;
+		return ptr;
+	}
+	KOISHI_HOST_DEVICE void clear() override
+	{
+		curr = base;
+	}
+	KOISHI_HOST_DEVICE std::size_t size() const override
+	{
+		return finish - curr;
+	}
 
 private:
-	KOISHI_HOST_DEVICE char *do_alloc( std::size_t size )
-	{
-	}
-	KOISHI_HOST_DEVICE void do_clear()
-	{
-	}
-};
+	char *base, *finish, *curr;
+};  // namespace core
 
-#endif
+// #if defined( KOISHI_USE_CUDA )
+
+// struct DeviceAllocator : core::Allocator, Require<Device>
+// {
+// 	KOISHI_DEVICE DeviceAllocator()
+// 	{
+// 	}
+
+// 	KOISHI_HOST_DEVICE char *alloc( std::size_t size ) override { return do_alloc( size ); }
+// 	KOISHI_HOST_DEVICE void clear() override { return do_clear(); }
+
+// private:
+// 	KOISHI_HOST_DEVICE char *do_alloc( std::size_t size )
+// 	{
+// 	}
+// 	KOISHI_HOST_DEVICE void do_clear()
+// 	{
+// 	}
+// };
+
+// #endif
 
 }  // namespace core
 

@@ -58,13 +58,13 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	}
 
 	EXPECT_EQ( view.size(), n );
-	LOG( view.data() );
+	KLOG( view.data() );
 
 	PolyVector<int> nn( view.size() );
 	PolyVector<const int *> pp( view.size() );
 
-	LOG( nn.data() );
-	LOG( pp.data() );
+	KLOG( nn.data() );
+	KLOG( pp.data() );
 
 	EXPECT_EQ( n, nn.size() );
 	EXPECT_EQ( n, pp.size() );
@@ -72,13 +72,13 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 
 	kernel( add, 1, 1 )( view, nn, pp );
 
-	LOG( nn.data() );
-	LOG( pp.data() );
+	KLOG( nn.data() );
+	KLOG( pp.data() );
 
 	EXPECT_EQ( n, nn.size() );
 
-	LOG( nn.data() );
-	LOG( pp.data() );
+	KLOG( nn.data() );
+	KLOG( pp.data() );
 
 	EXPECT_EQ( n, nn.size() );
 
@@ -91,7 +91,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 		std::cout << nn[ i ] << std::endl;
 	}
 #else
-	LOG( "no cuda toolkit provided" );
+	KLOG( "no cuda toolkit provided" );
 #endif
 }
 

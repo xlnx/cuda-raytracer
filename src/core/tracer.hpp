@@ -15,7 +15,7 @@ namespace koishi
 {
 namespace core
 {
-template <typename Radiance, typename Alloc = HostAllocator, uint MaxThreads = -1u>
+template <typename Radiance, typename Alloc = HybridAllocator, uint MaxThreads = -1u>
 PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
   ( util::Image<3> & image, PolyVector<Ray> &rays, Scene &scene, uint spp )->void {
 	  uint w = image.width();
@@ -26,7 +26,12 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 	  std::cout << "using " << ncores << " threads:" << std::endl;
 	  std::vector<std::thread> ts;
 	  auto tracer_thread = [ncores, spp, h, w, &scene, &image, &rays]( uint id ) {
-		  Alloc pool;
+		  static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
+		  static constexpr uint block_size = 48 * kb;
+
+		  char block[ block_size ];
+
+		  Alloc pool( block, block_size );
 
 		  for ( uint j = id; j < h; j += ncores )
 		  {
@@ -63,11 +68,10 @@ namespace cuda
 template <typename Radiance, typename Alloc>
 __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
 {
-	Alloc pool;
-
 	extern __shared__ char sharedMem[];
 
 	char *threadMem = sharedMem + sharedMemPerThread * threadIdx.x;
+	Alloc pool( threadMem, sharedMemPerThread );
 
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -90,7 +94,7 @@ __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &
 	}
 }
 
-template <typename Radiance, typename Alloc = DeviceAllocator>
+template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( Tracer, Require<Host> )(
   ( util::Image<3> & image, PolyVector<Ray> &rays, Scene &scene, uint spp )->void {
 	  static_assert( std::is_base_of<Device, Radiance>::value, "Radiance must be host callable" );
@@ -110,23 +114,23 @@ PolyFunction( Tracer, Require<Host> )(
 	  int threadShmLimit = prop.sharedMemPerBlock / sharedMemPerThread;
 	  if ( threadShmLimit > threadPerBlock )
 	  {
-		  LOG( "using", threadShmLimit, "of", threadPerBlock, "threads due to shared memory limit" );
+		  KLOG( "using", threadShmLimit, "of", threadPerBlock, "threads due to shared memory limit" );
 		  threadPerBlock = threadShmLimit;
 	  }
 	  else
 	  {
-		  LOG( "using", threadPerBlock, "threads" );
+		  KLOG( "using", threadPerBlock, "threads" );
 	  }
 	  int sharedMemPerBlock = threadPerBlock * sharedMemPerThread;
 
-	  LOG1( "start intergrating" );
+	  KLOG1( "start intergrating" );
 
 	  kernel( intergrate<Radiance, Alloc>,
 			  prop.multiProcessorCount,
 			  threadPerBlock,
 			  sharedMemPerBlock )( buffer, rays, scene, spp );
 
-	  LOG2( "finished intergrating" );
+	  KLOG2( "finished intergrating" );
 
 	  for ( uint j = 0; j != h; ++j )
 	  {

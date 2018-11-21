@@ -9,6 +9,6 @@ TEST( test_poly_struct, struct_inherit )
 #ifdef KOISHI_USE_CUDA
 
 #else
-	LOG( "no cuda toolkit provided" );
+	KLOG( "no cuda toolkit provided" );
 #endif
 }
