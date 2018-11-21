@@ -10,6 +10,8 @@
 #include <util/config.hpp>
 #include <core/basic/ray.hpp>
 #include <core/basic/poly.hpp>
+#include <core/basic/allocator.hpp>
+#include <core/basic/queue.hpp>
 
 namespace koishi
 {
@@ -31,7 +33,7 @@ struct Mesh : Emittable<Mesh>
 	BVHTree bvh;
 	uint matid;
 
-	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, uint root, Hit &hit ) const;
+	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, uint root, Hit &hit, Allocator &pool ) const;
 };
 
 struct PolyMesh

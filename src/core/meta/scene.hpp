@@ -29,10 +29,11 @@ struct Scene : Emittable<Scene>
 		for ( auto it = mesh.begin(); it != mesh.end(); ++it )
 		{
 			Hit hit1;
-			if ( it->intersect( r, 1, hit1 ) && hit1.t < hit.t )
+			if ( it->intersect( r, 1, hit1, pool ) && hit1.t < hit.t )
 			{
 				hit = hit1, pm = it;
 			}
+			pool.clear();
 		}
 		Interreact res;
 		if ( hit )

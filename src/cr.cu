@@ -28,7 +28,14 @@ int main( int argc, char **argv )
 #ifdef KOISHI_USE_CUDA
 		  cuda::
 #endif
-			Tracer<TraceFn>>
+			Tracer<
+			  TraceFn
+#ifndef KOISHI_USE_CUDA
+		//   ,
+		//   HostAllocator,
+		//   1
+#endif
+			  >>
 		  r{ 1024, 768 };
 
 		r.render( argv[ 1 ], argv[ 2 ], spp );

@@ -21,6 +21,8 @@ struct Allocator
 
 	KOISHI_HOST_DEVICE virtual void clear() = 0;
 
+	KOISHI_HOST_DEVICE virtual std::size_t size() const = 0;
+
 	KOISHI_HOST_DEVICE Allocator( const Allocator & ) = delete;
 	KOISHI_HOST_DEVICE Allocator &operator=( const Allocator & ) = delete;
 };
@@ -43,7 +45,7 @@ template <typename T, typename Alloc>
 KOISHI_HOST_DEVICE inline T *alloc( Alloc &al, std::size_t count )
 {
 	auto ptr = alloc_uninitialized<T>( al, count );
-	if ( !std::is_pod<T> )
+	if ( !std::is_pod<T>::value )
 	{
 		for ( auto q = ptr; q != ptr + count; ++q )
 		{
@@ -53,28 +55,26 @@ KOISHI_HOST_DEVICE inline T *alloc( Alloc &al, std::size_t count )
 	return ptr;
 }
 
-template <typename Alloc>
-KOISHI_HOST_DEVICE inline void clear( Alloc &al )
+struct HostAllocator : core::Allocator, Require<Host>
 {
-	al.clear();
-}
+	KOISHI_HOST HostAllocator() = default;
 
-struct HostAllocator : Require<Host>
-{
-	HostAllocator() = default;
-
-	~HostAllocator()
+	KOISHI_HOST_DEVICE ~HostAllocator()
 	{
 		destroy();
 	}
 
-	void destroy()
+	KOISHI_HOST void destroy()
 	{
 		for ( auto &block : blocks ) { delete[] block.second; }
 	}
 
+	KOISHI_HOST_DEVICE char *alloc( std::size_t size ) override { return do_alloc( size ); }
+	KOISHI_HOST_DEVICE void clear() override { return do_clear(); }
+	KOISHI_HOST_DEVICE std::size_t size() const override { return do_size(); }
+
 private:
-	char *alloc( std::size_t size )
+	KOISHI_HOST char *do_alloc( std::size_t size )
 	{
 		static constexpr std::size_t align =
 #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
@@ -105,11 +105,15 @@ private:
 		data += size, rest_size -= size;
 		return reinterpret_cast<char *>( ptr );
 	}
-	void clear()
+	KOISHI_HOST void do_clear()
 	{
 		rest_size = block_size;
 		curr_block = 0;
 		data = blocks[ 0 ].second;
+	}
+	KOISHI_HOST std::size_t do_size() const
+	{
+		return rest_size;
 	}
 
 private:

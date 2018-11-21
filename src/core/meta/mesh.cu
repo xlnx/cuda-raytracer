@@ -96,45 +96,53 @@ static void printBVH( const BVHTree &tr, uint index = 1 )
 	}
 }
 
-KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit ) const
+KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Allocator &pool ) const
 {
-	uint i = root;
-	while ( !bvh[ i ].isleaf )
+	hit.t = INFINITY;
+
+	CyclicQueue<uint> Q( pool );
+
+	Q.emplace( root );
+
+	while ( !Q.empty() )
 	{
-		auto left = ray.intersect_bbox( bvh[ i << 1 ].vmin, bvh[ i << 1 ].vmax );
-		auto right = ray.intersect_bbox( bvh[ ( i << 1 ) + 1 ].vmin, bvh[ ( i << 1 ) + 1 ].vmax );
-		if ( !left && !right ) return false;
-		if ( left && right )
+		if ( Q.overflow() )
+		{
+			THROW( cyclic queue overflow );
+		}
+
+		auto i = Q.front();
+		Q.pop();
+
+		while ( !bvh[ i ].isleaf )
+		{  // using depth frist search will cost less space than bfs.
+			auto left = ray.intersect_bbox( bvh[ i << 1 ].vmin, bvh[ i << 1 ].vmax );
+			auto right = ray.intersect_bbox( bvh[ ( i << 1 ) + 1 ].vmin, bvh[ ( i << 1 ) + 1 ].vmax );
+			if ( !left && !right )  // no intersection on this branch
+			{
+				goto NEXT_BRANCH;
+			}
+			if ( left && right )  // both intersects, trace second and push first
+			{
+				Q.emplace( i << 1 );
+			}
+			i <<= 1;
+			if ( right ) i |= 1;
+		}
+		// now this node is leaf
+		for ( uint j = bvh[ i ].begin; j < bvh[ i ].end; j += 3 )
 		{
 			Hit hit1;
-			auto b0 = intersect( ray, root << 1, hit );
-			auto b1 = intersect( ray, ( root << 1 ) | 1, hit1 );
-			if ( !b0 && !b1 )
-			{
-				return false;
-			}
-			if ( !b0 || b1 && hit1.t < hit.t )
+			if ( ray.intersect_triangle( vertices[ indices[ j ] ],
+										 vertices[ indices[ j + 1 ] ],
+										 vertices[ indices[ j + 2 ] ], hit1 ) &&
+				 hit1.t < hit.t )
 			{
 				hit = hit1;
+				hit.id = j;
 			}
-			return true;
 		}
-		i <<= 1;
-		if ( right ) i |= 1;
-	}
-	// return true;
-	hit.t = INFINITY;
-	for ( uint j = bvh[ i ].begin; j < bvh[ i ].end; j += 3 )
-	{
-		Hit hit1;
-		if ( ray.intersect_triangle( vertices[ indices[ j ] ],
-									 vertices[ indices[ j + 1 ] ],
-									 vertices[ indices[ j + 2 ] ], hit1 ) &&
-			 hit1.t < hit.t )
-		{
-			hit = hit1;
-			hit.id = j;
-		}
+	NEXT_BRANCH:;
 	}
 	return hit.t != INFINITY;
 }

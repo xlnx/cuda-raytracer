@@ -18,8 +18,6 @@ namespace core
 template <typename Radiance, typename Alloc = HostAllocator, uint MaxThreads = -1u>
 PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
   ( util::Image<3> & image, PolyVector<Ray> &rays, Scene &scene, uint spp )->void {
-	  Alloc pool;
-
 	  uint w = image.width();
 	  uint h = image.height();
 
@@ -27,7 +25,9 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 	  if ( MaxThreads < ncores ) ncores = MaxThreads;
 	  std::cout << "using " << ncores << " threads:" << std::endl;
 	  std::vector<std::thread> ts;
-	  auto tracer_thread = [ncores, spp, h, w, &scene, &image, &rays, &pool]( uint id ) {
+	  auto tracer_thread = [ncores, spp, h, w, &scene, &image, &rays]( uint id ) {
+		  Alloc pool;
+
 		  for ( uint j = id; j < h; j += ncores )
 		  {
 			  for ( uint i = 0; i != w; ++i )
@@ -36,7 +36,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 				  for ( uint k = 0; k != spp; ++k )
 				  {
 					  rad += Self::template call<Radiance>( rays[ ( j * w + i ) * spp + k ], scene, pool );
-					  clear( pool );
+					  pool.clear();
 				  }
 				  image.at( i, j ) = rad / spp;
 			  }
