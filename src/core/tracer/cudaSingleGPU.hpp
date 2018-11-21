@@ -15,17 +15,15 @@ namespace core
 #if defined( KOISHI_USE_CUDA )
 
 constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
-constexpr int sharedMemPerThread = 128 * b;	// keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
+constexpr int sharedMemPerThread = 128 * b;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
-namespace cuda
-{
-template <typename Radiance, typename Alloc>
+template <typename Radiance, typename HybridAllocator>
 __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
 {
 	extern __shared__ char sharedMem[];
 
 	char *threadMem = sharedMem + sharedMemPerThread * threadIdx.x;
-	Alloc pool( threadMem, sharedMemPerThread );
+	HybridAllocator pool( threadMem, sharedMemPerThread );
 
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -48,12 +46,10 @@ __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &
 	}
 }
 
-template <typename Radiance, typename Alloc = HybridAllocator>
-PolyFunction( Tracer, Require<Host> )(
+// , typename Alloc = HybridAllocator
+template <typename Radiance>
+PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<HybridAllocator, Device>> )(
   ( util::Image<3> & image, PolyVector<Ray> &rays, Scene &scene, uint spp )->void {
-	  static_assert( std::is_base_of<Device, Radiance>::value, "Radiance must be host callable" );
-	  static_assert( std::is_base_of<Device, Alloc>::value, "Alloc must be host callable" );
-
 	  uint w = image.width();
 	  uint h = image.height();
 
@@ -79,7 +75,7 @@ PolyFunction( Tracer, Require<Host> )(
 
 	  KLOG1( "start intergrating" );
 
-	  kernel( intergrate<Radiance, Alloc>,
+	  kernel( intergrate<Radiance, HybridAllocator>,
 			  prop.multiProcessorCount,
 			  threadPerBlock,
 			  sharedMemPerBlock )( buffer, rays, scene, spp );
@@ -94,8 +90,6 @@ PolyFunction( Tracer, Require<Host> )(
 		  }
 	  }
   } );
-
-}  // namespace cuda
 
 #endif
 

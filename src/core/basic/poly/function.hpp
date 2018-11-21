@@ -30,8 +30,13 @@ struct Device
 	}
 };
 
+struct HostDevice : Host, Device
+{
+};
+
 namespace trait
 {
+template <typename T>
 struct dummy
 {
 };
@@ -65,15 +70,31 @@ struct make_and<X> : std::integral_constant<bool, X>
 {
 };
 
+template <typename... Args>
+struct Restrict : std::conditional<trait::make_and<
+									 std::is_base_of<Host, Args>::value...>::value,
+								   Host, trait::dummy<Host>>::type,
+				  std::conditional<trait::make_and<
+									 std::is_base_of<Device, Args>::value...>::value,
+								   Device, trait::dummy<Device>>::type
+{
+};
+
+template <typename T>
+struct Check : std::integral_constant<bool, std::is_base_of<Device, T>::value |
+											  std::is_base_of<Host, T>::value>
+{
+};
+
 }  // namespace trait
 
 template <typename... Args>
-struct Require : std::conditional<trait::make_and<
-									std::is_base_of<Host, Args>::value...>::value,
-								  Host, trait::dummy>::type,
-				 std::conditional<trait::make_and<
-									std::is_base_of<Device, Args>::value...>::value,
-								  Device, trait::dummy>::type
+struct Require : trait::Restrict<Args...>, trait::Check<trait::Restrict<Args...>>
+{
+};
+
+template <typename X, typename Y>
+struct On : std::conditional<std::is_base_of<Y, X>::value, HostDevice, trait::dummy<HostDevice>>::type
 {
 };
 
@@ -116,10 +137,11 @@ struct Require : std::conditional<trait::make_and<
 	};                                                                                                                     \
 	}
 
-#define PolyFunction( name, ... ) \
-	struct name : __VA_ARGS__     \
-	{                             \
-		using Self = name;        \
+#define PolyFunction( name, ... )                       \
+	struct name : __VA_ARGS__                           \
+	{                                                   \
+		using Self = name;                              \
+		static constexpr const char *className = #name; \
 		__PolyFunctionImpl
 
 }  // namespace core

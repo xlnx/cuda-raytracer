@@ -19,18 +19,25 @@ namespace koishi
 {
 namespace core
 {
-template <typename Tracer>
-class Renderer
+struct RendererBase
 {
-	using call_type = Host;
+	virtual ~RendererBase() = default;
 
-public:
+	virtual void render( const std::string &path, const std::string &dest, uint spp ) = 0;
+
+protected:
+	using call_type = Host;
+};
+
+template <typename Tracer>
+struct Renderer : RendererBase
+{
 	Renderer( uint w, uint h ) :
 	  w( w ), h( h )
 	{
 	}
 
-	void render( const std::string &path, const std::string &dest, uint spp )
+	void render( const std::string &path, const std::string &dest, uint spp ) override
 	{
 		if ( core::Scene scene = path )
 		{

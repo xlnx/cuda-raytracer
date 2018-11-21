@@ -4,6 +4,7 @@
 #include <core/renderer.hpp>
 #include <core/tracer/cpuMulticore.hpp>
 #include <core/tracer/cudaSingleGPU.hpp>
+#include <core/factory.hpp>
 #include <vis/renderer.hpp>
 
 using namespace koishi;
@@ -24,21 +25,33 @@ int main( int argc, char **argv )
 		std::istringstream is( argv[ 3 ] );
 		is >> spp;
 
-		using TraceFn = Radiance<FakeRand>;
-		Renderer<
+		Factory<
+		  templates<CPUMultiCoreTracer
 #ifdef KOISHI_USE_CUDA
-		  cuda::
+					  CudaSingleGPUTracer
 #endif
-			Tracer<
-			  TraceFn
-#ifndef KOISHI_USE_CUDA
-		//   ,
-		//   HybridAllocator
-		//   1
-#endif
-			  >>
-		  r{ 1024, 768 };
+					>,
+		  templates<Radiance>,
+		  types<FakeRand, DRand48>>
+		  factory;
 
-		r.render( argv[ 1 ], argv[ 2 ], spp );
+		auto r = factory.create( "CPUMultiCoreTracer", 1024, 768 );
+
+		r->render( argv[ 1 ], argv[ 2 ], spp );
+
+		// 		using TraceFn = Radiance<FakeRand>;
+		// 		Renderer<
+		// #ifdef KOISHI_USE_CUDA
+		// 		  cuda::
+		// #endif
+		// 			Tracer<
+		// 			  TraceFn
+		// #ifndef KOISHI_USE_CUDA
+		// 		//   ,
+		// 		//   HybridAllocator
+		// 		//   1
+		// #endif
+		// 			  >>
+		// 		  r{ 1024, 768 };
 	}
 }
