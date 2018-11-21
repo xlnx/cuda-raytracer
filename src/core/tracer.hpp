@@ -27,7 +27,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 	  std::vector<std::thread> ts;
 	  auto tracer_thread = [ncores, spp, h, w, &scene, &image, &rays]( uint id ) {
 		  static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
-		  static constexpr uint block_size = 48 * kb;
+		  static constexpr uint block_size = 480 * b;
 
 		  char block[ block_size ];
 
@@ -61,7 +61,7 @@ PolyFunction( Tracer, Require<Host, Radiance, Alloc> )(
 #if defined( KOISHI_USE_CUDA )
 
 constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
-constexpr int sharedMemPerThread = 48 * b;
+constexpr int sharedMemPerThread = 480 * b;
 
 namespace cuda
 {
