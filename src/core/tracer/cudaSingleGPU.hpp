@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vec/vec.hpp>
+#include <util/debug.hpp>
 #include <util/image.hpp>
 #include <core/basic/ray.hpp>
 #include <core/basic/poly.hpp>
@@ -14,7 +15,7 @@ namespace core
 #if defined( KOISHI_USE_CUDA )
 
 constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
-constexpr int sharedMemPerThread = 480 * b;
+constexpr int sharedMemPerThread = 128 * b;	// keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
 namespace cuda
 {
@@ -65,7 +66,7 @@ PolyFunction( Tracer, Require<Host> )(
 
 	  int threadPerBlock = prop.maxThreadsPerBlock;
 	  int threadShmLimit = prop.sharedMemPerBlock / sharedMemPerThread;
-	  if ( threadShmLimit > threadPerBlock )
+	  if ( threadShmLimit < threadPerBlock )
 	  {
 		  KLOG( "using", threadShmLimit, "of", threadPerBlock, "threads due to shared memory limit" );
 		  threadPerBlock = threadShmLimit;
