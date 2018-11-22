@@ -138,17 +138,20 @@ struct On : std::conditional<std::is_base_of<Y, X>::value, HostDevice, trait::du
 	};                                                                                                                     \
 	}
 
-#define PolyFunction( name, ... )                       \
-	struct name : __VA_ARGS__                           \
-	{                                                   \
-		using Self = name;                              \
-		static constexpr const char *className = #name; \
-		static std::string &getInstanceName()           \
-		{                                               \
-			static std::string instance = #name;        \
-			return instance;                            \
-		}                                               \
+#define PolyFunction( name, ... ) \
+	struct name : __VA_ARGS__     \
+	{                             \
+		PolyStruct( name );       \
 		__PolyFunctionImpl
+
+#define PolyStruct( name )                          \
+	static constexpr const char *className = #name; \
+	static std::string &getInstanceName()           \
+	{                                               \
+		static std::string instance = #name;        \
+		return instance;                            \
+	}                                               \
+	using Self = name
 
 }  // namespace core
 

@@ -27,33 +27,31 @@ int main( int argc, char **argv )
 			std::istringstream is( argv[ 3 ] );
 			is >> spp;
 
+			// clang-format off
 			Factory<
-			  templates<CPUMultiCoreTracer
-#ifdef KOISHI_USE_CUDA
-						  CudaSingleGPUTracer
-#endif
-						>,
-			  templates<Radiance>,
-			  types<FakeRand, DRand48>>
-			  factory;
-
-			Factory<
-			  templates<CPUMultiCoreTracer
+			  templates2<CPUMultiCoreTracer
 #ifdef KOISHI_USE_CUDA
 						  CudaSingleGPUTracer
 #endif
 						>,
 			  types<
-				templates<Radiance>,
-				types<FakeRand, DRand48>>>,
+				templates1<Radiance>,
+				types<FakeRand, DRand48>
+			  >,
+			  types<
+				HybridAllocator,
+				HostAllocator
+			  >
+			>
 			  factory;
+			// clang-format on
 
-			// for ( auto &e : factory.getValidTypes() )
-			// {
-			// 	KLOG( e );
-			// }
+			for ( auto &e : factory.getValidTypes() )
+			{
+				KLOG( e );
+			}
 
-			auto r = factory.create( "CPUMultiCoreTracer@@Radiance@@DRand48", 1024, 768 );
+			auto r = factory.create( "CPUMultiCoreTracer<Radiance<DRand48>>", 1024, 768 );
 
 			r->render( argv[ 1 ], argv[ 2 ], spp );
 		}

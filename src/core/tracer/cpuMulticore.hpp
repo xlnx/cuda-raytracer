@@ -14,8 +14,7 @@ namespace koishi
 {
 namespace core
 {
-// , typename Alloc = HybridAllocator, uint MaxThreads = -1u
-template <typename Radiance>
+template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
   ( util::Image<3> & image, PolyVector<Ray> &rays, Scene &scene, uint spp )->void {
 	  uint w = image.width();
@@ -33,7 +32,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 
 		  char block[ block_size ];
 
-		  HybridAllocator pool( block, block_size );
+		  Alloc pool( block, block_size );
 
 		  for ( uint j = id; j < h; j += ncores )
 		  {

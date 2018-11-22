@@ -17,13 +17,13 @@ namespace core
 constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
 constexpr int sharedMemPerThread = 128 * b;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
-template <typename Radiance, typename HybridAllocator>
+template <typename Radiance, typename Alloc>
 __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
 {
 	extern __shared__ char sharedMem[];
 
 	char *threadMem = sharedMem + sharedMemPerThread * threadIdx.x;
-	HybridAllocator pool( threadMem, sharedMemPerThread );
+	Alloc pool( threadMem, sharedMemPerThread );
 
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
@@ -46,9 +46,8 @@ __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &
 	}
 }
 
-// , typename Alloc = HybridAllocator
-template <typename Radiance>
-PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<HybridAllocator, Device>> )(
+template <typename Radiance, typename Alloc = HybridAllocator>
+PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
   ( util::Image<3> & image, PolyVector<Ray> &rays, Scene &scene, uint spp )->void {
 	  uint w = image.width();
 	  uint h = image.height();
@@ -75,7 +74,7 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Hybrid
 
 	  KLOG1( "start intergrating" );
 
-	  kernel( intergrate<Radiance, HybridAllocator>,
+	  kernel( intergrate<Radiance, Alloc>,
 			  prop.multiProcessorCount,
 			  threadPerBlock,
 			  sharedMemPerBlock )( buffer, rays, scene, spp );

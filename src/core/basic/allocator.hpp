@@ -58,7 +58,14 @@ KOISHI_HOST_DEVICE inline T *alloc( Alloc &al, std::size_t count )
 
 struct HostAllocator : core::Allocator, Require<Host>
 {
+	PolyStruct( HostAllocator );
+
 	KOISHI_HOST HostAllocator() = default;
+
+	KOISHI_HOST HostAllocator( char *, uint ) :
+	  HostAllocator()
+	{
+	}
 
 	KOISHI_HOST_DEVICE ~HostAllocator()
 	{
@@ -144,6 +151,8 @@ private:
 
 struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
 {
+	PolyStruct( HybridAllocator );
+
 	KOISHI_DEVICE HybridAllocator( char *block, uint block_size ) :
 	  base( block ), finish( block + block_size ), curr( block )
 	{
