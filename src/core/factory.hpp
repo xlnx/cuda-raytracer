@@ -1,8 +1,10 @@
 #pragma once
 
 #include <map>
+#include <string>
 #include <memory>
 #include <type_traits>
+#include <typeinfo>
 #include <functional>
 #include <util/debug.hpp>
 #include "renderer.hpp"
@@ -13,6 +15,12 @@ namespace core
 {
 namespace __trait
 {
+inline std::map<std::string, std::string> &name2Typeid()
+{
+	static std::map<std::string, std::string> m;
+	return m;
+}
+
 template <typename... Args>
 struct types
 {
@@ -25,12 +33,36 @@ struct templates
 	using type = templates<Args...>;
 };
 
+template <typename... X>
+struct ApplyEnum;
+
+template <template <typename> typename T, typename X, typename... Args>
+struct ApplyEnum<T<X>, Args...>
+{
+	static void apply()
+	{
+		T<X>::getInstanceName() = std::string( T<X>::className ) + "@@" + X::getInstanceName();
+		name2Typeid().emplace( T<X>::getInstanceName(), typeid( T<X> ).name() );
+		ApplyEnum<Args...>::apply();
+	}
+};
+
+template <>
+struct ApplyEnum<>
+{
+	static void apply() {}
+};
+
 template <template <typename> typename T, typename L>
 struct Enum;
 
 template <template <typename> typename T, typename... Args>
 struct Enum<T, types<Args...>> : types<T<Args>...>
 {
+	static void apply()
+	{
+		ApplyEnum<T<Args>...>::apply();
+	}
 };
 
 template <typename... Args>
@@ -47,6 +79,25 @@ struct Concat<types<Args...>> : types<Args...>
 {
 };
 
+template <typename... Args>
+struct ApplyPermutation;
+
+template <typename X, typename... Args>
+struct ApplyPermutation<X, Args...>
+{
+	static void apply()
+	{
+		X::apply();
+		ApplyPermutation<Args...>::apply();
+	}
+};
+
+template <>
+struct ApplyPermutation<>
+{
+	static void apply() {}
+};
+
 template <typename T, typename L>
 struct Permutation;
 
@@ -54,6 +105,10 @@ template <template <typename> typename... Templates, typename... Args>
 struct Permutation<templates<Templates...>,
 				   types<Args...>> : Concat<typename Enum<Templates, types<Args...>>::type...>
 {
+	static void apply()
+	{
+		ApplyPermutation<Enum<Templates, types<Args...>>...>::apply();
+	}
 };
 
 template <typename... Args>
@@ -63,11 +118,21 @@ template <typename T, typename U, typename... Args>
 struct ChainedPermutation<T, U, Args...> : Permutation<
 											 T, typename ChainedPermutation<U, Args...>::type>
 {
+	static void apply()
+	{
+		ChainedPermutation<U, Args...>::apply();
+		Permutation<
+		  T, typename ChainedPermutation<U, Args...>::type>::apply();
+	}
 };
 
 template <typename T, typename U>
 struct ChainedPermutation<T, U> : Permutation<T, U>
 {
+	static void apply()
+	{
+		Permutation<T, U>::apply();
+	}
 };
 
 template <typename T>
@@ -94,7 +159,7 @@ struct CtorForEach<types<T, Args...>>
 {
 	static void apply( std::map<std::string, CtorType> &ctors )
 	{
-		ctors[ T::className ] = []( uint w, uint h ) -> std::shared_ptr<RendererBase> {
+		ctors[ typeid( T ).name() ] = []( uint w, uint h ) -> std::shared_ptr<RendererBase> {
 			return std::static_pointer_cast<RendererBase>(
 			  std::make_shared<Renderer<T>>( w, h ) );
 		};
@@ -119,20 +184,36 @@ struct Factory
 
 	Factory()
 	{
+		using chain = __trait::ChainedPermutation<Args...>;
+		chain::apply();
 		__trait::CtorForEach<typename __trait::RemoveInvalid<
-		  typename __trait::ChainedPermutation<Args...>::type>::type>::apply( ctors );
+		  typename chain::type>::type>::apply( ctors );
 	}
 
 	value_type create( const std::string &name, uint w, uint h )
 	{
-		if ( ctors.count( name ) )
+		if ( __trait::name2Typeid().count( name ) && ctors.count( __trait::name2Typeid()[ name ] ) )
 		{
-			return ctors[ name ]( w, h );
+			return ctors[ __trait::name2Typeid()[ name ] ]( w, h );
 		}
 		else
 		{
 			KTHROW( unregistered factory type );
 		}
+	}
+
+	std::vector<std::string> getValidTypes()
+	{
+		std::vector<std::string> vec;
+		for ( auto &e : __trait::name2Typeid() )
+		{
+			if ( ctors.count( e.second ) )
+			{
+				vec.emplace_back( e.first );
+			}
+		}
+		vec.emplace_back();
+		return vec;
 	}
 
 private:

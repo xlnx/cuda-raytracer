@@ -2,6 +2,7 @@
 
 #include <type_traits>
 #include <utility>
+#include <string>
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
 
@@ -142,6 +143,11 @@ struct On : std::conditional<std::is_base_of<Y, X>::value, HostDevice, trait::du
 	{                                                   \
 		using Self = name;                              \
 		static constexpr const char *className = #name; \
+		static std::string &getInstanceName()           \
+		{                                               \
+			static std::string instance = #name;        \
+			return instance;                            \
+		}                                               \
 		__PolyFunctionImpl
 
 }  // namespace core

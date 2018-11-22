@@ -39,10 +39,10 @@ namespace core
 #define KSTR( x ) K_STR( x )
 #define K_STR( x ) #x
 #define KTHROW( ... ) K_THROW( __VA_ARGS__ )
-#define K_THROW( ... )                                                                     \
-	{                                                                                      \
-		throw std::logic_error( KSTR( __FILE__ ) ":" KSTR( __LINE__ ) ": " #__VA_ARGS__ ); \
-	}                                                                                      \
+#define K_THROW( ... )                                                             \
+	{                                                                              \
+		throw std::logic_error( __FILE__ ":" KSTR( __LINE__ ) ": " #__VA_ARGS__ ); \
+	}                                                                              \
 	while ( 0 )
 #ifdef KOISHI_DEBUG
 #ifndef __CUDA_ARCH__
