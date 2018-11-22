@@ -5,6 +5,7 @@
 #include <iostream>
 #include <util/exception.hpp>
 #include <vec/vmath.hpp>
+#include <util/debug.hpp>
 #include "mesh.hpp"
 
 #define KOISHI_TRIANGLE_STRIPE 32
@@ -197,7 +198,7 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 		// m.emissive = default_config.emissive;
 		// m.color = default_config.color;
 		m.bvh = std::move( createBVH( indices ) );
-		std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
+		KLOG( "- Built BVH of size", m.bvh.size(), ", depth", ceil( log2( m.bvh.size() ) ) );
 		m.vertices = std::move( vertices );
 		m.normals = std::move( normals );
 		m.matid = aimesh->mMaterialIndex;
@@ -234,7 +235,7 @@ PolyMesh::PolyMesh( PolyVector<double3> &&vertices,
 	}
 	Mesh m;
 	m.bvh = createBVH( indices );
-	std::cout << "Successfully buit BVH: " << m.bvh.size() << std::endl;
+	KLOG( "- Built BVH of size", m.bvh.size(), ", depth", ceil( log2( m.bvh.size() ) ) );
 	m.vertices = std::move( vertices );
 	m.normals = std::move( normals );
 	PolyVector<uint> idxBuffer( indices.size() * 3 );

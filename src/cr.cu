@@ -45,7 +45,7 @@ int main( int argc, char **argv )
 			Factory<
 			  templates2<CPUMultiCoreTracer
 #ifdef KOISHI_USE_CUDA
-						  CudaSingleGPUTracer
+						  , CudaSingleGPUTracer
 #endif
 						>,
 			  types<
@@ -80,10 +80,16 @@ int main( int argc, char **argv )
 
 				auto spp = opt[ "s" ].as<uint>();
 
+				std::string out = opt.count( "o" ) ? opt[ "o" ].as<std::string>() : "a.png";
+
 				KLOG( "Sample", spp, "points per pixel" );
 				KLOG( "Using renderer:", targetClass );
 
-				r->render( argv[ 1 ], argv[ 2 ], spp );
+				KLOG( "=== Start ===" );
+				r->render( argv[ 1 ], out, spp );
+				KLOG( "=== Finished ===" );
+
+				KLOG( "Written image to '" + out + "'" );
 			}
 		}
 	}
