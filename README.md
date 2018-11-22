@@ -19,7 +19,7 @@
 
 ## Design Rules
 
-The tracer aimed at working on isomerism systems.
+The tracer aimed at working on heterogeneous systems.
 
 ### Optional
 

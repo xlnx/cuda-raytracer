@@ -1,3 +1,4 @@
+#include <cstdio>
 #include <core/misc/random.hpp>
 #include <core/kernel/radiance.hpp>
 #include <core/kernel/normal.hpp>
@@ -12,17 +13,18 @@ using namespace core;
 
 int main( int argc, char **argv )
 {
-	cxxopts::Options options( "cr", "cuda-raytracer" );
+	cxxopts::Options options( "cr", "Ray tracer for heterogeneous systems, by KoishiChan~" );
 	options.add_options()(
 	  "v,visualize", "Visualize BVH using openGL." )(
-	  "o", "Place the output into <file>.", cxxopts::value<std::string>() )(
-	  "s,sample-per-pixel", "Number of sample points per pixel.", cxxopts::value<uint>() )(
+	  "o", "Place the output into <file>.", cxxopts::value<std::string>()->default_value( "a.png" ) )(
+	  "s,sample-per-pixel", "Number of sample points per pixel.", cxxopts::value<uint>()->default_value( "1" ) )(
 	  "l,list", "List all valid renderers." )(
 	  "h,help", "Show help message." )(
-	  "t,tracer", "Specify target tracer, default 'CPUMultiCoreTracer'.", cxxopts::value<std::string>() )(
-	  "k,kernel", "Specify kernel function, default 'Radiance'.", cxxopts::value<std::string>() )(
-	  "r,random-number-generator", "Specify random number generator, default 'DRand48'.", cxxopts::value<std::string>() )(
-	  "a,allocator", "Specify allocator, default 'HybridAllocator'.", cxxopts::value<std::string>() );
+	  "t,tracer", "Specify target tracer.", cxxopts::value<std::string>()->default_value( "CPUMultiCoreTracer" ) )(
+	  "k,kernel", "Specify kernel function.", cxxopts::value<std::string>()->default_value( "Radiance" ) )(
+	  "r,random-number-generator", "Specify random number generator.", cxxopts::value<std::string>()->default_value( "DRand48" ) )(
+	  "a,allocator", "Specify allocator.", cxxopts::value<std::string>()->default_value( "HybridAllocator" ) )(
+	  "resolution", "Specify target resolution.", cxxopts::value<std::string>()->default_value( "1024x768" ) );
 
 	try
 	{
@@ -69,18 +71,21 @@ int main( int argc, char **argv )
 			}
 			else
 			{
-				std::string tracer = opt.count( "t" ) ? opt[ "t" ].as<std::string>() : "CPUMultiCoreTracer";
-				std::string kernel = opt.count( "k" ) ? opt[ "k" ].as<std::string>() : "Radiance";
-				std::string rng = opt.count( "r" ) ? opt[ "r" ].as<std::string>() : "DRand48";
-				std::string alloc = opt.count( "a" ) ? opt[ "a" ].as<std::string>() : "HybridAllocator";
+				auto tracer = opt[ "t" ].as<std::string>();
+				auto kernel = opt[ "k" ].as<std::string>();
+				auto rng = opt[ "r" ].as<std::string>();
+				auto alloc = opt[ "a" ].as<std::string>();
 
 				auto targetClass = tracer + "<" + kernel + "<" + rng + ">" + ", " + alloc + ">";
 
-				auto r = factory.create( targetClass, 1024, 768 );
+				uint w = 1024, h = 768;
+				auto resolution = opt[ "resolution" ].as<std::string>();
+				sscanf( resolution.c_str(), "%ux%u", &w, &h );
+
+				auto r = factory.create( targetClass, w, h );
 
 				auto spp = opt[ "s" ].as<uint>();
-
-				std::string out = opt.count( "o" ) ? opt[ "o" ].as<std::string>() : "a.png";
+				auto out = opt[ "o" ].as<std::string>();
 
 				KLOG( "Sample", spp, "points per pixel" );
 				KLOG( "Using renderer:", targetClass );
