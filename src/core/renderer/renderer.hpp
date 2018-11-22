@@ -11,9 +11,7 @@
 #include <core/basic/allocator.hpp>
 #include <core/meta/mesh.hpp>
 #include <core/meta/scene.hpp>
-#include "sampler.hpp"
-#include "radiance.hpp"
-#include "random.hpp"
+#include <core/misc/sampler.hpp>
 
 namespace koishi
 {

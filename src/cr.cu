@@ -1,20 +1,38 @@
-#include <sstream>
-#include <core/random.hpp>
-#include <core/radiance.hpp>
-#include <core/renderer.hpp>
+#include <core/misc/random.hpp>
+#include <core/kernel/radiance.hpp>
+#include <core/kernel/normal.hpp>
 #include <core/tracer/cpuMulticore.hpp>
 #include <core/tracer/cudaSingleGPU.hpp>
-#include <core/factory.hpp>
+#include <core/renderer/factory.hpp>
 #include <vis/renderer.hpp>
+#include <cxxopts/cxxopts.hpp>
 
 using namespace koishi;
 using namespace core;
 
 int main( int argc, char **argv )
 {
+	cxxopts::Options options( "cr", "cuda-raytracer" );
+	options.add_options()(
+	  "v,visualize", "Visualize BVH using openGL." )(
+	  "o", "Place the output into <file>.", cxxopts::value<std::string>() )(
+	  "s,sample-per-pixel", "Number of sample points per pixel.", cxxopts::value<uint>() )(
+	  "l,list", "List all valid renderers." )(
+	  "h,help", "Show help message." )(
+	  "t,tracer", "Specify target tracer, default 'CPUMultiCoreTracer'.", cxxopts::value<std::string>() )(
+	  "k,kernel", "Specify kernel function, default 'Radiance'.", cxxopts::value<std::string>() )(
+	  "r,random-number-generator", "Specify random number generator, default 'DRand48'.", cxxopts::value<std::string>() )(
+	  "a,allocator", "Specify allocator, default 'HybridAllocator'.", cxxopts::value<std::string>() );
+
 	try
 	{
-		if ( std::string( argv[ 2 ] ) == "-v" )
+		auto opt = options.parse( argc, argv );
+
+		if ( opt.count( "h" ) )
+		{
+			KLOG( options.help() );
+		}
+		else if ( opt.count( "v" ) )
 		{
 #ifdef KOISHI_USE_GL
 			vis::Renderer r{ 1024, 768 };
@@ -23,10 +41,6 @@ int main( int argc, char **argv )
 		}
 		else
 		{
-			uint spp;
-			std::istringstream is( argv[ 3 ] );
-			is >> spp;
-
 			// clang-format off
 			Factory<
 			  templates2<CPUMultiCoreTracer
@@ -35,7 +49,7 @@ int main( int argc, char **argv )
 #endif
 						>,
 			  types<
-				templates1<Radiance>,
+				templates1<Radiance, Normal>,
 				types<FakeRand, DRand48>
 			  >,
 			  types<
@@ -46,18 +60,35 @@ int main( int argc, char **argv )
 			  factory;
 			// clang-format on
 
-			for ( auto &e : factory.getValidTypes() )
+			if ( opt.count( "l" ) )
 			{
-				KLOG( e );
+				for ( auto &e : factory.getValidTypes() )
+				{
+					KLOG( e );
+				}
 			}
+			else
+			{
+				std::string tracer = opt.count( "t" ) ? opt[ "t" ].as<std::string>() : "CPUMultiCoreTracer";
+				std::string kernel = opt.count( "k" ) ? opt[ "k" ].as<std::string>() : "Radiance";
+				std::string rng = opt.count( "r" ) ? opt[ "r" ].as<std::string>() : "DRand48";
+				std::string alloc = opt.count( "a" ) ? opt[ "a" ].as<std::string>() : "HybridAllocator";
 
-			auto r = factory.create( "CPUMultiCoreTracer<Radiance<DRand48>>", 1024, 768 );
+				auto targetClass = tracer + "<" + kernel + "<" + rng + ">" + ", " + alloc + ">";
 
-			r->render( argv[ 1 ], argv[ 2 ], spp );
+				auto r = factory.create( targetClass, 1024, 768 );
+
+				auto spp = opt[ "s" ].as<uint>();
+
+				KLOG( "Sample", spp, "points per pixel" );
+				KLOG( "Using renderer:", targetClass );
+
+				r->render( argv[ 1 ], argv[ 2 ], spp );
+			}
 		}
 	}
-	catch ( std::logic_error err )
+	catch ( const std::exception &err )
 	{
-		KLOG( "[fatal] ", err.what() );
+		KLOG( "[ fatal ] ", err.what() );
 	}
 }
