@@ -90,16 +90,12 @@ int main( int argc, char **argv )
 				KLOG( "Sample", spp, "points per pixel" );
 				KLOG( "Using renderer:", targetClass );
 
-				KLOG( "=== Start ===" );
 				r->render( argv[ 1 ], out, spp );
-				KLOG( "=== Finished ===" );
-
-				KLOG( "Written image to '" + out + "'" );
 			}
 		}
 	}
 	catch ( const std::exception &err )
 	{
-		KLOG( "[ fatal ] ", err.what() );
+		KINFO( fatal, err.what() );
 	}
 }

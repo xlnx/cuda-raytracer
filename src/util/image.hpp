@@ -3,6 +3,7 @@
 #include <vector>
 #include <string>
 #include <initializer_list>
+#include <util/debug.hpp>
 #include <vec/vec.hpp>
 #include <vec/vmath.hpp>
 
@@ -57,10 +58,19 @@ namespace __impl
 {
 int write_image( const std::string &path, uint w, uint h, uint channel, const unsigned char *data );
 
+struct ImageBase
+{
+	ImageBase()
+	{
+		KINFO( image, "Allocating image buffer..." );
+		util::tick();
+	}
+};
+
 }
 
 template <uint Channel>
-class Image
+class Image: __impl::ImageBase
 {
 public:
 	using value_type = __com::Component<Channel>;
@@ -68,6 +78,7 @@ public:
 	Image( uint w, uint h ) :
 	  w( w ), h( h ), value( w * h * Channel )
 	{
+		KINFO( image, "Allocated in", util::tick(), "seconds" );
 	}
 
 	value_type &at( uint x, uint y )

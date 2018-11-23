@@ -3,6 +3,7 @@
 #include <vector>
 #include <vec/vec.hpp>
 #include <util/config.hpp>
+#include <util/debug.hpp>
 #include <core/basic/ray.hpp>
 #include <core/basic/poly.hpp>
 
@@ -19,6 +20,8 @@ struct Sampler
 
 	PolyVector<Ray> sample( const jsel::Camera &camera, uint spp ) const
 	{
+		KINFO( sampler, "Sampling rays" );
+		util::tick();
 		PolyVector<Ray> rays( spp * w * h );
 		float3 target = normalize( camera.target ) * float( w ) / ( 2 * tan( radians( camera.fovx * .5 ) ) );
 		float3 U = normalize( cross( target, camera.upaxis ) );
@@ -38,6 +41,7 @@ struct Sampler
 				}
 			}
 		}
+		KINFO( sampler, "Sampled", rays.size() , "rays in", util::tick(), "seconds" );
 		return std::move( rays );
 	}
 

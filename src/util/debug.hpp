@@ -5,18 +5,43 @@
 #include <typeinfo>
 #include <stdexcept>
 #include <cassert>
+#include <chrono>
 
 namespace koishi
 {
-namespace core
+namespace util
 {
+
+inline double tick()
+{
+	using namespace std::chrono;
+	static bool is = false;
+	static decltype(system_clock::now()) prev;
+	if ( is = !is ) 
+	{
+		prev = system_clock::now();
+		return 0;
+	}
+	else
+	{
+		auto now = system_clock::now();
+		auto duration = duration_cast<microseconds>( now - prev );
+		return double( duration.count() ) * microseconds::period::num / microseconds::period::den;
+	}
+}
+
 //#define KOISHI_DEBUG
 
 // #ifdef KOISHI_DEBUG
-#define KLOG( ... ) koishi::core::println( __VA_ARGS__ )
+#define KLOG( ... ) koishi::util::println( __VA_ARGS__ )
 // #else
 // 	#define LOG( ... )
 // #endif
+//
+
+#define KINFO(Session, ...) KLOG( "[", #Session, "] ", __VA_ARGS__ )
+
+//#define KTICK() koishi::core::__impl::tick()
 
 #if KOISHI_DEBUG >= 1
 #define KLOG1( ... ) KLOG( __VA_ARGS__ )
@@ -176,6 +201,6 @@ void println( const X &x, Args &&... args )
 	println( std::forward<Args>( args )... );
 }
 
-}  // namespace core
+}  // namespace util
 
 }  // namespace koishi

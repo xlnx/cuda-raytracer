@@ -72,14 +72,10 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 	  }
 	  int sharedMemPerBlock = threadPerBlock * sharedMemPerThread;
 
-	  KLOG1( "start intergrating" );
-
 	  kernel( intergrate<Radiance, Alloc>,
 			  prop.multiProcessorCount,
 			  threadPerBlock,
 			  sharedMemPerBlock )( buffer, rays, scene, spp );
-
-	  KLOG2( "finished intergrating" );
 
 	  for ( uint j = 0; j != h; ++j )
 	  {

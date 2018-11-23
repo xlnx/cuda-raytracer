@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <util/debug.hpp>
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <vec/vmath.hpp>
@@ -19,6 +20,8 @@ Scene::Scene( const std::string &path )
 	std::vector<std::string> mats;
 
 	{
+		KINFO( scene, "Loading scene from config '" + path + "'" );
+		util::tick();
 		Assimp::Importer importer;
 		auto scene = importer.ReadFile( config.path, aiProcess_Triangulate |
 													   aiProcess_GenSmoothNormals |
@@ -109,6 +112,7 @@ Scene::Scene( const std::string &path )
 			}
 		}
 		importer.FreeScene();
+		KINFO( scene, "Imported", mesh.size(), "meshes in", util::tick(), "seconds" );
 	}
 
 	//material.resize( mats.size() );

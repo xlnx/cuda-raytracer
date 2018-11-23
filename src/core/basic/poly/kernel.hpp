@@ -1,6 +1,7 @@
 #pragma once
 
 #include <utility>
+#include <chrono>
 #include <type_traits>
 #include <vec/trait.hpp>
 #include <vec/vmath.hpp>
@@ -318,13 +319,18 @@ private:
 	template <typename... Given, std::size_t... Is>
 	void do_call( indices<Is...>, Given &&... given )
 	{
-		KLOG3( "calling" );
+		using namespace std::chrono;
+		KINFO( cuda, "Transmitting data..." );
+		util::tick();
 		arguments<Given...> argval( std::forward<Given>( given )... );
-		KLOG3( "dispatching cuda kernel function" );
+		KINFO( cuda, "Transmission finished in", util::tick(), "seconds" );
+		
+		KINFO( cuda, "Executing cuda kernel..." );
+		util::tick();
 		f<<<a, b, c>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
 		KLOG3( "waiting for device synchronization" );
 		cudaDeviceSynchronize();
-		KLOG3( "kernel call done" );
+		KINFO( cuda, "Kernel finished in", util::tick(), "seconds" );
 	}
 
 private:

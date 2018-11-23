@@ -38,7 +38,7 @@ struct Renderer : RendererBase
 
 	void render( const std::string &path, const std::string &dest, uint spp ) override
 	{
-		KLOG( "Loading scene config file" );
+		KINFO( renderer, "Render start" );
 		if ( core::Scene scene = path )
 		{
 			if ( !scene.camera.size() )
@@ -56,9 +56,11 @@ struct Renderer : RendererBase
 			Host::call<Tracer>( image, rays, scene, spp );
 			KLOG( "Finished intergrating" );
 
-			KLOG( "Writting image to file" );
+			KINFO( renderer, "Writting image to file" );
 			image.dump( dest );
+			KINFO( renderer, "Written to '" + dest + "'" );
 		}
+		KINFO( renderer, "Render finished successfully" );
 	}
 
 private:
