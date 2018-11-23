@@ -20,16 +20,16 @@ struct Sampler
 	PolyVector<Ray> sample( const jsel::Camera &camera, uint spp ) const
 	{
 		PolyVector<Ray> rays( spp * w * h );
-		double3 target = normalize( camera.target ) * double( w ) / ( 2 * tan( radians( camera.fovx * .5 ) ) );
-		double3 U = normalize( cross( target, camera.upaxis ) );
-		double3 V = normalize( cross( U, target ) );
+		float3 target = normalize( camera.target ) * float( w ) / ( 2 * tan( radians( camera.fovx * .5 ) ) );
+		float3 U = normalize( cross( target, camera.upaxis ) );
+		float3 V = normalize( cross( U, target ) );
 		for ( uint j = 0; j != h; ++j )
 		{
 			for ( uint i = 0; i != w; ++i )
 			{
 				auto *ray = &rays[ ( j * w + i ) * spp ];
-				auto N = target + U * ( double( i ) - w * .5 + .5 ) + V * ( h * .5 - double( j ) - .5 );
-				// double3 diff = sin( radians( 30. ) ) * U + cos( radians( 30. ) ) * V;
+				auto N = target + U * ( float( i ) - w * .5 + .5 ) + V * ( h * .5 - float( j ) - .5 );
+				// float3 diff = sin( radians( 30. ) ) * U + cos( radians( 30. ) ) * V;
 				for ( uint k = 0; k != spp; ++k )
 				{
 					ray[ k ].o = camera.position;

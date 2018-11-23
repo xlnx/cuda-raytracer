@@ -19,7 +19,7 @@ namespace core
 {
 struct BVHNode
 {
-	double3 vmax, vmin;
+	float3 vmax, vmin;
 	uint begin, end, isleaf;
 };
 
@@ -27,8 +27,8 @@ using BVHTree = PolyVector<BVHNode>;
 
 struct Mesh : Emittable<Mesh>
 {
-	PolyVector<double3> vertices;
-	PolyVector<double3> normals;
+	PolyVector<float3> vertices;
+	PolyVector<float3> normals;
 	PolyVector<uint> indices;
 	BVHTree bvh;
 	uint matid;
@@ -38,8 +38,8 @@ struct Mesh : Emittable<Mesh>
 
 struct PolyMesh
 {
-	PolyMesh( PolyVector<double3> &&vertices,
-			  PolyVector<double3> &&normals,
+	PolyMesh( PolyVector<float3> &&vertices,
+			  PolyVector<float3> &&normals,
 			  const std::vector<uint3> &indices );
 	PolyMesh( const aiScene *scene );
 

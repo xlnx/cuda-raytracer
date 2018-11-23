@@ -18,7 +18,7 @@ constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
 constexpr int sharedMemPerThread = 128 * b;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
 template <typename Radiance, typename Alloc>
-__global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
+__global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
 {
 	extern __shared__ char sharedMem[];
 
@@ -28,12 +28,12 @@ __global__ void intergrate( PolyVector<double3> &buffer, const PolyVector<Ray> &
 	int index = blockIdx.x * blockDim.x + threadIdx.x;
 	int stride = blockDim.x * gridDim.x;
 
-	double invSpp = 1.0 / spp;
+	float invSpp = 1.0 / spp;
 
 	for ( uint k = index; k < buffer.size(); k += stride )  // k is the k-th pixel
 	{
 		int rayIndex = k * spp;
-		double3 sum{ 0, 0, 0 };
+		float3 sum{ 0, 0, 0 };
 
 		for ( uint i = rayIndex; i < rayIndex + spp; ++i )  // i is the i-th sample
 		{
@@ -52,7 +52,7 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 	  uint w = image.width();
 	  uint h = image.height();
 
-	  PolyVector<double3> buffer( w * h );
+	  PolyVector<float3> buffer( w * h );
 
 	  int nDevices;
 	  cudaDeviceProp prop;

@@ -11,8 +11,8 @@ namespace core
 struct Hit
 {
 	uint id;
-	double t = INFINITY;
-	double2 uv;
+	float t = INFINITY;
+	float2 uv;
 
 	KOISHI_HOST_DEVICE operator bool() const
 	{
@@ -22,9 +22,9 @@ struct Hit
 
 struct Ray
 {
-	double3 o, d;
+	float3 o, d;
 
-	KOISHI_HOST_DEVICE bool intersect_bbox( const double3 &vmin, const double3 &vmax ) const
+	KOISHI_HOST_DEVICE bool intersect_bbox( const float3 &vmin, const float3 &vmax ) const
 	{
 		auto invv = 1.0 / d;
 		auto a = ( vmin - o ) * invv, b = ( vmax - o ) * invv;
@@ -32,12 +32,12 @@ struct Ray
 		auto t0 = max( tmin.x, max( tmin.y, tmin.z ) ), t1 = min( tmax.x, min( tmax.y, tmax.z ) );
 		return t0 <= t1 && t1 >= 0;
 	}
-	KOISHI_HOST_DEVICE bool intersect_triangle( const double3 &v0, const double3 &v1, const double3 &v2, Hit &hit ) const
+	KOISHI_HOST_DEVICE bool intersect_triangle( const float3 &v0, const float3 &v1, const float3 &v2, Hit &hit ) const
 	{
 		auto e1 = v1 - v0, e2 = v2 - v0;
 		auto P = cross( d, e2 );
 		auto det = dot( e1, P );
-		double3 T;
+		float3 T;
 		if ( det > 0 )
 		{
 			T = o - v0;
@@ -63,7 +63,7 @@ struct Ray
 			return false;
 		}
 		hit.t = dot( e2, Q );
-		double invdet = 1.f / det;
+		float invdet = 1.f / det;
 		hit.t *= invdet;
 		hit.uv *= invdet;
 
@@ -71,8 +71,8 @@ struct Ray
 	}
 };
 
-KOISHI_HOST_DEVICE inline double3 interplot( const double3 &v0, const double3 &v1,
-											 const double3 &v2, const double2 &uv )
+KOISHI_HOST_DEVICE inline float3 interplot( const float3 &v0, const float3 &v1,
+											 const float3 &v2, const float2 &uv )
 {
 	return v0 * ( 1 - uv.x - uv.y ) + v1 * uv.x + v2 * uv.y;
 }

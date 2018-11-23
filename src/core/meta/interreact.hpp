@@ -9,9 +9,9 @@ namespace core
 {
 struct Interreact
 {
-	double2 uv;
+	float2 uv;
 
-	double3 n, p, u, v;
+	float3 n, p, u, v;
 
 	const Mesh *mesh;
 
@@ -25,21 +25,21 @@ public:
 		return !isNull;
 	}
 
-	KOISHI_HOST_DEVICE Ray emitRay( const double3 &wo ) const
+	KOISHI_HOST_DEVICE Ray emitRay( const float3 &wo ) const
 	{
 		Ray r;
 		auto nwo = normalize( wo );
-		constexpr double eps = 1e-3;
+		constexpr float eps = 1e-3;
 		r.o = p + nwo * eps, r.d = nwo;
 		return r;
 	}
 
-	KOISHI_HOST_DEVICE double3 local( const double3 &w ) const
+	KOISHI_HOST_DEVICE float3 local( const float3 &w ) const
 	{
-		return double3{ dot( w, u ), dot( w, v ), dot( w, n ) };
+		return float3{ dot( w, u ), dot( w, v ), dot( w, n ) };
 	}
 
-	KOISHI_HOST_DEVICE double3 world( const double3 &w ) const
+	KOISHI_HOST_DEVICE float3 world( const float3 &w ) const
 	{
 		return u * w.x + v * w.y + n * w.z;
 	}

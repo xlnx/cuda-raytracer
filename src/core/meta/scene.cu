@@ -45,8 +45,8 @@ Scene::Scene( const std::string &path )
 					auto up = rot * conf->mUp;
 					auto lookat = rot * conf->mLookAt;
 					auto position = trans * conf->mPosition;
-					cc.upaxis = normalize( double3{ up.x, up.y, up.z } );
-					cc.target = normalize( double3{ lookat.x, lookat.y, lookat.z } );
+					cc.upaxis = normalize( float3{ up.x, up.y, up.z } );
+					cc.target = normalize( float3{ lookat.x, lookat.y, lookat.z } );
 					cc.position = { position.x, position.y, position.z };
 					cc.zNear = conf->mClipPlaneNear;
 					cc.zFar = conf->mClipPlaneFar;
@@ -78,13 +78,13 @@ Scene::Scene( const std::string &path )
 							trans * ( p - conf->mSize.x * u - conf->mSize.y * v ),
 							trans * ( p - conf->mSize.x * u + conf->mSize.y * v )
 						};
-						PolyVector<double3> vertices = {
+						PolyVector<float3> vertices = {
 							{ avs[ 0 ].x, avs[ 0 ].y, avs[ 0 ].z },
 							{ avs[ 1 ].x, avs[ 1 ].y, avs[ 1 ].z },
 							{ avs[ 2 ].x, avs[ 2 ].y, avs[ 2 ].z },
 							{ avs[ 3 ].x, avs[ 3 ].y, avs[ 3 ].z }
 						};
-						PolyVector<double3> normals = {
+						PolyVector<float3> normals = {
 							{ dir.x, dir.y, dir.z },
 							{ dir.x, dir.y, dir.z },
 							{ dir.x, dir.y, dir.z },
@@ -95,7 +95,7 @@ Scene::Scene( const std::string &path )
 							{ 0, 2, 3 }
 						};
 						// jsel::Mesh def;
-						// def.emissive = double3{ 100, 100, 100 };
+						// def.emissive = float3{ 100, 100, 100 };
 						for ( auto &m : core::PolyMesh(
 										  std::move( vertices ),
 										  std::move( normals ),

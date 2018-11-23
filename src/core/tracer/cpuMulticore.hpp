@@ -38,7 +38,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 		  {
 			  for ( uint i = 0; i != w; ++i )
 			  {
-				  double3 rad = { 0, 0, 0 };
+				  float3 rad = { 0, 0, 0 };
 				  for ( uint k = 0; k != spp; ++k )
 				  {
 					  rad += Self::template call<Radiance>( rays[ ( j * w + i ) * spp + k ], scene, pool );

@@ -12,8 +12,8 @@ namespace core
 {
 template <typename Random>
 PolyFunction( Normal, Require<Random> )(
-  ( const Ray &r, const Scene &scene, Allocator &pool )->double3 {
-	  double3 L = { 0, 0, 0 };
+  ( const Ray &r, const Scene &scene, Allocator &pool )->float3 {
+	  float3 L = { 0, 0, 0 };
 
 	  if ( auto isect = scene.intersect( r, pool ) )
 	  {

@@ -17,9 +17,9 @@ namespace core
 struct TriangleInfo
 {
 	uint3 index;
-	double3 vmax;
-	double3 vmin;
-	double area;
+	float3 vmax;
+	float3 vmin;
+	float area;
 };
 
 static BVHTree createBVH( std::vector<TriangleInfo> &info )
@@ -42,7 +42,7 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 		BVHNode node;  // current bbox
 		node.vmax = begin->vmax;
 		node.vmin = begin->vmin;
-		double s = 0;
+		float s = 0;
 		for ( auto iter = begin; iter != end; ++iter )
 		{
 			node.vmax = max( node.vmax, iter->vmax );
@@ -151,23 +151,23 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 	for ( uint i = 0; i != node->mNumMeshes; ++i )
 	{
 		auto aimesh = scene->mMeshes[ node->mMeshes[ i ] ];
-		PolyVector<double3> vertices;
+		PolyVector<float3> vertices;
 		if ( aimesh->HasPositions() )
 		{
 			vertices.resize( aimesh->mNumVertices );
 			for ( uint j = 0; j != aimesh->mNumVertices; ++j )
 			{
 				auto v = trans * aimesh->mVertices[ j ];
-				vertices[ j ] = double3{ v.x, v.y, v.z };
+				vertices[ j ] = float3{ v.x, v.y, v.z };
 			}
 		}
-		PolyVector<double3> normals;
+		PolyVector<float3> normals;
 		if ( aimesh->HasNormals() )
 		{
 			normals.resize( aimesh->mNumVertices );
 			for ( uint j = 0; j != aimesh->mNumVertices; ++j )
 			{
-				normals[ j ] = double3{ aimesh->mNormals[ j ].x,
+				normals[ j ] = float3{ aimesh->mNormals[ j ].x,
 										aimesh->mNormals[ j ].y,
 										aimesh->mNormals[ j ].z };
 			}
@@ -182,7 +182,7 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 					auto index = uint3{ aimesh->mFaces[ j ].mIndices[ 0 ],
 										aimesh->mFaces[ j ].mIndices[ 1 ],
 										aimesh->mFaces[ j ].mIndices[ 2 ] };
-					double3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
+					float3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
 					TriangleInfo info;
 					info.index = index;
 					info.vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );
@@ -218,14 +218,14 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 	}
 }
 
-PolyMesh::PolyMesh( PolyVector<double3> &&vertices,
-					PolyVector<double3> &&normals,
+PolyMesh::PolyMesh( PolyVector<float3> &&vertices,
+					PolyVector<float3> &&normals,
 					const std::vector<uint3> &idx )
 {
 	std::vector<TriangleInfo> indices;
 	for ( auto &index : idx )
 	{
-		double3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
+		float3 v[] = { vertices[ index.x ], vertices[ index.y ], vertices[ index.z ] };
 		TriangleInfo info;
 		info.index = index;
 		info.vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );

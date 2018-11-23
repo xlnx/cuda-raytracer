@@ -6,18 +6,18 @@ namespace ext
 {
 struct LambertDiffuse : BxDF
 {
-	KOISHI_HOST_DEVICE LambertDiffuse( const double3 &R ) :
+	KOISHI_HOST_DEVICE LambertDiffuse( const float3 &R ) :
 	  R( R )
 	{
 	}
 
-	KOISHI_HOST_DEVICE double3 f( const double3 &wo, const double3 &wi ) const override
+	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const override
 	{
 		return R * invPI;
 	}
 
 private:
-	double3 R;
+	float3 R;
 };
 
 struct LambertMaterial : Material

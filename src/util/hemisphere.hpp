@@ -4,30 +4,30 @@
 
 namespace koishi
 {
-constexpr double invPI = 1. / M_PI;
-constexpr double PI = M_PI;
+constexpr float invPI = 1. / M_PI;
+constexpr float PI = M_PI;
 
 namespace hemisphere
 {
-KOISHI_HOST_DEVICE inline bool isSame( const double3 &w0, const double3 &w1 )
+KOISHI_HOST_DEVICE inline bool isSame( const float3 &w0, const float3 &w1 )
 {
 	return w0.z * w1.z > 0.;
 }
 
-KOISHI_HOST_DEVICE inline double h( const double3 &w )
+KOISHI_HOST_DEVICE inline float h( const float3 &w )
 {
 	return abs( w.z );
 }
 
-KOISHI_HOST_DEVICE inline double3 sampleCos( const double2 &rn )
+KOISHI_HOST_DEVICE inline float3 sampleCos( const float2 &rn )
 {
 	auto uv = 2. * rn - 1;  // map uniform rn to [-1,1]
 	if ( uv.x == 0 && uv.y == 0 )
 	{
-		return double3{ 0, 0, 1 };
+		return float3{ 0, 0, 1 };
 	}
 
-	double r, phi;
+	float r, phi;
 	if ( uv.x * uv.x > uv.y * uv.y )
 	{
 		r = uv.x, phi = ( PI / 4 ) * ( uv.y / uv.x );
@@ -37,7 +37,7 @@ KOISHI_HOST_DEVICE inline double3 sampleCos( const double2 &rn )
 		r = uv.y, phi = ( PI / 2 ) - ( ( PI / 4 ) * ( uv.x / uv.y ) );
 	}
 
-	return double3{ r * cos( phi ), r * sin( phi ), sqrt( max( 0., 1. - r * r ) ) };
+	return float3{ r * cos( phi ), r * sin( phi ), sqrt( max( 0., 1. - r * r ) ) };
 }
 
 }  // namespace hemisphere

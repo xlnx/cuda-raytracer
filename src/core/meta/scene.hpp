@@ -46,7 +46,7 @@ struct Scene : Emittable<Scene>
 									 hit.uv );
 			res.p = r.o + r.d * hit.t;
 			res.uv = hit.uv;
-			res.u = cross( res.n, double3{ 0, 1, 0 } );
+			res.u = cross( res.n, float3{ 0, 1, 0 } );
 			res.v = cross( res.n, res.u );
 			// pm->material->fetchTo( res, pool );
 		}

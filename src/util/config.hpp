@@ -13,13 +13,13 @@ namespace jsel
 {
 struct Camera : Serializable<Camera>, core::Emittable<Camera>
 {
-	Property( double, fovx, 90 );
-	Property( double, aspect, 0 );
-	Property( double3, position, { 1, 0, 0 } );
-	Property( double3, target, { -1, 0, 0 } );
-	Property( double3, upaxis, { 0, 0, 1 } );
-	Property( double, zNear, 1e-3 );
-	Property( double, zFar, 1e5 );
+	Property( float, fovx, 90 );
+	Property( float, aspect, 0 );
+	Property( float3, position, { 1, 0, 0 } );
+	Property( float3, target, { -1, 0, 0 } );
+	Property( float3, upaxis, { 0, 0, 1 } );
+	Property( float, zNear, 1e-3 );
+	Property( float, zFar, 1e5 );
 };
 
 struct Material : Serializable<Material>, core::Emittable<Material>

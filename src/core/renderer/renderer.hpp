@@ -51,7 +51,7 @@ struct Renderer : RendererBase
 
 			util::Image<3> image( w, h );
 			KLOG( "Target resolution:", w, "x", h );
-			
+
 			KLOG( "Start intergrating" );
 			Host::call<Tracer>( image, rays, scene, spp );
 			KLOG( "Finished intergrating" );
@@ -63,7 +63,7 @@ struct Renderer : RendererBase
 
 private:
 	using uchar = unsigned char;
-	std::vector<double3> buffer;
+	std::vector<float3> buffer;
 	PolyVector<Ray> rays;
 	uint w, h;
 };
