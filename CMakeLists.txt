@@ -58,6 +58,7 @@ if (${CUDA} STREQUAL "ON")
 		-g
 		# -O3 
 		-w  
+		-lineinfo
 		-Xcudafe 
 		--diag_suppress="set_but_not_used,code_is_unreachable"
 	)

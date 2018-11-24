@@ -15,7 +15,7 @@ namespace core
 #if defined( KOISHI_USE_CUDA )
 
 constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
-constexpr int sharedMemPerThread = 128 * b;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
+constexpr int sharedMemPerThread = 128 * 20 / 32 * b;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
 template <typename Radiance, typename Alloc>
 __global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
