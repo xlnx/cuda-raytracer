@@ -114,8 +114,8 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 
 		while ( !bvh[ i ].isleaf )
 		{  // using depth frist search will cost less space than bfs.
-			auto left = ray.intersect_bbox( bvh[ i << 1 ].vmin, bvh[ i << 1 ].vmax );
-			auto right = ray.intersect_bbox( bvh[ ( i << 1 ) + 1 ].vmin, bvh[ ( i << 1 ) + 1 ].vmax );
+			int left = ray.intersect_bbox( bvh[ i << 1 ].vmin, bvh[ i << 1 ].vmax );
+			int right = ray.intersect_bbox( bvh[ ( i << 1 ) + 1 ].vmin, bvh[ ( i << 1 ) + 1 ].vmax );
 			if ( !left && !right )  // no intersection on this branch
 			{
 				goto NEXT_BRANCH;
@@ -124,11 +124,12 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 			{
 				Q.emplace( i << 1 );
 			}
-			i <<= 1;
-			if ( right ) i |= 1;
+			i = i << 1 | right;
 		}
 		// now this node is leaf
-		for ( uint j = bvh[ i ].begin; j < bvh[ i ].end; j += 3 )
+		uint begin, end;
+		begin = bvh[i].begin, end = bvh[i].end;
+		for ( uint j = begin; j < end; j += 3 )
 		{
 			Hit hit1;
 			if ( ray.intersect_triangle( vertices[ indices[ j ] ],

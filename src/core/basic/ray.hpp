@@ -47,27 +47,19 @@ struct Ray
 			T = v0 - o;
 			det = -det;
 		}
-		if ( det < .0001f )
-		{
-			return false;
-		}
+	//	if ( det < .0001f )
+	//	{
+	//		return false;
+	//	}
 		hit.uv.x = dot( T, P );
-		if ( hit.uv.x < 0.f || hit.uv.x > det )
-		{
-			return false;
-		}
 		auto Q = cross( T, e1 );
 		hit.uv.y = dot( d, Q );
-		if ( hit.uv.y < 0.f || hit.uv.x + hit.uv.y > det )
-		{
-			return false;
-		}
 		hit.t = dot( e2, Q );
 		float invdet = 1.f / det;
 		hit.t *= invdet;
 		hit.uv *= invdet;
 
-		return hit.t > 0.;
+		return hit.t > 0. && hit.uv.x >= 0.f && hit.uv.y >= 0.f && hit.uv.x + hit.uv.y <= 1.f;
 	}
 };
 
