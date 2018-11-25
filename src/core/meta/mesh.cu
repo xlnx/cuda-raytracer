@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <cstdlib>
 #include <vector>
 #include <utility>
 #include <queue>
@@ -99,6 +100,59 @@ static void printBVH( const BVHTree &tr, uint index = 1 )
 	}
 }
 
+Mesh::Mesh( const CompactMesh &other ) :
+  faces( other.indices.size() / 3 ),
+  bvh( other.bvh.size() ),
+  matid( other.matid )
+{
+	for ( uint i = 0, j = 0; i != other.indices.size(); i += 3, ++j )
+	{
+		auto i0 = other.indices[ i ];
+		auto i1 = other.indices[ i + 1 ];
+		auto i2 = other.indices[ i + 2 ];
+
+		auto o = other.vertices[ i0 ];
+		faces[ j ].o = o;
+		faces[ j ].d1 = other.vertices[ i1 ] - o;
+		faces[ j ].d2 = other.vertices[ i2 ] - o;
+
+		faces[ j ].n0 = other.normals[ i0 ];
+		faces[ j ].n1 = other.normals[ i1 ];
+		faces[ j ].n2 = other.normals[ i2 ];
+	}
+	memcpy( bvh.data(), other.bvh.data(), sizeof( BVHNode ) * other.bvh.size() );
+	for ( auto &node : bvh )
+	{
+		node.begin /= 3, node.end /= 3;
+	}
+}
+
+Mesh::Mesh( CompactMesh &&other ) :
+  faces( other.indices.size() / 3 ),
+  bvh( std::move( other.bvh ) ),
+  matid( other.matid )
+{
+	for ( uint i = 0, j = 0; i != other.indices.size(); i += 3, ++j )
+	{
+		auto i0 = other.indices[ i ];
+		auto i1 = other.indices[ i + 1 ];
+		auto i2 = other.indices[ i + 2 ];
+
+		auto o = other.vertices[ i0 ];
+		faces[ j ].o = o;
+		faces[ j ].d1 = other.vertices[ i1 ] - o;
+		faces[ j ].d2 = other.vertices[ i2 ] - o;
+
+		faces[ j ].n0 = other.normals[ i0 ];
+		faces[ j ].n1 = other.normals[ i1 ];
+		faces[ j ].n2 = other.normals[ i2 ];
+	}
+	for ( auto &node : bvh )
+	{
+		node.begin /= 3, node.end /= 3;
+	}
+}
+
 KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Allocator &pool ) const
 {
 	hit.t = INFINITY;
@@ -116,60 +170,60 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 
 		while ( !bvh[ i ].isleaf )
 		{  // using depth frist search will cost less space than bfs.
-			int left = ray.intersect_bbox( bvh[ i << 1 ].vmin, bvh[ i << 1 ].vmax );
-			int right = ray.intersect_bbox( bvh[ ( i << 1 ) + 1 ].vmin, bvh[ ( i << 1 ) + 1 ].vmax );
+			auto shl = i << 1;
+
+			int left = ray.intersect_bbox( bvh[ shl ].vmin, bvh[ shl ].vmax );
+			int right = ray.intersect_bbox( bvh[ shl | 1 ].vmin, bvh[ shl | 1 ].vmax );
 			if ( !left && !right )  // no intersection on this branch
 			{
 				goto NEXT_BRANCH;
 			}
 			if ( left && right )  // both intersects, trace second and push first
 			{
-				Q.emplace( i << 1 );
+				Q.emplace( shl );
 			}
-			i = i << 1 | right;
+			i = shl | right;
 		}
 		// now this node is leaf
 		uint begin, end;
 		begin = bvh[ i ].begin, end = bvh[ i ].end;
 
-#define KOISHI_MESH_INTERSECT                                                \
-	for ( uint j = begin; j < end; j += 3 )                                  \
-	{                                                                        \
-		Hit hit1;                                                            \
-		if ( ray.intersect_triangle( vertices[ indices[ j ] ],               \
-									 vertices[ indices[ j + 1 ] ],           \
-									 vertices[ indices[ j + 2 ] ], hit1 ) && \
-			 hit1.t < hit.t )                                                \
-		{                                                                    \
-			hit = hit1;                                                      \
-			hit.id = j;                                                      \
-		}                                                                    \
+#define KOISHI_MESH_INTERSECT                                                             \
+	for ( uint j = begin; j < end; ++j )                                                  \
+	{                                                                                     \
+		Hit hit1;                                                                         \
+		auto &face = faces[ j ];                                                          \
+		if ( ray.intersect_triangle( face.o, face.d1, face.d2, hit1 ) && hit1.t < hit.t ) \
+		{                                                                                 \
+			hit = hit1;                                                                   \
+			hit.id = j;                                                                   \
+		}                                                                                 \
 	}
 
 		KOISHI_MESH_INTERSECT
 
 		// do loop unrolling work
-//		switch ( bvh[ i ].unroll )  // no divergence yah
-//		{
-//		case 1:  // no unroll
-//			KOISHI_MESH_INTERSECT
-//			break;
-//		case 2:
-//#pragma unroll( 2 )
-//			KOISHI_MESH_INTERSECT
-//			break;
-//		case 4:
-//#pragma unroll( 4 )
-//			KOISHI_MESH_INTERSECT
-//			break;
-//		case 8:
-//#pragma unroll( 8 )
-//			KOISHI_MESH_INTERSECT
-//			break;
-//		default:  // no larger unrolls due to code size
-//#pragma unroll( 16 )
-//			KOISHI_MESH_INTERSECT
-//		}
+		//		switch ( bvh[ i ].unroll )  // no divergence yah
+		//		{
+		//		case 1:  // no unroll
+		//			KOISHI_MESH_INTERSECT
+		//			break;
+		//		case 2:
+		//#pragma unroll( 2 )
+		//			KOISHI_MESH_INTERSECT
+		//			break;
+		//		case 4:
+		//#pragma unroll( 4 )
+		//			KOISHI_MESH_INTERSECT
+		//			break;
+		//		case 8:
+		//#pragma unroll( 8 )
+		//			KOISHI_MESH_INTERSECT
+		//			break;
+		//		default:  // no larger unrolls due to code size
+		//#pragma unroll( 16 )
+		//			KOISHI_MESH_INTERSECT
+		//		}
 
 #undef KOISHI_MESH_INTERSECT
 
@@ -227,7 +281,7 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 		}
 		if ( indices.size() <= 0 ) continue;
 
-		Mesh m;
+		CompactMesh m;
 		// m.emissive = default_config.emissive;
 		// m.color = default_config.color;
 		m.bvh = std::move( createBVH( indices ) );
@@ -266,7 +320,7 @@ PolyMesh::PolyMesh( PolyVector<float3> &&vertices,
 		info.area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
 		indices.emplace_back( std::move( info ) );
 	}
-	Mesh m;
+	CompactMesh m;
 	m.bvh = createBVH( indices );
 	KLOG( "- Built BVH of size", m.bvh.size(), ", depth", ceil( log2( m.bvh.size() ) ) );
 	m.vertices = std::move( vertices );

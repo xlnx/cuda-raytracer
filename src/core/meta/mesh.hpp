@@ -25,11 +25,27 @@ struct BVHNode
 
 using BVHTree = PolyVector<BVHNode>;
 
-struct Mesh : Emittable<Mesh>
+struct CompactMesh
 {
 	PolyVector<float3> vertices;
 	PolyVector<float3> normals;
 	PolyVector<uint> indices;
+	BVHTree bvh;
+	uint matid;
+};
+
+struct Triangle
+{
+	float3 o, d1, d2;  // o is vertex0, o + d1 is vertex1, o + d2 is vertex2
+	float3 n0, n1, n2;
+};
+
+struct Mesh : Emittable<Mesh>
+{
+	Mesh( const CompactMesh &other );
+	Mesh( CompactMesh &&other );
+
+	PolyVector<Triangle> faces;
 	BVHTree bvh;
 	uint matid;
 

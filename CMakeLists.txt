@@ -3,7 +3,7 @@ set(CMAKE_CXX_STANDARD 14)
 project(cuda_raytracer)
 
 option( CUDA "use cuda as default target" OFF )
-option( GL "use opengl as default visualizer" ON )
+option( GL "use opengl as default visualizer" OFF )
 option( DEBUG_LEVEL "debug level" 0 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-parentheses -Wno-comment -Wvirtual-move-assign -Wno-stringop-overflow")

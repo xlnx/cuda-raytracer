@@ -35,13 +35,14 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )
 	int rayIndex = index * spp;
 	float3 sum{ 0, 0, 0 };
 
-#define KOISHI_CUDA_INTEGRATER_MAIN_LOOP                   \
-	for ( uint i = rayIndex; i < rayIndex + spp; ++i )     \
-	{                                                      \
-		auto ray = rays[ i ];                              \
-		sum += call<Radiance>( ray, scene, pool ); \
-		pool.clear();                                      \
-	} break;
+#define KOISHI_CUDA_INTEGRATER_MAIN_LOOP               \
+	for ( uint i = rayIndex; i < rayIndex + spp; ++i ) \
+	{                                                  \
+		auto ray = rays[ i ];                          \
+		sum += call<Radiance>( ray, scene, pool );     \
+		pool.clear();                                  \
+	}                                                  \
+	break;
 
 	// do loop unrolling work
 	switch ( unroll )  // no divergence yah
@@ -54,11 +55,8 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )
 	case 4:
 #pragma unroll( 4 )
 		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
-	case 8:
-#pragma unroll( 8 )
-		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
 	default:  // no larger unrolls due to code size
-#pragma unroll( 16 )
+#pragma unroll( 8 )
 		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
 	}
 

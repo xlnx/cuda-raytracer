@@ -32,25 +32,25 @@ struct Ray
 		auto t0 = max( tmin.x, max( tmin.y, tmin.z ) ), t1 = min( tmax.x, min( tmax.y, tmax.z ) );
 		return t0 <= t1 && t1 >= 0;
 	}
-	KOISHI_HOST_DEVICE bool intersect_triangle( const float3 &v0, const float3 &v1, const float3 &v2, Hit &hit ) const
+	KOISHI_HOST_DEVICE bool intersect_triangle( const float3 &v0, const float3 &d1, const float3 &d2, Hit &hit ) const
 	{
-		auto e1 = v1 - v0, e2 = v2 - v0;
+		auto e1 = d1, e2 = d2, v = v0;
 		auto P = cross( d, e2 );
 		auto det = dot( e1, P );
 		float3 T;
 		if ( det > 0 )
 		{
-			T = o - v0;
+			T = o - v;
 		}
 		else
 		{
-			T = v0 - o;
+			T = v - o;
 			det = -det;
 		}
-	//	if ( det < .0001f )
-	//	{
-	//		return false;
-	//	}
+		//	if ( det < .0001f )
+		//	{
+		//		return false;
+		//	}
 		hit.uv.x = dot( T, P );
 		auto Q = cross( T, e1 );
 		hit.uv.y = dot( d, Q );
@@ -64,7 +64,7 @@ struct Ray
 };
 
 KOISHI_HOST_DEVICE inline float3 interplot( const float3 &v0, const float3 &v1,
-											 const float3 &v2, const float2 &uv )
+											const float3 &v2, const float2 &uv )
 {
 	return v0 * ( 1 - uv.x - uv.y ) + v1 * uv.x + v2 * uv.y;
 }

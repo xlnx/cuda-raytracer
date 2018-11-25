@@ -40,9 +40,9 @@ struct Scene : Emittable<Scene>
 		{
 			res.mesh = pm;
 			res.isNull = false;
-			res.n = core::interplot( pm->normals[ pm->indices[ hit.id ] ],
-									 pm->normals[ pm->indices[ hit.id + 1 ] ],
-									 pm->normals[ pm->indices[ hit.id + 2 ] ],
+			res.n = core::interplot( pm->faces[ hit.id ].n0,
+									 pm->faces[ hit.id ].n1,
+									 pm->faces[ hit.id ].n2,
 									 hit.uv );
 			res.p = r.o + r.d * hit.t;
 			res.uv = hit.uv;
