@@ -18,7 +18,10 @@ constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
 constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
 template <typename Radiance, typename Alloc>
-__global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
+PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )
+
+  ( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
+	->void
 {
 	char stackPool[ stackPoolSize ];
 	Alloc pool( stackPool, stackPoolSize );
@@ -32,14 +35,44 @@ __global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &r
 	int rayIndex = index * spp;
 	float3 sum{ 0, 0, 0 };
 
-	for ( uint i = rayIndex; i < rayIndex + spp; ++i )  // i is the i-th sample
-	{
-		auto ray = rays[ i ];
-		sum += Device::call<Radiance>( ray, scene, pool );
-		//	clear( pool );
+#define KOISHI_CUDA_INTEGRATER_MAIN_LOOP                   \
+	for ( uint i = rayIndex; i < rayIndex + spp; ++i )     \
+	{                                                      \
+		auto ray = rays[ i ];                              \
+		sum += Device::call<Radiance>( ray, scene, pool ); \
+		pool.clear();                                      \
 	}
 
+	// do loop unrolling work
+	switch ( unroll )  // no divergence yah
+	{
+	case 1:  // no unroll
+		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
+	case 2:
+#pragma unroll( 2 )
+		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
+	case 4:
+#pragma unroll( 4 )
+		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
+	case 8:
+#pragma unroll( 8 )
+		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
+	default:  // no larger unrolls due to code size
+#pragma unroll( 16 )
+		KOISHI_CUDA_INTEGRATER_MAIN_LOOP
+	}
+
+#undef KOISHI_CUDA_INTEGRATER_MAIN_LOOP
+
 	buffer[ index ] = sum * invSpp;
+}
+
+EndPolyFunction();
+
+template <typename Radiance, typename Alloc>
+__global__ void integrate( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
+{
+	Device::call<DoIntegrate>( buffer, rays, scene, spp, unroll );
 }
 
 template <typename Radiance, typename Alloc = HybridAllocator>
@@ -70,11 +103,14 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 			 blockDim * blockDim * blockPerSM <= threadPerSM );
 
 	KLOG( "Using", blockDim * blockDim, "threads" );
+	// calculate how many steps the integrater need to unrool the loop here
+	uint unroll = spp & -spp;  // use the lowbit of spp as unrool stride, thus spp % unroll = 0
+	KLOG( "Unrolling stride", unroll );
 
-	kernel( intergrate<Radiance, Alloc>,
+	kernel( integrate<Radiance, Alloc>,
 			dim3( w / blockDim, h / blockDim ),
 			dim3( blockDim, blockDim ),
-			sharedMemPerBlock )( buffer, rays, scene, spp );
+			sharedMemPerBlock )( buffer, rays, scene, spp, unroll );
 
 	for ( uint j = 0; j != h; ++j )
 	{

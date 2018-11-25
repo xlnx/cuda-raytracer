@@ -52,6 +52,8 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 		node.begin = ( begin - info.begin() ) * 3;
 		node.end = ( end - info.begin() ) * 3;
 		node.isleaf = end - begin <= KOISHI_TRIANGLE_STRIPE;
+		auto len = node.begin - node.end;
+		node.unroll = len ? 1 : len & -len;  // unroll step for this bvh node.
 		if ( index >= res.size() )
 		{
 			res.resize( index + 1 );
@@ -128,19 +130,43 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 		}
 		// now this node is leaf
 		uint begin, end;
-		begin = bvh[i].begin, end = bvh[i].end;
-		for ( uint j = begin; j < end; j += 3 )
+		begin = bvh[ i ].begin, end = bvh[ i ].end;
+
+#define KOISHI_MESH_INTERSECT                                                \
+	for ( uint j = begin; j < end; j += 3 )                                  \
+	{                                                                        \
+		Hit hit1;                                                            \
+		if ( ray.intersect_triangle( vertices[ indices[ j ] ],               \
+									 vertices[ indices[ j + 1 ] ],           \
+									 vertices[ indices[ j + 2 ] ], hit1 ) && \
+			 hit1.t < hit.t )                                                \
+		{                                                                    \
+			hit = hit1;                                                      \
+			hit.id = j;                                                      \
+		}                                                                    \
+	}
+
+		// do loop unrolling work
+		switch ( bvh[ i ].unroll )  // no divergence yah
 		{
-			Hit hit1;
-			if ( ray.intersect_triangle( vertices[ indices[ j ] ],
-										 vertices[ indices[ j + 1 ] ],
-										 vertices[ indices[ j + 2 ] ], hit1 ) &&
-				 hit1.t < hit.t )
-			{
-				hit = hit1;
-				hit.id = j;
-			}
+		case 1:  // no unroll
+			KOISHI_MESH_INTERSECT
+		case 2:
+#pragma unroll( 2 )
+			KOISHI_MESH_INTERSECT
+		case 4:
+#pragma unroll( 4 )
+			KOISHI_MESH_INTERSECT
+		case 8:
+#pragma unroll( 8 )
+			KOISHI_MESH_INTERSECT
+		default:  // no larger unrolls due to code size
+#pragma unroll( 16 )
+			KOISHI_MESH_INTERSECT
 		}
+
+#undef KOISHI_MESH_INTERSECT
+
 	NEXT_BRANCH:;
 	}
 	return hit.t != INFINITY;
@@ -169,8 +195,8 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 			for ( uint j = 0; j != aimesh->mNumVertices; ++j )
 			{
 				normals[ j ] = float3{ aimesh->mNormals[ j ].x,
-										aimesh->mNormals[ j ].y,
-										aimesh->mNormals[ j ].z };
+									   aimesh->mNormals[ j ].y,
+									   aimesh->mNormals[ j ].z };
 			}
 		}
 		std::vector<TriangleInfo> indices;

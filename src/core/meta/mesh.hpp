@@ -20,7 +20,7 @@ namespace core
 struct BVHNode
 {
 	float3 vmax, vmin;
-	uint begin, end, isleaf;
+	uint begin, end, isleaf, unroll;  // add unroll stride
 };
 
 using BVHTree = PolyVector<BVHNode>;
