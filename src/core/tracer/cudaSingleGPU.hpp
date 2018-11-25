@@ -15,15 +15,11 @@ namespace core
 #if defined( KOISHI_USE_CUDA )
 
 constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
-constexpr int stackPoolSize = 128 * 20 / 32 * b;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
+constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
 template <typename Radiance, typename Alloc>
 __global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp )
 {
-	// extern __shared__ char sharedMem[];
-
-	// char *threadMem = sharedMem + sharedMemPerThread * threadIdx.x;
-	// Alloc pool( threadMem, sharedMemPerThread );
 	char stackPool[ stackPoolSize ];
 	Alloc pool( stackPool, stackPoolSize );
 
@@ -39,8 +35,8 @@ __global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &r
 
 		for ( uint i = rayIndex; i < rayIndex + spp; ++i )  // i is the i-th sample
 		{
-			//sum += rays[i].d;
-			sum += Device::call<Radiance>( rays[ i ], scene, pool );
+			auto ray = rays[ i ];
+			sum += Device::call<Radiance>( ray, scene, pool );
 			//	clear( pool );
 		}
 
@@ -62,24 +58,16 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 	  cudaGetDeviceProperties( &prop, 0 );
 
 	  int threadPerBlock = prop.maxThreadsPerBlock;
+	  int threadPerSM = prop.maxThreadsPerMultiProcessor;
 	  int sharedMemPerBlock = 0;
 
-	  //   int threadPerBlock = prop.maxThreadsPerBlock;
-	  //   int threadShmLimit = prop.sharedMemPerBlock / sharedMemPerThread;
-	  //   if ( threadShmLimit < threadPerBlock )
-	  //   {
-	  // 	  KLOG( "using", threadShmLimit, "of", threadPerBlock, "threads due to shared memory limit" );
-	  // 	  threadPerBlock = threadShmLimit;
-	  //   }
-	  //   else
-	  //   {
-	  // 	  KLOG( "using", threadPerBlock, "threads" );
-	  //   }
-	  //   int sharedMemPerBlock = threadPerBlock * sharedMemPerThread;
+	  int blockPerSM = 8;
+
+	  KLOG( "Using", threadPerBlock, "threads" );
 
 	  kernel( intergrate<Radiance, Alloc>,
-			  prop.multiProcessorCount,
-			  threadPerBlock,
+			  prop.multiProcessorCount * blockPerSM * 8,
+			  threadPerSM / blockPerSM,
 			  sharedMemPerBlock )( buffer, rays, scene, spp );
 
 	  for ( uint j = 0; j != h; ++j )

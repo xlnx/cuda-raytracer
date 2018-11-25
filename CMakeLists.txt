@@ -57,6 +57,8 @@ if (${CUDA} STREQUAL "ON")
 		-std=c++14 
 		-g
 		# -O3 
+		-maxrregcount
+		32
 		-w  
 		-lineinfo
 		-Xcudafe 
