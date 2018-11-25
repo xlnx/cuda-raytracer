@@ -305,7 +305,7 @@ struct callable<void ( * )( Args... )>
 {
 	using F = void ( * )( Args... );
 
-	callable( F f, int a, int b, int c ) :
+	callable( F f, dim3 a, dim3 b, uint c ) :
 	  f( f ), a( a ), b( b ), c( c )
 	{
 	}
@@ -324,7 +324,7 @@ private:
 		util::tick();
 		arguments<Given...> argval( std::forward<Given>( given )... );
 		KINFO( cuda, "Transmission finished in", util::tick(), "seconds" );
-		
+
 		KINFO( cuda, "Executing cuda kernel..." );
 		util::tick();
 		f<<<a, b, c>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
@@ -335,11 +335,12 @@ private:
 
 private:
 	F f;
-	int a, b, c;
+	dim3 a, b;
+	uint c;
 };
 
 template <typename F>
-callable<F> kernel( F f, int a, int b, int c = 0 )
+callable<F> kernel( F f, dim3 a, dim3 b, uint c = 0u )
 {
 	return callable<F>( f, a, b, c );
 }

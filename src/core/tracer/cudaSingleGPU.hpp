@@ -23,25 +23,23 @@ __global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &r
 	char stackPool[ stackPoolSize ];
 	Alloc pool( stackPool, stackPoolSize );
 
-	int index = blockIdx.x * blockDim.x + threadIdx.x;
-	int stride = blockDim.x * gridDim.x;
+	int line = blockDim.x * gridDim.x;
+	int index = blockIdx.x * blockDim.x + threadIdx.x +
+				( blockIdx.y * blockDim.y + threadIdx.y ) * line;
 
 	float invSpp = 1.0 / spp;
 
-	for ( uint k = index; k < buffer.size(); k += stride )  // k is the k-th pixel
+	int rayIndex = index * spp;
+	float3 sum{ 0, 0, 0 };
+
+	for ( uint i = rayIndex; i < rayIndex + spp; ++i )  // i is the i-th sample
 	{
-		int rayIndex = k * spp;
-		float3 sum{ 0, 0, 0 };
-
-		for ( uint i = rayIndex; i < rayIndex + spp; ++i )  // i is the i-th sample
-		{
-			auto ray = rays[ i ];
-			sum += Device::call<Radiance>( ray, scene, pool );
-			//	clear( pool );
-		}
-
-		buffer[ k ] = sum * invSpp;
+		auto ray = rays[ i ];
+		sum += Device::call<Radiance>( ray, scene, pool );
+		//	clear( pool );
 	}
+
+	buffer[ index ] = sum * invSpp;
 }
 
 template <typename Radiance, typename Alloc = HybridAllocator>
@@ -66,11 +64,16 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 
 	int blockPerSM = 8;
 
-	KLOG( "Using", threadPerBlock, "threads" );
+	int blockDim = 16;
+
+	KASSERT( w % blockDim == 0 && h % blockDim == 0 &&
+			 blockDim * blockDim * blockPerSM <= threadPerSM );
+
+	KLOG( "Using", blockDim * blockDim, "threads" );
 
 	kernel( intergrate<Radiance, Alloc>,
-			prop.multiProcessorCount * blockPerSM * 8,
-			threadPerSM / blockPerSM,
+			dim3( w / blockDim, h / blockDim ),
+			dim3( blockDim, blockDim ),
 			sharedMemPerBlock )( buffer, rays, scene, spp );
 
 	for ( uint j = 0; j != h; ++j )
