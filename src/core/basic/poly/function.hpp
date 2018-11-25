@@ -116,6 +116,7 @@ struct On : std::conditional<std::is_base_of<Y, X>::value, HostDevice, trait::du
 		struct func<_M_Self, koishi::core::trait::dummy<_M_Curr>, _M_Host, _M_Device>                                                                       \
 		{                                                                                                                                                   \
 			using call_type = _M_Curr;                                                                                                                      \
+			static_assert( std::is_base_of<call_type, _M_Self>::value, "this function is not callable on this space" );                                     \
 			template <typename _M_F, typename... _M_Args>                                                                                                   \
 			KOISHI_HOST_DEVICE static auto call( _M_Args &&... args )                                                                                       \
 			  -> decltype( _M_F::__priv::template func<_M_F, koishi::core::trait::dummy<call_type>, Host, Device>::fn( std::forward<_M_Args>( args )... ) ) \
