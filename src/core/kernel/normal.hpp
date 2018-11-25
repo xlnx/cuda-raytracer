@@ -11,18 +11,23 @@ namespace koishi
 namespace core
 {
 template <typename Random>
-PolyFunction( Normal, Require<Random> )(
-  ( const Ray &r, const Scene &scene, Allocator &pool )->float3 {
-	  float3 L = { 0, 0, 0 };
+PolyFunction( Normal, Require<Random> )
 
-	  if ( auto isect = scene.intersect( r, pool ) )
-	  {
-		  auto wo = isect.local( -r.d );
-		  L = wo;
-	  }
+  ( const Ray &r, const Scene &scene, Allocator &pool )
+	->float3
+{
+	float3 L = { 0, 0, 0 };
 
-	  return L;
-  } );
+	if ( auto isect = scene.intersect( r, pool ) )
+	{
+		auto wo = isect.local( -r.d );
+		L = wo;
+	}
+
+	return L;
+}
+
+EndPolyFunction();
 
 }  // namespace core
 

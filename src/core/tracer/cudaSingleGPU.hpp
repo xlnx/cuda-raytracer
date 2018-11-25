@@ -45,39 +45,44 @@ __global__ void intergrate( PolyVector<float3> &buffer, const PolyVector<Ray> &r
 }
 
 template <typename Radiance, typename Alloc = HybridAllocator>
-PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
-  ( util::Image<3> & image, PolyVector<Ray> &rays, Scene &scene, uint spp )->void {
-	  uint w = image.width();
-	  uint h = image.height();
+PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )
 
-	  PolyVector<float3> buffer( w * h );
+  ( util::Image<3> &image, PolyVector<Ray> &rays, Scene &scene, uint spp )
+	->void
+{
+	uint w = image.width();
+	uint h = image.height();
 
-	  int nDevices;
-	  cudaDeviceProp prop;
-	  cudaGetDeviceCount( &nDevices );
-	  cudaGetDeviceProperties( &prop, 0 );
+	PolyVector<float3> buffer( w * h );
 
-	  int threadPerBlock = prop.maxThreadsPerBlock;
-	  int threadPerSM = prop.maxThreadsPerMultiProcessor;
-	  int sharedMemPerBlock = 0;
+	int nDevices;
+	cudaDeviceProp prop;
+	cudaGetDeviceCount( &nDevices );
+	cudaGetDeviceProperties( &prop, 0 );
 
-	  int blockPerSM = 8;
+	int threadPerBlock = prop.maxThreadsPerBlock;
+	int threadPerSM = prop.maxThreadsPerMultiProcessor;
+	int sharedMemPerBlock = 0;
 
-	  KLOG( "Using", threadPerBlock, "threads" );
+	int blockPerSM = 8;
 
-	  kernel( intergrate<Radiance, Alloc>,
-			  prop.multiProcessorCount * blockPerSM * 8,
-			  threadPerSM / blockPerSM,
-			  sharedMemPerBlock )( buffer, rays, scene, spp );
+	KLOG( "Using", threadPerBlock, "threads" );
 
-	  for ( uint j = 0; j != h; ++j )
-	  {
-		  for ( uint i = 0; i != w; ++i )
-		  {
-			  image.at( i, j ) = buffer[ i + j * w ];
-		  }
-	  }
-  } );
+	kernel( intergrate<Radiance, Alloc>,
+			prop.multiProcessorCount * blockPerSM * 8,
+			threadPerSM / blockPerSM,
+			sharedMemPerBlock )( buffer, rays, scene, spp );
+
+	for ( uint j = 0; j != h; ++j )
+	{
+		for ( uint i = 0; i != w; ++i )
+		{
+			image.at( i, j ) = buffer[ i + j * w ];
+		}
+	}
+}
+
+EndPolyFunction();
 
 #endif
 

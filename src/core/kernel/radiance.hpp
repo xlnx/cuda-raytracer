@@ -12,13 +12,18 @@ namespace koishi
 namespace core
 {
 template <typename Random>
-PolyFunction( CosSampleHemisphere, Require<Random> )(
-  ()->float3 {
-	  float3 w;
-	  auto r1 = 2 * M_PI * call<Random>(), r2 = call<Random>(), r2s = sqrt( r2 );
+PolyFunction( CosSampleHemisphere, Require<Random> )
 
-	  return w;
-  } );
+  ()
+	->float3
+{
+	float3 w;
+	auto r1 = 2 * M_PI * call<Random>(), r2 = call<Random>(), r2s = sqrt( r2 );
+
+	return w;
+}
+
+EndPolyFunction();
 
 // template <typename Random>
 // PolyFunction( SampleBsdf, Require<Random> )(
@@ -31,31 +36,36 @@ PolyFunction( CosSampleHemisphere, Require<Random> )(
 //   } );
 
 template <typename Random>
-PolyFunction( Radiance, Require<Random> )(
-  ( const Ray &r, const Scene &scene, Allocator &pool )->float3 {
-	  auto ray = r;
-	  Interreact isect;
-	  float3 L = { 0, 0, 0 };
-	  constexpr auto maxBounce = 10;
+PolyFunction( Radiance, Require<Random> )
 
-	  for ( auto bounce = 0; ( isect = scene.intersect( ray, pool ) ) && bounce != maxBounce; ++bounce )
-	  {
-		  // auto spec = reflect( ray.d, isect.n );
-		  // auto diff = call<SampleBsdf<Random>>( spec );
+  ( const Ray &r, const Scene &scene, Allocator &pool )
+	->float3
+{
+	auto ray = r;
+	Interreact isect;
+	float3 L = { 0, 0, 0 };
+	constexpr auto maxBounce = 10;
 
-		  // L += isect.mesh->emissive;
+	for ( auto bounce = 0; ( isect = scene.intersect( ray, pool ) ) && bounce != maxBounce; ++bounce )
+	{
+		// auto spec = reflect( ray.d, isect.n );
+		// auto diff = call<SampleBsdf<Random>>( spec );
 
-		  // ray = isect.emitRay( call<Random>() < .9 ? diff : spec );
-		  // clear( pool );
+		// L += isect.mesh->emissive;
 
-		  auto wo = isect.local( -ray.d );
-		  L = wo;
-		  break;
-		  pool.clear();
-	  }
+		// ray = isect.emitRay( call<Random>() < .9 ? diff : spec );
+		// clear( pool );
 
-	  return L;
-  } );
+		auto wo = isect.local( -ray.d );
+		L = wo;
+		break;
+		pool.clear();
+	}
+
+	return L;
+}
+
+EndPolyFunction();
 
 }  // namespace core
 
