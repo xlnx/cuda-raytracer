@@ -1,5 +1,6 @@
 #pragma once
 
+#include <function>
 #include <utility>
 #include <chrono>
 #include <type_traits>
@@ -297,6 +298,44 @@ struct build_indices<0, Is...> : indices<Is...>
 {
 };
 
+template <typename... Args>
+struct concurrent final
+{
+	using F = void ( * )( Args... );
+
+	concurrent &pardo( const std::function<void()> &host_job )
+	{
+		host_job();
+		return *this;
+	}
+
+	template <typename... Given, std::size_t... Is>
+	callable( F f, dim3 a, dim3 b, uint c, indices<Is...>, concurrent &cc, Given &&... given ) :
+	  f( f ), a( a ), b( b ), c( c )
+	{
+		using namespace std::chrono;
+		KINFO( cuda, "Transmitting data..." );
+		util::tick();
+		arguments<Given...> argval( std::forward<Given>( given )... );
+		KINFO( cuda, "Transmission finished in", util::tick(), "seconds" );
+
+		KINFO( cuda, "Executing cuda kernel..." );
+		util::tick();
+		f<<<a, b, c>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
+	}
+
+	~concurrent()
+	{
+		cudaDeviceSynchronize();
+		KINFO( cuda, "Kernel finished in", util::tick(), "seconds" );
+	}
+
+private:
+	F f;
+	dim3 a, b;
+	uint c;
+};
+
 template <typename F>
 struct callable;
 
@@ -310,27 +349,9 @@ struct callable<void ( * )( Args... )>
 	{
 	}
 	template <typename... Given>
-	void operator()( Given &&... given )
+	concurrent<Args...> operator()( Given &&... given )
 	{
-		do_call( build_indices<sizeof...( Given )>{}, std::forward<Given>( given )... );
-	}
-
-private:
-	template <typename... Given, std::size_t... Is>
-	void do_call( indices<Is...>, Given &&... given )
-	{
-		using namespace std::chrono;
-		KINFO( cuda, "Transmitting data..." );
-		util::tick();
-		arguments<Given...> argval( std::forward<Given>( given )... );
-		KINFO( cuda, "Transmission finished in", util::tick(), "seconds" );
-
-		KINFO( cuda, "Executing cuda kernel..." );
-		util::tick();
-		f<<<a, b, c>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
-		KLOG3( "waiting for device synchronization" );
-		cudaDeviceSynchronize();
-		KINFO( cuda, "Kernel finished in", util::tick(), "seconds" );
+		return concurrent<Args...>( f, a, b, c, build_indices<sizeof...( Given )>{}, cc, std::forward<Given>( given )... );
 	}
 
 private:

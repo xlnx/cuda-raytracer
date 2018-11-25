@@ -48,6 +48,7 @@ int main( int argc, char **argv )
 			  templates2<CPUMultiCoreTracer
 #ifdef KOISHI_USE_CUDA
 						  , CudaSingleGPUTracer
+						  , HybridTracer
 #endif
 						>,
 			  types<
