@@ -53,7 +53,7 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 		node.end = ( end - info.begin() ) * 3;
 		node.isleaf = end - begin <= KOISHI_TRIANGLE_STRIPE;
 		auto len = node.begin - node.end;
-		node.unroll = len ? 1 : len & -len;  // unroll step for this bvh node.
+		node.unroll = !len ? 1 : len & -len;  // unroll step for this bvh node.
 		if ( index >= res.size() )
 		{
 			res.resize( index + 1 );
@@ -146,24 +146,30 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 		}                                                                    \
 	}
 
+		KOISHI_MESH_INTERSECT
+
 		// do loop unrolling work
-		switch ( bvh[ i ].unroll )  // no divergence yah
-		{
-		case 1:  // no unroll
-			KOISHI_MESH_INTERSECT
-		case 2:
-#pragma unroll( 2 )
-			KOISHI_MESH_INTERSECT
-		case 4:
-#pragma unroll( 4 )
-			KOISHI_MESH_INTERSECT
-		case 8:
-#pragma unroll( 8 )
-			KOISHI_MESH_INTERSECT
-		default:  // no larger unrolls due to code size
-#pragma unroll( 16 )
-			KOISHI_MESH_INTERSECT
-		}
+//		switch ( bvh[ i ].unroll )  // no divergence yah
+//		{
+//		case 1:  // no unroll
+//			KOISHI_MESH_INTERSECT
+//			break;
+//		case 2:
+//#pragma unroll( 2 )
+//			KOISHI_MESH_INTERSECT
+//			break;
+//		case 4:
+//#pragma unroll( 4 )
+//			KOISHI_MESH_INTERSECT
+//			break;
+//		case 8:
+//#pragma unroll( 8 )
+//			KOISHI_MESH_INTERSECT
+//			break;
+//		default:  // no larger unrolls due to code size
+//#pragma unroll( 16 )
+//			KOISHI_MESH_INTERSECT
+//		}
 
 #undef KOISHI_MESH_INTERSECT
 

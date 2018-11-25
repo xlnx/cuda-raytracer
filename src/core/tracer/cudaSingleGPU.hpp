@@ -39,9 +39,9 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )
 	for ( uint i = rayIndex; i < rayIndex + spp; ++i )     \
 	{                                                      \
 		auto ray = rays[ i ];                              \
-		sum += Device::call<Radiance>( ray, scene, pool ); \
+		sum += call<Radiance>( ray, scene, pool ); \
 		pool.clear();                                      \
-	}
+	} break;
 
 	// do loop unrolling work
 	switch ( unroll )  // no divergence yah
@@ -72,7 +72,7 @@ EndPolyFunction();
 template <typename Radiance, typename Alloc>
 __global__ void integrate( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
 {
-	Device::call<DoIntegrate>( buffer, rays, scene, spp, unroll );
+	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, rays, scene, spp, unroll );
 }
 
 template <typename Radiance, typename Alloc = HybridAllocator>
