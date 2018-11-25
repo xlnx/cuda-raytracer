@@ -4,6 +4,7 @@
 #include <core/kernel/normal.hpp>
 #include <core/tracer/cpuMulticore.hpp>
 #include <core/tracer/cudaSingleGPU.hpp>
+#include <core/tracer/hybridTracer.hpp>
 #include <core/renderer/factory.hpp>
 #include <vis/renderer.hpp>
 #include <cxxopts/cxxopts.hpp>

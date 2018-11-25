@@ -1,6 +1,7 @@
 #pragma once
 
-#include <function>
+#include <memory>
+#include <functional>
 #include <utility>
 #include <chrono>
 #include <type_traits>
@@ -249,8 +250,13 @@ private:
 	value_type *data, *param_ptr;
 };
 
+struct argument_base
+{
+	virtual ~argument_base() = default;
+};
+
 template <typename T>
-struct arguments<T>
+struct arguments<T>: argument_base
 {
 	using value_type = typename std::remove_reference<
 	  typename std::remove_cv<T>::type>::type;
@@ -310,18 +316,19 @@ struct concurrent final
 	}
 
 	template <typename... Given, std::size_t... Is>
-	callable( F f, dim3 a, dim3 b, uint c, indices<Is...>, concurrent &cc, Given &&... given ) :
+	concurrent( F f, dim3 a, dim3 b, uint c, indices<Is...>, Given &&... given ) :
 	  f( f ), a( a ), b( b ), c( c )
 	{
 		using namespace std::chrono;
 		KINFO( cuda, "Transmitting data..." );
 		util::tick();
-		arguments<Given...> argval( std::forward<Given>( given )... );
+		auto argval = std::make_shared<arguments<Given...>>( std::forward<Given>( given )... );
 		KINFO( cuda, "Transmission finished in", util::tick(), "seconds" );
 
 		KINFO( cuda, "Executing cuda kernel..." );
 		util::tick();
-		f<<<a, b, c>>>( argval.template forward<Given, sizeof...( Given ), Is>()... );
+		f<<<a, b, c>>>( argval->template forward<Given, sizeof...( Given ), Is>()... );
+		args = std::dynamic_pointer_cast<argument_base>( argval );
 	}
 
 	~concurrent()
@@ -334,6 +341,7 @@ private:
 	F f;
 	dim3 a, b;
 	uint c;
+	std::shared_ptr<argument_base> args;
 };
 
 template <typename F>
@@ -351,7 +359,7 @@ struct callable<void ( * )( Args... )>
 	template <typename... Given>
 	concurrent<Args...> operator()( Given &&... given )
 	{
-		return concurrent<Args...>( f, a, b, c, build_indices<sizeof...( Given )>{}, cc, std::forward<Given>( given )... );
+		return concurrent<Args...>( f, a, b, c, build_indices<sizeof...( Given )>{}, std::forward<Given>( given )... );
 	}
 
 private:
