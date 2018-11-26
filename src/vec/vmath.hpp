@@ -21,6 +21,8 @@ namespace vm
 
 #define KOISHI_MATH_NAMESP
 
+#define KOISHI_RESTRICT __restrict__
+
 #else
 
 #define KOISHI_HOST
@@ -31,6 +33,8 @@ namespace vm
 
 #define KOISHI_MATH_NAMESP \
 	std
+
+#define KOISHI_RESTRICT
 
 #endif
 

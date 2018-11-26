@@ -231,8 +231,8 @@ public:
 	KOISHI_HOST_DEVICE reference back() { return value[ curr - 1 ]; }
 	KOISHI_HOST_DEVICE const_reference back() const { return value[ curr - 1 ]; }
 
-	KOISHI_HOST_DEVICE pointer data() { return value; }
-	KOISHI_HOST_DEVICE const_pointer data() const { return value; }
+	KOISHI_HOST pointer data() { return value; }
+	KOISHI_HOST const_pointer data() const { return value; }
 
 	KOISHI_HOST_DEVICE iterator begin() { return value; }
 	KOISHI_HOST_DEVICE const_iterator begin() const { return value; }
@@ -306,7 +306,7 @@ public:
 private:
 	std::size_t total = MIN_SIZE;
 	size_type curr = 0;
-	T *value = (pointer)std::malloc( sizeof( T ) * total );
+	T * KOISHI_RESTRICT value = (pointer)std::malloc( sizeof( T ) * total );
 	bool is_device_ptr = false;
 };
 

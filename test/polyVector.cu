@@ -39,7 +39,7 @@ __global__ void add( const PolyVector<A> &vec, PolyVector<int> &n, PolyVector<co
 	//n[0] = 1;
 	for ( auto i = 0; i != vec.size(); ++i )
 		//n[i] = 1;
-		n[ i ] = vec[ i ].f(), p[ i ] = vec[ i ].v.data();
+		n[ i ] = vec[ i ].f(), p[ i ] = nullptr;
 }
 
 #endif

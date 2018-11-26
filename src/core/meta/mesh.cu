@@ -163,15 +163,12 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 
 	while ( !Q.empty() )
 	{
-		KASSERT( !Q.overflow() );
-
 		auto i = Q.front();
 		Q.pop();
 
 		while ( !bvh[ i ].isleaf )
 		{  // using depth frist search will cost less space than bfs.
 			auto shl = i << 1;
-
 			int left = ray.intersect_bbox( bvh[ shl ].vmin, bvh[ shl ].vmax );
 			int right = ray.intersect_bbox( bvh[ shl | 1 ].vmin, bvh[ shl | 1 ].vmax );
 			if ( !left && !right )  // no intersection on this branch
