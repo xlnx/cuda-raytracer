@@ -185,44 +185,16 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Al
 		uint begin, end;
 		begin = bvh[ i ].begin, end = bvh[ i ].end;
 
-#define KOISHI_MESH_INTERSECT                                                             \
-	for ( uint j = begin; j < end; ++j )                                                  \
-	{                                                                                     \
-		Hit hit1;                                                                         \
-		auto &face = faces[ j ];                                                          \
-		if ( ray.intersect_triangle( face.o, face.d1, face.d2, hit1 ) && hit1.t < hit.t ) \
-		{                                                                                 \
-			hit = hit1;                                                                   \
-			hit.id = j;                                                                   \
-		}                                                                                 \
-	}
-
-		KOISHI_MESH_INTERSECT
-
-		// do loop unrolling work
-		//		switch ( bvh[ i ].unroll )  // no divergence yah
-		//		{
-		//		case 1:  // no unroll
-		//			KOISHI_MESH_INTERSECT
-		//			break;
-		//		case 2:
-		//#pragma unroll( 2 )
-		//			KOISHI_MESH_INTERSECT
-		//			break;
-		//		case 4:
-		//#pragma unroll( 4 )
-		//			KOISHI_MESH_INTERSECT
-		//			break;
-		//		case 8:
-		//#pragma unroll( 8 )
-		//			KOISHI_MESH_INTERSECT
-		//			break;
-		//		default:  // no larger unrolls due to code size
-		//#pragma unroll( 16 )
-		//			KOISHI_MESH_INTERSECT
-		//		}
-
-#undef KOISHI_MESH_INTERSECT
+		for ( uint j = begin; j < end; ++j )
+		{
+			Hit hit1;
+			auto &face = faces[ j ];
+			if ( ray.intersect_triangle( face.o, face.d1, face.d2, hit1 ) && hit1.t < hit.t )
+			{
+				hit = hit1;
+				hit.id = j;
+			}
+		}
 
 	NEXT_BRANCH:;
 	}
