@@ -59,8 +59,8 @@ if (${CUDA} STREQUAL "ON")
 		--use_fast_math
 		--keep-device-functions
 		-keep
-		#-maxrregcount
-		#32
+		-maxrregcount
+		32
 		-w  
 		-lineinfo
 		-Xcudafe 

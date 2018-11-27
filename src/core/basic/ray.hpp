@@ -35,10 +35,10 @@ struct Ray
 	KOISHI_HOST_DEVICE bool intersect_triangle( const float3 &v0, const float3 &d1, const float3 &d2, Hit &hit ) const
 	{
 		auto e1 = d1, e2 = d2, v = v0;
-		auto P = cross( d, e2 );
-		auto det = dot( e1, P );
 		auto T = o - v;
+		auto P = cross( d, e2 );
 		auto Q = cross( T, e1 );
+		auto det = dot( e1, P );
 		hit.uv.x = dot( T, P );
 		hit.uv.y = dot( d, Q );
 		hit.t = dot( e2, Q );
