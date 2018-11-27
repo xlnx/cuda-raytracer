@@ -20,7 +20,7 @@ namespace core
 struct BVHNode
 {
 	float3 vmax, vmin;
-	uint begin, end, isleaf, unroll;  // add unroll stride
+	uint begin, end, offset;  // begin = -1u if not leaf	isleaf = !~begin
 };
 
 using BVHTree = PolyVector<BVHNode>;
@@ -49,7 +49,7 @@ struct Mesh : Emittable<Mesh>
 	BVHTree bvh;
 	uint matid;
 
-	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, uint root, Hit &hit, Allocator &pool ) const;
+	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, Hit &hit, Allocator &pool ) const;
 };
 
 struct PolyMesh

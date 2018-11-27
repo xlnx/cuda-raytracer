@@ -2,14 +2,13 @@
 #include <cstdlib>
 #include <vector>
 #include <utility>
-#include <queue>
 #include <iostream>
 #include <util/exception.hpp>
 #include <vec/vmath.hpp>
 #include <util/debug.hpp>
 #include "mesh.hpp"
 
-#define KOISHI_TRIANGLE_STRIPE 32
+#define KOISHI_TRIANGLE_STRIPE 16
 
 namespace koishi
 {
@@ -18,86 +17,123 @@ namespace core
 struct TriangleInfo
 {
 	uint3 index;
-	float3 vmax;
-	float3 vmin;
-	float area;
+	float3 vmax, vmin;
 };
+
+static inline float area( const float3 &vmin, const float3 &vmax )
+{
+	auto e = vmax - vmin;
+	return e.x * e.y * e.z;
+}
+
+struct BVHTreeNode
+{
+	BVHNode node;
+	BVHTreeNode *left, *right;
+};
+
+static BVHTreeNode *doCreateBVH(
+  std::vector<TriangleInfo> &info,
+  std::vector<TriangleInfo>::iterator begin,
+  std::vector<TriangleInfo>::iterator end )
+{
+	BVHNode node;
+
+	node.vmax = begin->vmax;
+	node.vmin = begin->vmin;
+	for ( auto iter = begin; iter != end; ++iter )
+	{
+		node.vmax = max( node.vmax, iter->vmax );
+		node.vmin = min( node.vmin, iter->vmin );
+	}
+
+	auto len = end - begin;
+	node.begin = ( begin - info.begin() ) * 3;
+	node.end = ( end - info.begin() ) * 3;
+	node.offset = len > KOISHI_TRIANGLE_STRIPE;
+
+	auto res = new BVHTreeNode;
+	res->node = node;
+
+	if ( node.offset )
+	{
+		auto w = node.vmax - node.vmin;
+		if ( w.x >= w.y && w.x >= w.z )
+		{
+			std::sort( begin, end, []( const TriangleInfo &a, const TriangleInfo &b ) { return a.vmin.x < b.vmin.x; } );
+		}
+		else if ( w.y >= w.x && w.y >= w.z )
+		{
+			std::sort( begin, end, []( const TriangleInfo &a, const TriangleInfo &b ) { return a.vmin.y < b.vmin.y; } );
+		}
+		else
+		{
+			std::sort( begin, end, []( const TriangleInfo &a, const TriangleInfo &b ) { return a.vmin.z < b.vmin.z; } );
+		}
+
+		std::vector<float> low( len ), high( len );
+		auto vmin = float3{ INFINITY, INFINITY, INFINITY }, vmax = float3{ -INFINITY, -INFINITY, -INFINITY };
+		auto low_iter = low.begin();
+		for ( auto iter = begin; iter != end; ++iter )
+		{
+			vmin = min( iter->vmin, vmin );
+			vmax = max( iter->vmax, vmax );
+			*low_iter++ = area( vmin, vmax );
+		}
+
+		vmin = float3{ INFINITY, INFINITY, INFINITY }, vmax = float3{ -INFINITY, -INFINITY, -INFINITY };
+		using riter_t = std::reverse_iterator<decltype( end )>;
+		auto high_iter = high.rbegin();
+		for ( auto iter = riter_t( end ); iter != riter_t( begin ); ++iter )
+		{
+			vmin = min( iter->vmin, vmin );
+			vmax = max( iter->vmax, vmax );
+			*high_iter++ = area( vmin, vmax );
+		}
+
+		for ( auto i = 1; i < len; ++i )
+		{
+			if ( low[ i - 1 ] - high[ i ] >= 0.f )
+			{
+				res->left = doCreateBVH( info, begin, begin + i );
+				res->right = doCreateBVH( info, begin + i, end );
+
+				return res;
+			}
+		}
+
+		res->left = doCreateBVH( info, begin, begin + len / 2 );
+		res->right = doCreateBVH( info, begin + len / 2, end );
+	}
+
+	return res;
+}
+
+static void traversal( BVHTreeNode *root, BVHTree &tree )
+{
+	auto i = tree.size();
+	tree.emplace_back( root->node );
+	if ( root->node.offset )
+	{
+		traversal( root->left, tree );  // left root = i + 1
+		delete root->left;
+		tree[ i ].offset = tree.size() - i;
+		traversal( root->right, tree );
+		delete root->right;
+	}
+}
+
+static BVHTree plainlizeBVH( BVHTreeNode *root )
+{
+	BVHTree tree;
+	traversal( root, tree );
+	delete root;
+	return std::move( tree );
+}
 
 static BVHTree createBVH( std::vector<TriangleInfo> &info )
 {
-	struct QueueItem
-	{
-		uint index;
-		std::vector<TriangleInfo>::iterator begin, end;
-	};
-	BVHTree res( 2 );
-	std::queue<QueueItem> Q;
-	Q.emplace( QueueItem{ 1, info.begin(), info.end() } );
-	while ( !Q.empty() )
-	{
-		uint index = Q.front().index;
-		auto begin = Q.front().begin;
-		auto end = Q.front().end;
-		Q.pop();
-
-		BVHNode node;  // current bbox
-		node.vmax = begin->vmax;
-		node.vmin = begin->vmin;
-		float s = 0;
-		for ( auto iter = begin; iter != end; ++iter )
-		{
-			node.vmax = max( node.vmax, iter->vmax );
-			node.vmin = min( node.vmin, iter->vmin );
-			s += iter->area;
-		}
-		node.begin = ( begin - info.begin() ) * 3;
-		node.end = ( end - info.begin() ) * 3;
-		node.isleaf = end - begin <= KOISHI_TRIANGLE_STRIPE;
-		auto len = node.begin - node.end;
-		node.unroll = !len ? 1 : len & -len;  // unroll step for this bvh node.
-		if ( index >= res.size() )
-		{
-			res.resize( index + 1 );
-		}
-		res[ index ] = node;
-		if ( !node.isleaf )
-		{
-			s /= 2;
-			auto w = node.vmax - node.vmin;
-			if ( w.x >= w.y && w.x >= w.z )
-			{
-				std::sort( begin, end, []( const TriangleInfo &a, const TriangleInfo &b ) { return a.vmin.x < b.vmin.x; } );
-			}
-			else if ( w.y >= w.x && w.y >= w.z )
-			{
-				std::sort( begin, end, []( const TriangleInfo &a, const TriangleInfo &b ) { return a.vmin.y < b.vmin.y; } );
-			}
-			else
-			{
-				std::sort( begin, end, []( const TriangleInfo &a, const TriangleInfo &b ) { return a.vmin.z < b.vmin.z; } );
-			}
-			for ( auto iter = begin; iter != end; ++iter )
-			{
-				if ( ( s -= iter->area ) <= 0.f )
-				{
-					Q.emplace( QueueItem{ index << 1, begin, iter } );
-					Q.emplace( QueueItem{ ( index << 1 ) + 1, iter, end } );
-					break;
-				}
-			}
-		}
-	}
-	return std::move( res );
-}
-
-static void printBVH( const BVHTree &tr, uint index = 1 )
-{
-	std::cout << index << " ";
-	if ( !tr[ index ].isleaf )
-	{
-		printBVH( tr, index << 1 );
-		printBVH( tr, ( index << 1 ) + 1 );
-	}
+	return plainlizeBVH( doCreateBVH( info, info.begin(), info.end() ) );
 }
 
 Mesh::Mesh( const CompactMesh &other ) :
@@ -153,33 +189,39 @@ Mesh::Mesh( CompactMesh &&other ) :
 	}
 }
 
-KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, uint root, Hit &hit, Allocator &pool ) const
+KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &pool ) const
 {
 	hit.t = INFINITY;
 
 	CyclicQueue<uint> Q( pool );
 
-	Q.emplace( root );
+	Q.emplace( 0 );
 
 	while ( !Q.empty() )
 	{
 		auto i = Q.front();
 		Q.pop();
 
-		while ( !bvh[ i ].isleaf )
+		while ( auto offset = bvh[ i ].offset )
 		{  // using depth frist search will cost less space than bfs.
-			auto shl = i << 1;
-			int left = ray.intersect_bbox( bvh[ shl ].vmin, bvh[ shl ].vmax );
-			int right = ray.intersect_bbox( bvh[ shl | 1 ].vmin, bvh[ shl | 1 ].vmax );
+			int left = ray.intersect_bbox( bvh[ i + 1 ].vmin, bvh[ i + 1 ].vmax );
+			int right = ray.intersect_bbox( bvh[ i + offset ].vmin, bvh[ i + offset ].vmax );
 			if ( !left && !right )  // no intersection on this branch
 			{
 				goto NEXT_BRANCH;
 			}
 			if ( left && right )  // both intersects, trace second and push first
 			{
-				Q.emplace( shl );
+				Q.emplace( i + offset );
 			}
-			i = shl | right;
+			if ( left )
+			{
+				i++;
+			}
+			else
+			{
+				i += offset;
+			}
 		}
 		// now this node is leaf
 		uint begin, end;
@@ -243,7 +285,6 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 					info.index = index;
 					info.vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );
 					info.vmin = min( v[ 0 ], min( v[ 1 ], v[ 2 ] ) );
-					info.area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
 					indices.emplace_back( std::move( info ) );
 				}
 			}
@@ -286,7 +327,6 @@ PolyMesh::PolyMesh( PolyVector<float3> &&vertices,
 		info.index = index;
 		info.vmax = max( v[ 0 ], max( v[ 1 ], v[ 2 ] ) );
 		info.vmin = min( v[ 0 ], min( v[ 1 ], v[ 2 ] ) );
-		info.area = length( cross( v[ 2 ] - v[ 0 ], v[ 1 ] - v[ 0 ] ) );
 		indices.emplace_back( std::move( info ) );
 	}
 	CompactMesh m;
