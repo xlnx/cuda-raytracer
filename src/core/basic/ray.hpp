@@ -37,22 +37,9 @@ struct Ray
 		auto e1 = d1, e2 = d2, v = v0;
 		auto P = cross( d, e2 );
 		auto det = dot( e1, P );
-		float3 T;
-		if ( det > 0 )
-		{
-			T = o - v;
-		}
-		else
-		{
-			T = v - o;
-			det = -det;
-		}
-		//	if ( det < .0001f )
-		//	{
-		//		return false;
-		//	}
-		hit.uv.x = dot( T, P );
+		auto T = o - v;
 		auto Q = cross( T, e1 );
+		hit.uv.x = dot( T, P );
 		hit.uv.y = dot( d, Q );
 		hit.t = dot( e2, Q );
 		float invdet = 1.f / det;

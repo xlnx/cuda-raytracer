@@ -1,7 +1,8 @@
 .vscode
 build
+workaround
+
 clean
 configure
 make
 check
-./ptx

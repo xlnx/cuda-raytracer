@@ -4,6 +4,8 @@ namespace koishi
 {
 namespace vec
 {
+using uint = unsigned int;
+
 #if !defined( KOISHI_USE_CUDA )
 
 #define KOISHI_DEF_VEC( type )        \
@@ -12,7 +14,6 @@ namespace vec
 	struct type##3 { type x, y, z; }; \
 	struct type##4 { type x, y, z, w; }
 
-using uint = unsigned int;
 KOISHI_DEF_VEC( float );
 KOISHI_DEF_VEC( double );
 KOISHI_DEF_VEC( int );

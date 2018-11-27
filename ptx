@@ -1,1 +1,0 @@
-nvcc src/core/meta/mesh.cu --keep-device-functions  --expt-extended-lambda -w --use_fast_math -Isrc -Iinclude -ptx -DKOISHI_USE_CUDA -o build/cr.ptx
