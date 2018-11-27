@@ -55,10 +55,12 @@ if (${CUDA} STREQUAL "ON")
 	add_definitions(-DKOISHI_USE_CUDA)
 	set(CUDA_NVCC_FLAGS ${CMAKE_NVCC_FLAGS} 
 		-std=c++14 
-		-g
-		# -O3 
-		-maxrregcount
-		32
+		--expt-extended-lambda
+		--use_fast_math
+		--keep-device-functions
+		-keep
+		#-maxrregcount
+		#32
 		-w  
 		-lineinfo
 		-Xcudafe 

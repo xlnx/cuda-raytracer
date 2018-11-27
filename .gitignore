@@ -4,3 +4,4 @@ clean
 configure
 make
 check
+./ptx

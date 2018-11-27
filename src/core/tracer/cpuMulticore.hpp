@@ -29,6 +29,8 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )
 	if ( MaxThreads < ncores ) ncores = MaxThreads;
 	std::cout << "using " << ncores << " threads:" << std::endl;
 	std::vector<std::thread> ts;
+	KINFO( tracer, "Tracing start" );
+	util::tick();
 	auto tracer_thread = [ncores, spp, h, w, &scene, &image, &rays]( uint id ) {
 		static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
 		static constexpr uint block_size = 480 * b;
@@ -56,10 +58,12 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )
 		ts.emplace_back( tracer_thread, id );
 	}
 	tracer_thread( ncores - 1 );
+	
 	for ( auto &th : ts )
 	{
 		th.join();
 	}
+	KINFO( tracer, "Tracer joint in", util::tick(), "seconds" );
 }
 
 EndPolyFunction();
