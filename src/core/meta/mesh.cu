@@ -9,6 +9,7 @@
 #include "mesh.hpp"
 
 #define KOISHI_TRIANGLE_STRIPE 16
+#define KOISHI_TRIANGLE_WARP 4
 
 namespace koishi
 {
@@ -47,6 +48,7 @@ static BVHTreeNode *doCreateBVH(
 		node.vmin = min( node.vmin, iter->vmin );
 	}
 
+	// len = k * KOISHI_TRIANGLE_WARP
 	auto len = end - begin;
 	node.begin = ( begin - info.begin() ) * 3;
 	node.end = ( end - info.begin() ) * 3;
@@ -91,10 +93,10 @@ static BVHTreeNode *doCreateBVH(
 			*high_iter++ = area( vmin, vmax );
 		}
 
-		for ( auto i = 1; i < len; ++i )
+		for ( auto i = KOISHI_TRIANGLE_WARP; i < len; i += KOISHI_TRIANGLE_WARP )
 		{
 			if ( low[ i - 1 ] - high[ i ] >= 0.f )
-			{
+			{  // i = k * KOISHI_TRIANGLE_WARP
 				res->left = doCreateBVH( info, begin, begin + i );
 				res->right = doCreateBVH( info, begin + i, end );
 
@@ -133,6 +135,11 @@ static BVHTree plainlizeBVH( BVHTreeNode *root )
 
 static BVHTree createBVH( std::vector<TriangleInfo> &info )
 {
+	auto e = info.back();
+	while ( info.size() % KOISHI_TRIANGLE_WARP != 0 )
+	{
+		info.emplace_back( e );
+	}
 	return plainlizeBVH( doCreateBVH( info, info.begin(), info.end() ) );
 }
 
@@ -227,6 +234,7 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 		uint begin, end;
 		begin = bvh[ i ].begin, end = bvh[ i ].end;
 
+#pragma unroll( KOISHI_TRIANGLE_WARP )
 		for ( uint j = begin; j < end; ++j )
 		{
 			Hit hit1;
