@@ -234,7 +234,13 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 		uint begin, end;
 		begin = bvh[ i ].begin, end = bvh[ i ].end;
 
-#pragma unroll( KOISHI_TRIANGLE_WARP )
+#if ( KOISHI_TRIANGLE_WARP == 2 )
+	#pragma unroll( 2 )
+#elif ( KOISHI_TRIANGLE_WARP == 4 ) 
+	#pragma unroll( 4 )
+#elif ( KOISHI_TRIANGLE_WARP >= 8 )
+	#pragma unroll( 8 )
+#endif
 		for ( uint j = begin; j < end; ++j )
 		{
 			Hit hit1;
