@@ -48,6 +48,40 @@ private:
 	bool of = false;
 };
 
+template <typename T>
+struct Stack
+{
+	KOISHI_HOST_DEVICE Stack( Allocator &pool, uint alloc_size = 0 )
+	{
+		if ( !alloc_size ) alloc_size = pool.size() / sizeof( T );
+		top_ptr = base = alloc_uninitialized<T>( pool, alloc_size );
+		full_ptr = base + alloc_size;
+	}
+
+	template <typename... Args>
+	KOISHI_HOST_DEVICE void emplace( Args &&... args )
+	{
+		new ( top_ptr++ ) T( std::forward<Args>( args )... );
+	}
+
+	KOISHI_HOST_DEVICE void pop()
+	{
+		( --top_ptr )->~T();
+	}
+
+	KOISHI_HOST_DEVICE T &top() { return top_ptr[ -1 ]; }
+	KOISHI_HOST_DEVICE const T &top() const { return top_ptr[ -1 ]; }
+
+	KOISHI_HOST_DEVICE void clear() { top_ptr = base; }
+
+	KOISHI_HOST_DEVICE uint capacity() const { return full_ptr - base; }
+
+	KOISHI_HOST_DEVICE bool empty() const { return top_ptr == base; }
+
+private:
+	T *base, *top_ptr, *full_ptr;
+};
+
 }  // namespace core
 
 }  // namespace koishi

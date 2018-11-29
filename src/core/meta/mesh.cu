@@ -200,13 +200,13 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 {
 	hit.t = INFINITY;
 
-	CyclicQueue<uint> Q( pool );
+	Stack<uint> Q( pool );
 
 	Q.emplace( 0 );
 
 	while ( !Q.empty() )
 	{
-		auto i = Q.front();
+		auto i = Q.top();
 		Q.pop();
 
 		while ( auto offset = bvh[ i ].offset )
@@ -235,11 +235,11 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 		begin = bvh[ i ].begin, end = bvh[ i ].end;
 
 #if ( KOISHI_TRIANGLE_WARP == 2 )
-	#pragma unroll( 2 )
-#elif ( KOISHI_TRIANGLE_WARP == 4 ) 
-	#pragma unroll( 4 )
+#pragma unroll( 2 )
+#elif ( KOISHI_TRIANGLE_WARP == 4 )
+#pragma unroll( 4 )
 #elif ( KOISHI_TRIANGLE_WARP >= 8 )
-	#pragma unroll( 8 )
+#pragma unroll( 8 )
 #endif
 		for ( uint j = begin; j < end; ++j )
 		{
