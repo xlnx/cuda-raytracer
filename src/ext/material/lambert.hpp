@@ -20,7 +20,7 @@ private:
 	float3 R;
 };
 
-struct LambertMaterial : Material
+struct LambertMaterial : emittable<LambertMaterial, Material>
 {
 	KOISHI_HOST_DEVICE virtual void fetchTo( Interreact &res, Allocator &pool ) const
 	{

@@ -57,6 +57,7 @@ PolyFunction( Radiance, Require<Random> )
 		// clear( pool );
 
 		auto wo = isect.local( -ray.d );
+		// wo = reflect( ray.d, isect.n );
 		L = wo;
 		break;
 		pool.clear();

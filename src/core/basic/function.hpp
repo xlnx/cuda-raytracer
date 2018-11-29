@@ -70,20 +70,11 @@ struct is_device_callable<T, typename std::enable_if<
 {
 };
 
-template <bool X, bool... Args>
-struct make_and : std::integral_constant<bool, X && make_and<Args...>::value>
-{
-};
-template <bool X>
-struct make_and<X> : std::integral_constant<bool, X>
-{
-};
-
 template <typename... Args>
-struct Restrict : std::conditional<trait::make_and<
+struct Restrict : std::conditional<koishi::trait::make_and<
 									 std::is_base_of<Host, Args>::value...>::value,
 								   Host, trait::dummy<Host>>::type,
-				  std::conditional<trait::make_and<
+				  std::conditional<koishi::trait::make_and<
 									 std::is_base_of<Device, Args>::value...>::value,
 								   Device, trait::dummy<Device>>::type
 {

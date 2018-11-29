@@ -2,29 +2,29 @@
 
 #include <string>
 #include <vector>
-#include <util/config.hpp>
 #include <core/basic/poly.hpp>
 #include "mesh.hpp"
+#include "material.hpp"
 #include "interreact.hpp"
 
 namespace koishi
 {
 namespace core
 {
-struct Scene : Emittable<Scene>
+struct Scene : emittable<Scene>
 {
 	Scene( const std::string &path );
 
-	PolyVector<Mesh> mesh;
-	PolyVector<jsel::Material> material;
+	poly::vector<Mesh> mesh;
+	poly::vector<poly::object<Material>> material;
 
-	PolyVector<jsel::Camera> camera;
+	poly::vector<CameraConfig> camera;
 
 	operator bool() const { return valid; }
 
 	KOISHI_HOST_DEVICE Interreact intersect( const Ray &r, Allocator &pool ) const
 	{
-		PolyVector<Mesh>::const_iterator pm = nullptr;
+		poly::vector<Mesh>::const_iterator pm = nullptr;
 		Hit hit;
 		for ( auto it = mesh.begin(); it != mesh.end(); ++it )
 		{

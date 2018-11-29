@@ -73,6 +73,15 @@ struct com
 	using type = decltype( std::declval<T &>().x );
 };
 
+template <bool X, bool... Args>
+struct make_and : std::integral_constant<bool, X && make_and<Args...>::value>
+{
+};
+template <bool X>
+struct make_and<X> : std::integral_constant<bool, X>
+{
+};
+
 }  // namespace trait
 
 }  // namespace koishi

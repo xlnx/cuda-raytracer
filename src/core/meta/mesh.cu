@@ -273,7 +273,7 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 	for ( uint i = 0; i != node->mNumMeshes; ++i )
 	{
 		auto aimesh = scene->mMeshes[ node->mMeshes[ i ] ];
-		PolyVector<float3> vertices;
+		poly::vector<float3> vertices;
 		if ( aimesh->HasPositions() )
 		{
 			vertices.resize( aimesh->mNumVertices );
@@ -283,7 +283,7 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 				vertices[ j ] = float3{ v.x, v.y, v.z };
 			}
 		}
-		PolyVector<float3> normals;
+		poly::vector<float3> normals;
 		if ( aimesh->HasNormals() )
 		{
 			normals.resize( aimesh->mNumVertices );
@@ -323,7 +323,7 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 		m.vertices = std::move( vertices );
 		m.normals = std::move( normals );
 		m.matid = aimesh->mMaterialIndex;
-		PolyVector<uint> idxBuffer( indices.size() * 3 );
+		poly::vector<uint> idxBuffer( indices.size() * 3 );
 		for ( uint j = 0; j != indices.size(); ++j )
 		{
 			idxBuffer[ 3 * j ] = indices[ j ].index.x;
@@ -339,8 +339,8 @@ void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const a
 	}
 }
 
-PolyMesh::PolyMesh( PolyVector<float3> &&vertices,
-					PolyVector<float3> &&normals,
+PolyMesh::PolyMesh( poly::vector<float3> &&vertices,
+					poly::vector<float3> &&normals,
 					const std::vector<uint3> &idx )
 {
 	std::vector<TriangleInfo> indices;
@@ -358,7 +358,7 @@ PolyMesh::PolyMesh( PolyVector<float3> &&vertices,
 	KLOG( "- Built BVH of size", m.bvh.size(), ", depth", ceil( log2( m.bvh.size() ) ) );
 	m.vertices = std::move( vertices );
 	m.normals = std::move( normals );
-	PolyVector<uint> idxBuffer( indices.size() * 3 );
+	poly::vector<uint> idxBuffer( indices.size() * 3 );
 	for ( uint j = 0; j != indices.size(); ++j )
 	{
 		idxBuffer[ 3 * j ] = indices[ j ].index.x;

@@ -18,11 +18,11 @@ struct Sampler
 	{
 	}
 
-	PolyVector<Ray> sample( const jsel::Camera &camera, uint spp ) const
+	poly::vector<Ray> sample( const CameraConfig &camera, uint spp ) const
 	{
 		KINFO( sampler, "Sampling rays" );
 		util::tick();
-		PolyVector<Ray> rays( spp * w * h );
+		poly::vector<Ray> rays( spp * w * h );
 		float3 target = normalize( camera.target ) * float( w ) / ( 2 * tan( radians( camera.fovx * .5 ) ) );
 		float3 U = normalize( cross( target, camera.upaxis ) );
 		float3 V = normalize( cross( U, target ) );
@@ -41,7 +41,7 @@ struct Sampler
 				}
 			}
 		}
-		KINFO( sampler, "Sampled", rays.size() , "rays in", util::tick(), "seconds" );
+		KINFO( sampler, "Sampled", rays.size(), "rays in", util::tick(), "seconds" );
 		return std::move( rays );
 	}
 

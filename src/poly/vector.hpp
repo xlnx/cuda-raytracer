@@ -13,12 +13,12 @@
 
 namespace koishi
 {
-namespace core
+namespace poly
 {
-// PolyVector holds a read-only data vector for either cpu or gpu
+// vector holds a read-only data vector for either cpu or gpu
 // use std::move to make
 template <typename T>
-struct PolyVector final : Emittable<PolyVector<T>>
+struct vector final : emittable<vector<T>>
 {
 	using value_type = T;
 	using size_type = std::size_t;
@@ -34,12 +34,12 @@ struct PolyVector final : Emittable<PolyVector<T>>
 	// 	static constexpr size_type MIN_SIZE = 4;
 
 public:
-	PolyVector() = default;
-	PolyVector( size_type count, const T &val = T() )
+	vector() = default;
+	vector( size_type count, const T &val = T() )
 	{
 		resize( count, val );
 	}
-	PolyVector( std::initializer_list<T> l ) :
+	vector( std::initializer_list<T> l ) :
 	  total( std::max( l.size(), MIN_SIZE ) ),
 	  curr( l.size() )
 	{
@@ -50,7 +50,7 @@ public:
 			new ( p ) T( std::move( *q ) );
 		}
 	}
-	PolyVector &operator=( std::initializer_list<T> l )
+	vector &operator=( std::initializer_list<T> l )
 	{
 		destroy();
 		total = std::max( l.size(), MIN_SIZE );
@@ -65,7 +65,7 @@ public:
 		is_device_ptr = false;
 		return *this;
 	}
-	PolyVector( const std::vector<T> &other ) :
+	vector( const std::vector<T> &other ) :
 	  total( std::max( other.capacity(), MIN_SIZE ) ),
 	  curr( other.size() )
 	{
@@ -74,7 +74,7 @@ public:
 			new ( p ) T( *q );
 		}
 	}
-	PolyVector( std::vector<T> &&other ) :
+	vector( std::vector<T> &&other ) :
 	  total( std::max( other.capacity(), MIN_SIZE ) ),
 	  curr( other.size() )
 	{
@@ -83,7 +83,7 @@ public:
 			new ( p ) T( std::move( *q ) );
 		}
 	}
-	PolyVector &operator=( const std::vector<T> &other )
+	vector &operator=( const std::vector<T> &other )
 	{
 		destroy();
 		total = std::max( other.capacity(), MIN_SIZE );
@@ -96,7 +96,7 @@ public:
 		is_device_ptr = false;
 		return *this;
 	}
-	PolyVector &operator=( std::vector<T> &&other )
+	vector &operator=( std::vector<T> &&other )
 	{
 		destroy();
 		total = std::max( other.capacity(), MIN_SIZE );
@@ -111,7 +111,7 @@ public:
 	}
 
 public:
-	KOISHI_HOST_DEVICE PolyVector( PolyVector &&other ) :
+	KOISHI_HOST_DEVICE vector( vector &&other ) :
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
@@ -119,7 +119,7 @@ public:
 	{
 		other.value = nullptr;
 	}
-	KOISHI_HOST_DEVICE PolyVector &operator=( PolyVector &&other )
+	KOISHI_HOST_DEVICE vector &operator=( vector &&other )
 	{
 		destroy();
 		total = other.total;
@@ -129,12 +129,12 @@ public:
 		other.value = nullptr;
 		return *this;
 	}
-	~PolyVector()
+	~vector()
 	{
 		destroy();
 	}
 
-	PolyVector( const PolyVector &other )
+	vector( const vector &other )
 #ifdef KOISHI_USE_CUDA
 	  :
 	  total( other.total ),
@@ -146,13 +146,13 @@ public:
 	}
 #else
 	{
-		KTHROW( invalid use of PolyVector( const & ) );
+		KTHROW( invalid use of vector( const & ) );
 	}
 #endif
-	PolyVector &operator=( const PolyVector &other )
+	vector &operator=( const vector &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		Emittable<PolyVector<T>>::operator=( std::move( const_cast<PolyVector &>( other ) ) );
+		// emittable<vector<T>>::operator=( std::move( const_cast<vector &>( other ) ) );
 		total = other.total;
 		curr = other.curr;
 		value = other.value;
@@ -162,17 +162,17 @@ public:
 	}
 #else
 	{
-		KTHROW( invalid use of PolyVector( const & ) );
+		KTHROW( invalid use of vector( const & ) );
 	}
 #endif
 
 private:
 #ifdef KOISHI_USE_CUDA
-	void copyBetweenDevice( const PolyVector &other )
+	void copyBetweenDevice( const vector &other )
 	{
 		if ( !__impl::Emittable::isTransferring() )
 		{
-			KTHROW( invalid use of PolyVector( const & ) );
+			KTHROW( invalid use of vector( const & ) );
 		}
 		pointer new_ptr;
 		auto alloc_size = sizeof( T ) * total;
@@ -306,10 +306,10 @@ public:
 private:
 	std::size_t total = MIN_SIZE;
 	size_type curr = 0;
-	T * KOISHI_RESTRICT value = (pointer)std::malloc( sizeof( T ) * total );
+	T *KOISHI_RESTRICT value = (pointer)std::malloc( sizeof( T ) * total );
 	bool is_device_ptr = false;
 };
 
-}  // namespace core
+}  // namespace poly
 
 }  // namespace koishi

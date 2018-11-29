@@ -6,12 +6,12 @@ using namespace core;
 
 #ifdef KOISHI_USE_CUDA
 
-struct A : Emittable<A>
+struct A : emittable<A>
 {
 	A( int i ) :
 	  n( i )
 	{
-		PolyVector<int> vv;
+		poly::vector<int> vv;
 		for ( int i = 0; i <= n; ++i )
 		{
 			vv.emplace_back( i );
@@ -30,10 +30,10 @@ struct A : Emittable<A>
 	}
 
 	int n;
-	PolyVector<int> v;
+	poly::vector<int> v;
 };
 
-__global__ void add( const PolyVector<A> &vec, PolyVector<int> &n, PolyVector<const int *> &p )
+__global__ void add( const poly::vector<A> &vec, poly::vector<int> &n, poly::vector<const int *> &p )
 {
 	//n[0] = 1; n[1] = 2;
 	//n[0] = 1;
@@ -48,7 +48,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 {
 //	testing::internal::CaptureStdout();
 #ifdef KOISHI_USE_CUDA
-	PolyVector<A> view;
+	poly::vector<A> view;
 
 	int n = 200;
 
@@ -60,8 +60,8 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	EXPECT_EQ( view.size(), n );
 	KLOG( view.data() );
 
-	PolyVector<int> nn( view.size() );
-	PolyVector<const int *> pp( view.size() );
+	poly::vector<int> nn( view.size() );
+	poly::vector<const int *> pp( view.size() );
 
 	KLOG( nn.data() );
 	KLOG( pp.data() );
@@ -70,7 +70,7 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 	EXPECT_EQ( n, pp.size() );
 	EXPECT_EQ( n, view.size() );
 
-	kernel( add, 1, 1 )( view, nn, pp );
+	poly::kernel( add, 1, 1 )( view, nn, pp );
 
 	KLOG( nn.data() );
 	KLOG( pp.data() );
@@ -97,8 +97,8 @@ TEST( test_poly_vector, struct_with_non_standard_layout )
 
 TEST( test_poly_vector, initializer_list )
 {
-	PolyVector<int> a = { 1, 2, 3 };
-	PolyVector<int> b{};
+	poly::vector<int> a = { 1, 2, 3 };
+	poly::vector<int> b{};
 	a = {};
 	for ( int i = 0; i != 10000; ++i )
 	{
@@ -116,9 +116,9 @@ TEST( test_poly_vector, initializer_list )
 TEST( test_poly_vector, emit_empty_vector )
 {
 #ifdef KOISHI_USE_CUDA
-	PolyVector<A> view;
-	PolyVector<int> a;
-	PolyVector<const int *> b;
-	kernel( add, 1, 1 )( view, a, b );
+	poly::vector<A> view;
+	poly::vector<int> a;
+	poly::vector<const int *> b;
+	poly::kernel( add, 1, 1 )( view, a, b );
 #endif
 }

@@ -23,13 +23,13 @@ struct BVHNode
 	uint begin, end, offset;
 };
 
-using BVHTree = PolyVector<BVHNode>;
+using BVHTree = poly::vector<BVHNode>;
 
 struct CompactMesh
 {
-	PolyVector<float3> vertices;
-	PolyVector<float3> normals;
-	PolyVector<uint> indices;
+	poly::vector<float3> vertices;
+	poly::vector<float3> normals;
+	poly::vector<uint> indices;
 	BVHTree bvh;
 	uint matid;
 };
@@ -48,14 +48,14 @@ struct Normal
 
 }  // namespace attr
 
-struct Mesh : Emittable<Mesh>
+struct Mesh : emittable<Mesh>
 {
 	Mesh( const CompactMesh &other );
 	Mesh( CompactMesh &&other );
 
 	// SOA of vertex attributes
-	PolyVector<attr::Face> faces;
-	PolyVector<attr::Normal> normals;
+	poly::vector<attr::Face> faces;
+	poly::vector<attr::Normal> normals;
 	BVHTree bvh;
 	uint matid;
 
@@ -64,8 +64,8 @@ struct Mesh : Emittable<Mesh>
 
 struct PolyMesh
 {
-	PolyMesh( PolyVector<float3> &&vertices,
-			  PolyVector<float3> &&normals,
+	PolyMesh( poly::vector<float3> &&vertices,
+			  poly::vector<float3> &&normals,
 			  const std::vector<uint3> &indices );
 	PolyMesh( const aiScene *scene );
 
@@ -73,7 +73,7 @@ private:
 	void collectObjects( const aiScene *scene, const aiNode *node, const aiMatrix4x4 &tr );
 
 public:
-	PolyVector<Mesh> mesh;
+	poly::vector<Mesh> mesh;
 	std::vector<std::string> material;
 };
 

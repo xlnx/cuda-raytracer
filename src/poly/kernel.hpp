@@ -11,7 +11,7 @@
 
 namespace koishi
 {
-namespace core
+namespace poly
 {
 namespace __impl
 {
@@ -24,6 +24,8 @@ struct arguments;
 
 struct Emittable
 {
+	virtual ~Emittable() = default;
+
 #ifdef KOISHI_USE_CUDA
 
 	template <typename... Args>
@@ -256,7 +258,7 @@ struct argument_base
 };
 
 template <typename T>
-struct arguments<T>: argument_base
+struct arguments<T> : argument_base
 {
 	using value_type = typename std::remove_reference<
 	  typename std::remove_cv<T>::type>::type;
@@ -384,22 +386,35 @@ using __impl::kernel;
 
 #endif
 
-template <typename T>
-struct Emittable : __impl::Emittable
+template <typename Type, typename Base = __impl::Emittable>
+struct emittable : public Base
 {
+	static_assert( std::is_base_of<__impl::Emittable, Base>::value,
+				   "'emittable' must derive from a emittable type" );
+
 private:
 	KOISHI_HOST_DEVICE void __copy_construct() override
 	{
-		auto p = static_cast<T *>( this );
-		new ( p ) T( *p );
+		auto p = static_cast<Type *>( this );
+		new ( p ) Type( *p );
 	}
 	KOISHI_HOST_DEVICE void __move_construct() override
 	{
-		auto p = static_cast<T *>( this );
-		new ( p ) T( *p );
+		auto p = static_cast<Type *>( this );
+		new ( p ) Type( *p );
 	}
 };
 
-}  // namespace core
+template <typename Type, typename Base = __impl::Emittable>
+struct abstract_emittable : public Base
+{
+	static_assert( std::is_base_of<__impl::Emittable, Base>::value,
+				   "'emittable' must derive from a emittable type" );
+};
+
+}  // namespace poly
+
+using poly::abstract_emittable;
+using poly::emittable;
 
 }  // namespace koishi

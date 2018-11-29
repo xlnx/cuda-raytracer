@@ -12,7 +12,7 @@ namespace vis
 class Camera
 {
 public:
-	Camera( uint w, uint h, const jsel::Camera &config )
+	Camera( uint w, uint h, const CameraConfig &config )
 	{
 		glViewport( 0, 0, w, h );
 		P = glm::vec3{ config.position.x, config.position.y, config.position.z };

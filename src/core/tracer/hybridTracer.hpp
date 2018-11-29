@@ -1,4 +1,4 @@
-#pragma once
+#pragma once : poly::vector
 
 #include <vec/vec.hpp>
 #include <util/debug.hpp>
@@ -22,7 +22,7 @@ constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh
 template <typename Radiance, typename Alloc>
 PolyFunction( DoHybridIntegrate, Require<Radiance, Alloc, Device> )
 
-  ( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
+  ( poly::vector<float3> &buffer, const poly::vector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
 	->void
 {
 	char stackPool[ stackPoolSize ];
@@ -70,7 +70,7 @@ PolyFunction( DoHybridIntegrate, Require<Radiance, Alloc, Device> )
 EndPolyFunction();
 
 template <typename Radiance, typename Alloc>
-__global__ void hybridIntegrate( PolyVector<float3> &buffer, const PolyVector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
+__global__ void hybridIntegrate( poly::vector<float3> &buffer, const poly::vector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
 {
 	Device::call<DoHybridIntegrate<Radiance, Alloc>>( buffer, rays, scene, spp, unroll );
 }
@@ -78,13 +78,13 @@ __global__ void hybridIntegrate( PolyVector<float3> &buffer, const PolyVector<Ra
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( HybridTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )
 
-  ( util::Image<3> &image, PolyVector<Ray> &rays, Scene &scene, uint spp )
+  ( util::Image<3> &image, poly::vector<Ray> &rays, Scene &scene, uint spp )
 	->void
 {
 	uint w = image.width();
 	uint h = image.height();
 
-	PolyVector<float3> buffer( w * h );
+	poly::vector<float3> buffer( w * h );
 
 	int nDevices;
 	cudaDeviceProp prop;
@@ -107,10 +107,10 @@ PolyFunction( HybridTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device
 	uint unroll = spp & -spp;  // use the lowbit of spp as unrool stride, thus spp % unroll = 0
 	KLOG( "Unrolling stride", unroll );
 
-	kernel( hybridIntegrate<Radiance, Alloc>,
-			dim3( w / blockDim, h / blockDim ),
-			dim3( blockDim, blockDim ),
-			sharedMemPerBlock )( buffer, rays, scene, spp, unroll );
+	poly::kernel( hybridIntegrate<Radiance, Alloc>,
+				  dim3( w / blockDim, h / blockDim ),
+				  dim3( blockDim, blockDim ),
+				  sharedMemPerBlock )( buffer, rays, scene, spp, unroll );
 
 	for ( uint j = 0; j != h; ++j )
 	{

@@ -17,7 +17,7 @@ namespace core
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )
 
-  ( util::Image<3> &image, PolyVector<Ray> &rays, Scene &scene, uint spp )
+  ( util::Image<3> &image, poly::vector<Ray> &rays, Scene &scene, uint spp )
 	->void
 {
 	uint w = image.width();
@@ -58,7 +58,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )
 		ts.emplace_back( tracer_thread, id );
 	}
 	tracer_thread( ncores - 1 );
-	
+
 	for ( auto &th : ts )
 	{
 		th.join();

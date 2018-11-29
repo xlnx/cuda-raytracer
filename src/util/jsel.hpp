@@ -38,11 +38,11 @@ inline void from_json( const nlohmann::json &j, T &e )
 	T name = init_metadata<T>( #name, &type::name, ##__VA_ARGS__ )  // if no init value the comma will be removed.
 
 template <typename T>
-struct Serializable : __flag::IsSerializable
+struct serializable : __flag::IsSerializable
 {
 	using type = T;
 
-	Serializable()
+	serializable()
 	{
 		get_state() = get_state() == 0 ? 1 : 2;
 	}
@@ -134,6 +134,6 @@ inline std::istream &operator>>( std::istream &is, T &t )
 
 }  // namespace jsel
 
-using jsel::Serializable;
+using jsel::serializable;
 
 }  // namespace koishi
