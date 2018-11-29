@@ -245,7 +245,9 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 		{
 			Hit hit1;
 			auto &face = faces[ j ];
-			if ( ray.intersect_triangle( face.o, face.d1, face.d2, hit1 ) && hit1.t < hit.t )
+			if ( ray.intersect_triangle( 
+			  face.o, face.d1, face.d2, 
+			  hit1 ) && hit1.t < hit.t )
 			{
 				hit = hit1;
 				hit.id = j;
@@ -254,6 +256,7 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 
 	NEXT_BRANCH:;
 	}
+
 	return hit.t != INFINITY;
 }
 
