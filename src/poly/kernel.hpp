@@ -20,6 +20,9 @@ namespace __impl
 template <typename... Args>
 struct arguments;
 
+template <typename T, typename = void>
+struct MoverImpl;
+
 #endif
 
 struct Emittable
@@ -31,23 +34,11 @@ struct Emittable
 	template <typename... Args>
 	friend struct arguments;
 
-#endif
-
-#ifdef KOISHI_USE_CUDA
-	void emit()
-	{
-		isTransferring() = true;
-		__copy_construct();
-		isTransferring() = false;
-	}
-	void fetch()
-	{
-		isTransferring() = true;
-		__copy_construct();
-		isTransferring() = false;
-	}
+	template <typename T, typename = void>
+	friend struct MoverImpl;
 
 #endif
+
 protected:
 	static bool &isTransferring()
 	{
@@ -56,8 +47,10 @@ protected:
 	}
 
 protected:
-	KOISHI_HOST_DEVICE virtual void __copy_construct() = 0;
-	KOISHI_HOST_DEVICE virtual void __move_construct() = 0;
+	KOISHI_HOST_DEVICE virtual void __copy_construct(
+	  void *dst, const void *src, uint count ) const = 0;
+	KOISHI_HOST_DEVICE virtual void __move_construct(
+	  void *dst, const void *src, uint count ) const = 0;
 };
 
 #ifdef KOISHI_USE_CUDA
@@ -65,40 +58,65 @@ protected:
 template <typename T>
 __global__ inline void move_construct( T *dest, T *src )
 {
-	//KLOG3("move_construct()", typeid(T).name(), dest, src);
 	auto idx = threadIdx.x;
 	new ( dest + idx ) T( std::move( src[ idx ] ) );
 }
 
+template <typename T, typename = void>
+struct MoverImpl
+{
+	static void mvc( T *dst, const T *src, uint count )
+	{
+		move_construct<<<1, count>>>( dst, src );
+		cudaDeviceSynchronize();
+	}
+
+	static void cc( T *dst, const T *src, uint count )
+	{
+		for ( auto q = dst, p = src; p != src + count; ++p, ++q )
+		{
+			new ( q ) T( *p );
+		}
+	}
+};
+
 template <typename T>
-struct Mover
+struct MoverImpl<T, typename std::enable_if<std::is_base_of<Emittable, T>::value>::type>
+{
+	static void mvc( T *dst, const T *src, uint count )
+	{
+		auto em = static_cast<const Emittable *>( src );
+		em->__move_construct( dst, src, count );
+	}
+
+	static void cc( T *dst, const T *src, uint count )
+	{
+		auto em = static_cast<const Emittable *>( src );
+		em->__copy_construct( dst, src, count );
+	}
+};
+
+template <typename T>
+struct Mover : MoverImpl<T>
 {
 	static void union_to_device( T *device_ptr, T *union_ptr, uint count = 1 )
 	{
-		move_construct<<<1, count>>>( device_ptr, union_ptr );
-		cudaDeviceSynchronize();
+		mvc( device_ptr, union_ptr, count );
 	}
 
 	static void device_to_union( T *union_ptr, T *device_ptr, uint count = 1 )
 	{
-		move_construct<<<1, count>>>( union_ptr, device_ptr );
-		cudaDeviceSynchronize();
+		mvc( union_ptr, device_ptr, count );
 	}
 
 	static void union_to_host( T *host_ptr, T *union_ptr, uint count = 1 )
 	{
-		for ( auto q = host_ptr, p = union_ptr; p != union_ptr + count; ++p, ++q )
-		{
-			new ( q ) T( static_cast<const T &>( *p ) );
-		}
+		cc( host_ptr, union_ptr, count );
 	}
 
 	static void host_to_union( T *union_ptr, T *host_ptr, uint count = 1 )
 	{
-		for ( auto q = host_ptr, p = union_ptr; p != union_ptr + count; ++p, ++q )
-		{
-			new ( p ) T( static_cast<const T &>( *q ) );
-		}
+		cc( union_ptr, host_ptr, count );
 	}
 
 	static void host_to_device( T *device_ptr, T *host_ptr, uint count = 1 )
@@ -393,15 +411,27 @@ struct emittable : public Base
 				   "'emittable' must derive from a emittable type" );
 
 private:
-	KOISHI_HOST_DEVICE void __copy_construct() override
+	KOISHI_HOST_DEVICE void __move_construct(
+	  void *dst, const void *src, uint count ) const override
 	{
-		auto p = static_cast<Type *>( this );
-		new ( p ) Type( *p );
+#ifdef KOISHI_USE_CUDA
+		auto d = static_cast<Type *>( dst );
+		auto s = static_cast<const Type *>( src );
+		__impl::move_construct<<<1, count>>>( d, s, count );
+		cudaDeviceSynchronize();
+#endif
 	}
-	KOISHI_HOST_DEVICE void __move_construct() override
+	KOISHI_HOST_DEVICE void __copy_construct(
+	  void *dst, const void *src, uint count ) const override
 	{
-		auto p = static_cast<Type *>( this );
-		new ( p ) Type( *p );
+#ifdef KOISHI_USE_CUDA
+		auto d = static_cast<Type *>( dst );
+		auto s = static_cast<const Type *>( src );
+		for ( auto q = d, p = s; p != s + count; ++p, ++q )
+		{
+			new ( q ) Type( *p );
+		}
+#endif
 	}
 };
 
