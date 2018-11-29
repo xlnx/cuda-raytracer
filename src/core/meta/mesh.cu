@@ -50,9 +50,9 @@ static BVHTreeNode *doCreateBVH(
 
 	// len = k * KOISHI_TRIANGLE_WARP
 	auto len = end - begin;
+	node.offset = len > KOISHI_TRIANGLE_STRIPE;
 	node.begin = ( begin - info.begin() ) * 3;
 	node.end = ( end - info.begin() ) * 3;
-	node.offset = len > KOISHI_TRIANGLE_STRIPE;
 
 	auto res = new BVHTreeNode;
 	res->node = node;
@@ -145,6 +145,7 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 
 Mesh::Mesh( const CompactMesh &other ) :
   faces( other.indices.size() / 3 ),
+  normals( other.indices.size() / 3 ),
   bvh( other.bvh.size() ),
   matid( other.matid )
 {
@@ -159,9 +160,9 @@ Mesh::Mesh( const CompactMesh &other ) :
 		faces[ j ].d1 = other.vertices[ i1 ] - o;
 		faces[ j ].d2 = other.vertices[ i2 ] - o;
 
-		faces[ j ].n0 = other.normals[ i0 ];
-		faces[ j ].n1 = other.normals[ i1 ];
-		faces[ j ].n2 = other.normals[ i2 ];
+		normals[ j ].n0 = other.normals[ i0 ];
+		normals[ j ].n1 = other.normals[ i1 ];
+		normals[ j ].n2 = other.normals[ i2 ];
 	}
 	memcpy( bvh.data(), other.bvh.data(), sizeof( BVHNode ) * other.bvh.size() );
 	for ( auto &node : bvh )
@@ -172,6 +173,7 @@ Mesh::Mesh( const CompactMesh &other ) :
 
 Mesh::Mesh( CompactMesh &&other ) :
   faces( other.indices.size() / 3 ),
+  normals( other.indices.size() / 3 ),
   bvh( std::move( other.bvh ) ),
   matid( other.matid )
 {
@@ -186,9 +188,9 @@ Mesh::Mesh( CompactMesh &&other ) :
 		faces[ j ].d1 = other.vertices[ i1 ] - o;
 		faces[ j ].d2 = other.vertices[ i2 ] - o;
 
-		faces[ j ].n0 = other.normals[ i0 ];
-		faces[ j ].n1 = other.normals[ i1 ];
-		faces[ j ].n2 = other.normals[ i2 ];
+		normals[ j ].n0 = other.normals[ i0 ];
+		normals[ j ].n1 = other.normals[ i1 ];
+		normals[ j ].n2 = other.normals[ i2 ];
 	}
 	for ( auto &node : bvh )
 	{
@@ -211,8 +213,12 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 
 		while ( auto offset = bvh[ i ].offset )
 		{  // using depth frist search will cost less space than bfs.
-			int left = ray.intersect_bbox( bvh[ i + 1 ].vmin, bvh[ i + 1 ].vmax );
-			int right = ray.intersect_bbox( bvh[ i + offset ].vmin, bvh[ i + offset ].vmax );
+			int left = ray.intersect_bbox(
+			  bvh[ i + 1 ].vmin,
+			  bvh[ i + 1 ].vmax );
+			int right = ray.intersect_bbox(
+			  bvh[ i + offset ].vmin,
+			  bvh[ i + offset ].vmax );
 			if ( !left && !right )  // no intersection on this branch
 			{
 				goto NEXT_BRANCH;
@@ -245,9 +251,10 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 		{
 			Hit hit1;
 			auto &face = faces[ j ];
-			if ( ray.intersect_triangle( 
-			  face.o, face.d1, face.d2, 
-			  hit1 ) && hit1.t < hit.t )
+			if ( ray.intersect_triangle(
+				   face.o, face.d1, face.d2,
+				   hit1 ) &&
+				 hit1.t < hit.t )
 			{
 				hit = hit1;
 				hit.id = j;

@@ -20,7 +20,7 @@ namespace core
 struct BVHNode
 {
 	float3 vmax, vmin;
-	uint begin, end, offset;  // begin = -1u if not leaf	isleaf = !~begin
+	uint begin, end, offset;
 };
 
 using BVHTree = PolyVector<BVHNode>;
@@ -34,18 +34,28 @@ struct CompactMesh
 	uint matid;
 };
 
-struct Triangle
+namespace attr
+{
+struct Face
 {
 	float3 o, d1, d2;  // o is vertex0, o + d1 is vertex1, o + d2 is vertex2
+};
+
+struct Normal
+{
 	float3 n0, n1, n2;
 };
+
+}  // namespace attr
 
 struct Mesh : Emittable<Mesh>
 {
 	Mesh( const CompactMesh &other );
 	Mesh( CompactMesh &&other );
 
-	PolyVector<Triangle> faces;
+	// SOA of vertex attributes
+	PolyVector<attr::Face> faces;
+	PolyVector<attr::Normal> normals;
 	BVHTree bvh;
 	uint matid;
 
