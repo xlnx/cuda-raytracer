@@ -34,7 +34,7 @@ struct Emittable
 	template <typename... Args>
 	friend struct arguments;
 
-	template <typename T, typename = void>
+	template <typename T, typename>
 	friend struct MoverImpl;
 
 #endif
@@ -48,13 +48,13 @@ protected:
 
 protected:
 	virtual void __copy_construct( void *dst, const void *src, uint count ) const = 0;
-	virtual void __move_construct( void *dst, const void *src, uint count ) const = 0;
+	virtual void __move_construct( void *dst, void *src, uint count ) const = 0;
 };
 
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
-__global__ inline void move_construct( T *dest, const T *src )
+__global__ inline void move_construct( T *dest, T *src )
 {
 	auto idx = threadIdx.x;
 	new ( dest + idx ) T( std::move( src[ idx ] ) );
@@ -63,7 +63,7 @@ __global__ inline void move_construct( T *dest, const T *src )
 template <typename T, typename>
 struct MoverImpl
 {
-	static void mvc( T *dst, const T *src, uint count )
+	static void mvc( T *dst, T *src, uint count )
 	{
 		move_construct<<<1, count>>>( dst, src );
 		cudaDeviceSynchronize();
@@ -83,16 +83,50 @@ struct MoverImpl
 template <typename T>
 struct MoverImpl<T, typename std::enable_if<std::is_base_of<Emittable, T>::value>::type>
 {
-	static void mvc( T *dst, const T *src, uint count )
+	static void mvc( T *dst, T *src, uint count )
 	{
-		auto em = static_cast<const Emittable *>( src );
-		em->__move_construct( dst, src, count );
+		if ( count > 0 )
+		{
+			auto em = getSample();
+			if ( !isSampled() )
+			{
+				isSampled() = true;
+				cudaMemcpy( em, src, sizeof( T ), cudaMemcpyHostToHost );
+			}
+			em->__move_construct( dst, src, count );
+		}
 	}
 
 	static void cc( T *dst, const T *src, uint count )
 	{
-		auto em = static_cast<const Emittable *>( src );
-		em->__copy_construct( dst, src, count );
+		if ( count > 0 )
+		{
+			auto em = getSample();
+			if ( !isSampled() )
+			{
+				isSampled() = true;
+				cudaMemcpy( em, src, sizeof( T ), cudaMemcpyHostToHost );
+			}
+			em->__copy_construct( dst, src, count );
+		}
+	}
+	
+private:
+	static Emittable *getSample()
+	{
+		return static_cast<Emittable *>( reinterpret_cast<T *>( &getSampleStorage() ) );
+	}
+
+	static typename std::aligned_storage<sizeof( T ), alignof( T )>::type &getSampleStorage()
+	{
+		static typename std::aligned_storage<sizeof( T ), alignof( T )>::type sample;
+		return sample;
+	}
+
+	static bool &isSampled()
+	{
+		static bool s = false;
+		return s;
 	}
 };
 
@@ -101,22 +135,22 @@ struct Mover : MoverImpl<T>
 {
 	static void union_to_device( T *device_ptr, T *union_ptr, uint count = 1 )
 	{
-		mvc( device_ptr, union_ptr, count );
+		MoverImpl<T>::mvc( device_ptr, union_ptr, count );
 	}
 
 	static void device_to_union( T *union_ptr, T *device_ptr, uint count = 1 )
 	{
-		mvc( union_ptr, device_ptr, count );
+		MoverImpl<T>::mvc( union_ptr, device_ptr, count );
 	}
 
 	static void union_to_host( T *host_ptr, T *union_ptr, uint count = 1 )
 	{
-		cc( host_ptr, union_ptr, count );
+		MoverImpl<T>::cc( host_ptr, union_ptr, count );
 	}
 
 	static void host_to_union( T *union_ptr, T *host_ptr, uint count = 1 )
 	{
-		cc( union_ptr, host_ptr, count );
+		MoverImpl<T>::cc( union_ptr, host_ptr, count );
 	}
 
 	static void host_to_device( T *device_ptr, T *host_ptr, uint count = 1 )
@@ -394,6 +428,32 @@ callable<F> kernel( F f, dim3 a, dim3 b, uint c = 0u )
 	return callable<F>( f, a, b, c );
 }
 
+template <typename T>
+using mvfn = void ( * )( T *, T * );
+
+template <typename T>
+__global__ inline void move_construct_fnptr( mvfn<T> mv, T *dst, T *src ) 
+{
+	auto idx = threadIdx.x;
+	mv( dst + idx, src + idx );
+}
+
+template <typename T>
+__global__ inline void get_move_function( mvfn<T> *fn )
+{
+	*fn = T::move_constructor;
+}
+
+template <typename T>
+struct Mvfn
+{
+	static mvfn<T> &value()
+	{
+		static mvfn<T> fn;
+		return fn;
+	}
+};
+
 #endif
 
 }  // namespace __impl
@@ -409,14 +469,35 @@ struct emittable : public Base
 {
 	static_assert( std::is_base_of<__impl::Emittable, Base>::value,
 				   "'emittable' must derive from a emittable type" );
+	template <typename T>
+	friend __global__ inline void __impl::get_move_function( __impl::mvfn<T> *fn );
 
 private:
-	void __move_construct( void *dst, const void *src, uint count ) const override
+	KOISHI_HOST_DEVICE static void move_constructor( Type *dst, Type *src )
+	{
+		new ( dst ) Type( std::move( *src ) );
+	}
+	static int getMvfn()
+	{
+		static volatile int k = [&]
+		{
+			__impl::mvfn<Type> *p;
+			cudaMallocManaged( &p, sizeof(p) );
+			__impl::get_move_function<Type><<<1, 1>>>( p );
+			cudaDeviceSynchronize();
+			__impl::Mvfn<Type>::value() = *p;
+			cudaFree( p );
+			return 0;
+		} ();
+		return 0;
+	}
+	void __move_construct( void *dst, void *src, uint count ) const override
 	{
 #ifdef KOISHI_USE_CUDA
+		static volatile int invoke = getMvfn();
 		auto d = static_cast<Type *>( dst );
-		auto s = static_cast<const Type *>( src );
-		__impl::move_construct<<<1, count>>>( d, s );
+		auto s = static_cast<Type *>( src );
+		__impl::move_construct_fnptr<<<1, count>>>( __impl::Mvfn<Type>::value(), d, s );
 		cudaDeviceSynchronize();
 #endif
 	}
