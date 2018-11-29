@@ -47,22 +47,20 @@ protected:
 	}
 
 protected:
-	KOISHI_HOST_DEVICE virtual void __copy_construct(
-	  void *dst, const void *src, uint count ) const = 0;
-	KOISHI_HOST_DEVICE virtual void __move_construct(
-	  void *dst, const void *src, uint count ) const = 0;
+	virtual void __copy_construct( void *dst, const void *src, uint count ) const = 0;
+	virtual void __move_construct( void *dst, const void *src, uint count ) const = 0;
 };
 
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
-__global__ inline void move_construct( T *dest, T *src )
+__global__ inline void move_construct( T *dest, const T *src )
 {
 	auto idx = threadIdx.x;
 	new ( dest + idx ) T( std::move( src[ idx ] ) );
 }
 
-template <typename T, typename = void>
+template <typename T, typename>
 struct MoverImpl
 {
 	static void mvc( T *dst, const T *src, uint count )
@@ -73,7 +71,9 @@ struct MoverImpl
 
 	static void cc( T *dst, const T *src, uint count )
 	{
-		for ( auto q = dst, p = src; p != src + count; ++p, ++q )
+		auto q = dst;
+		auto p = src;
+		for ( ; p != src + count; ++p, ++q )
 		{
 			new ( q ) T( *p );
 		}
@@ -411,23 +411,23 @@ struct emittable : public Base
 				   "'emittable' must derive from a emittable type" );
 
 private:
-	KOISHI_HOST_DEVICE void __move_construct(
-	  void *dst, const void *src, uint count ) const override
+	void __move_construct( void *dst, const void *src, uint count ) const override
 	{
 #ifdef KOISHI_USE_CUDA
 		auto d = static_cast<Type *>( dst );
 		auto s = static_cast<const Type *>( src );
-		__impl::move_construct<<<1, count>>>( d, s, count );
+		__impl::move_construct<<<1, count>>>( d, s );
 		cudaDeviceSynchronize();
 #endif
 	}
-	KOISHI_HOST_DEVICE void __copy_construct(
-	  void *dst, const void *src, uint count ) const override
+	void __copy_construct( void *dst, const void *src, uint count ) const override
 	{
 #ifdef KOISHI_USE_CUDA
 		auto d = static_cast<Type *>( dst );
 		auto s = static_cast<const Type *>( src );
-		for ( auto q = d, p = s; p != s + count; ++p, ++q )
+		auto q = d;
+		auto p = s;
+		for ( ; p != s + count; ++p, ++q )
 		{
 			new ( q ) Type( *p );
 		}
