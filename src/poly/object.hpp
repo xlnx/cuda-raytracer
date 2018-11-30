@@ -23,19 +23,22 @@ KOISHI_HOST_DEVICE object<T> &&static_object_cast( object<U> &&other );
 
 namespace __impl
 {
-
 using cc_erased_t = void ( * )( Emittable *, Emittable * );
 
 template <typename T>
 inline void move_construct_erased( Emittable *dst, Emittable *src )
 {
+#ifdef KOISHI_USE_CUDA
 	move_construct( static_cast<T *>( dst ), static_cast<T *>( src ), 1u );
+#endif
 }
 
 template <typename T>
 inline void copy_construct_erased( Emittable *dst, Emittable *src )
 {
+#ifdef KOISHI_USE_CUDA
 	copy_construct( static_cast<T *>( dst ), static_cast<T *>( src ), 1u );
+#endif
 }
 
 struct type_desc
@@ -47,17 +50,19 @@ struct type_desc
 template <typename T>
 inline type_desc get_type_desc()
 {
-	return type_desc {
+	return type_desc{
 		sizeof( T ),
 		move_construct_erased<T>,
 		copy_construct_erased<T>
 	};
 }
 
+#ifdef KOISHI_USE_CUDA
+
 struct TypeErasedMover
 {
 	using T = Emittable;
-	
+
 	static void host_to_device( T *device_ptr, T *host_ptr, const type_desc &desc )
 	{
 		KLOG3( "move from host to device type erased" );
@@ -70,7 +75,7 @@ struct TypeErasedMover
 		union_to_device( device_ptr, union_ptr, desc );
 		cudaFree( union_ptr );
 	}
-	
+
 	static void device_to_host( T *host_ptr, T *device_ptr, const type_desc &desc )
 	{
 		KLOG3( "move from device to host type erased" );
@@ -89,12 +94,12 @@ private:
 	{
 		desc.mvctor( device_ptr, union_ptr );
 	}
-	
+
 	static void device_to_union( T *union_ptr, T *device_ptr, const type_desc &desc )
 	{
 		desc.mvctor( union_ptr, device_ptr );
 	}
-	
+
 	static void union_to_host( T *host_ptr, T *union_ptr, const type_desc &desc )
 	{
 		desc.cpctor( host_ptr, union_ptr );
@@ -106,7 +111,9 @@ private:
 	}
 };
 
-}
+#endif
+
+}  // namespace __impl
 
 template <typename T>
 struct object final : emittable
