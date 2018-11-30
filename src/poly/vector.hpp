@@ -18,7 +18,7 @@ namespace poly
 // vector holds a read-only data vector for either cpu or gpu
 // use std::move to make
 template <typename T>
-struct vector final : emittable<vector<T>>
+struct vector final : emittable
 {
 	using value_type = T;
 	using size_type = std::size_t;
@@ -112,6 +112,7 @@ public:
 
 public:
 	KOISHI_HOST_DEVICE vector( vector &&other ) :
+	  emittable( std::move( other ) ),
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
@@ -139,6 +140,7 @@ public:
 	vector( const vector &other )
 #ifdef KOISHI_USE_CUDA
 	  :
+	  emittable( other ),
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
@@ -155,7 +157,7 @@ public:
 	vector &operator=( const vector &other )
 #ifdef KOISHI_USE_CUDA
 	{
-		// emittable<vector<T>>::operator=( std::move( const_cast<vector &>( other ) ) );
+		// emittable::operator=( std::move( const_cast<vector &>( other ) ) );
 		total = other.total;
 		curr = other.curr;
 		value = other.value;
@@ -182,7 +184,8 @@ private:
 		if ( is_device_ptr )
 		{
 			new_ptr = preserved;
-			__impl::Mover<T>::device_to_host( new_ptr, new_ptr, value, curr );
+			__impl::Mover<T>::device_to_host( new_ptr, value, curr );
+			cudaFree( value );
 		}
 		else
 		{
@@ -191,7 +194,7 @@ private:
 			{
 				KTHROW( cudaMalloc on device failed );
 			}
-			__impl::Mover<T>::host_to_device( value, new_ptr, value, curr );
+			__impl::Mover<T>::host_to_device( new_ptr, value, curr );
 			preserved = value;
 		}
 		// if ( &other == this )

@@ -11,7 +11,7 @@ namespace koishi
 {
 namespace core
 {
-struct Scene : emittable<Scene>
+struct Scene : emittable
 {
 	Scene( const std::string &path );
 

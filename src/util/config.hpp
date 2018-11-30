@@ -9,7 +9,7 @@
 
 namespace koishi
 {
-struct CameraConfig : serializable<CameraConfig>, emittable<CameraConfig>
+struct CameraConfig : serializable<CameraConfig>, emittable
 {
 	Property( float, fovx, 90 );
 	Property( float, aspect, 0 );
@@ -20,7 +20,7 @@ struct CameraConfig : serializable<CameraConfig>, emittable<CameraConfig>
 	Property( float, zFar, 1e5 );
 };
 
-struct MaterialConfig : serializable<MaterialConfig>, emittable<MaterialConfig>
+struct MaterialConfig : serializable<MaterialConfig>, emittable
 {
 };
 

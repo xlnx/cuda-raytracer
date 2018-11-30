@@ -48,7 +48,7 @@ struct Normal
 
 }  // namespace attr
 
-struct Mesh : emittable<Mesh>
+struct Mesh : emittable
 {
 	Mesh( const CompactMesh &other );
 	Mesh( CompactMesh &&other );

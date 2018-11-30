@@ -20,9 +20,6 @@ namespace __impl
 template <typename... Args>
 struct arguments;
 
-template <typename T, typename = void>
-struct MoverImpl;
-
 #endif
 
 struct Emittable
@@ -34,9 +31,6 @@ struct Emittable
 	template <typename... Args>
 	friend struct arguments;
 
-	template <typename T, typename>
-	friend struct MoverImpl;
-
 #endif
 
 protected:
@@ -45,106 +39,54 @@ protected:
 		static bool is_transferring = false;
 		return is_transferring;
 	}
-
-protected:
-	virtual void __invoke() const = 0;
-	virtual void __copy_construct( void *dst, const void *src, uint count ) const = 0;
-	virtual void __move_construct( void *dst, void *src, uint count ) const = 0;
 };
 
 #ifdef KOISHI_USE_CUDA
 
 template <typename T>
-__global__ inline void move_construct( T *dest, T *src )
+__global__ inline void move_construct_glob( T *dest, T *src )
 {
 	auto idx = threadIdx.x;
 	new ( dest + idx ) T( std::move( src[ idx ] ) );
 }
 
-template <typename T, typename>
-struct MoverImpl
+template <typename T>
+inline void move_construct( T *dst, T *src, uint count )
 {
-	static void mvc( T *preserved, T *dst, T *src, uint count )
-	{
-		move_construct<<<1, count>>>( dst, src );
-		cudaDeviceSynchronize();
-	}
-
-	static void cc( T *preserved, T *dst, const T *src, uint count )
-	{
-		auto q = dst;
-		auto p = src;
-		for ( ; p != src + count; ++p, ++q )
-		{
-			new ( q ) T( *p );
-		}
-	}
-};
+	move_construct_glob<<<1, count>>>( dst, src );
+	cudaDeviceSynchronize();
+}
 
 template <typename T>
-struct MoverImpl<T, typename std::enable_if<std::is_base_of<Emittable, T>::value>::type>
+inline void copy_construct( T *dst, T *src, uint count )
 {
-	static void mvc( T *preserved, T *dst, T *src, uint count )
+	T *q = dst;
+	const T *p = src;
+	for ( ; p != src + count; ++q, ++p )
 	{
-		auto p = static_cast<Emittable *>( preserved );
-		p->__invoke();
-		p->__move_construct( dst, src, count );
+		new ( q ) T( *p );
 	}
-
-	static void cc( T *preserved, T *dst, const T *src, uint count )
-	{
-		auto p = static_cast<Emittable *>( preserved );
-		p->__invoke();
-		p->__copy_construct( dst, src, count );
-	}
-};
+}
 
 template <typename T>
-struct Mover : MoverImpl<T>
+struct Mover
 {
-	static void union_to_device( T *preserved, T *device_ptr, T *union_ptr, uint count = 1 )
-	{
-		MoverImpl<T>::mvc( preserved, device_ptr, union_ptr, count );
-	}
-
-	static void device_to_union( T *preserved, T *union_ptr, T *device_ptr, uint count = 1 )
-	{
-		MoverImpl<T>::mvc( preserved, union_ptr, device_ptr, count );
-	}
-
-	static void union_to_host( T *preserved, T *host_ptr, T *union_ptr, uint count = 1 )
-	{
-		MoverImpl<T>::cc( preserved, host_ptr, union_ptr, count );
-	}
-
-	static void host_to_union( T *preserved, T *union_ptr, T *host_ptr, uint count = 1 )
-	{
-		MoverImpl<T>::cc( preserved, union_ptr, host_ptr, count );
-	}
-
-	static void host_to_device( T *preserved, T *device_ptr, T *host_ptr, uint count = 1 )
+	static void host_to_device( T *device_ptr, T *host_ptr, uint count )
 	{
 		KLOG3( "move from host to device", typeid( T ).name(), count );
 		if ( !count ) return;
 		std::size_t alloc_size = sizeof( T ) * count;
 		if ( !std::is_pod<T>::value )
 		{
-			// #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
-			// 		if ( !std::is_standard_layout<T>::value )
-			// #else
-			// 		if ( !std::is_trivially_copyable<T>::value )
-			// #endif
-			// 		{
 			KLOG3( "using non-trival copy for class", typeid( T ).name() );
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
 				KTHROW( cudaMallocManaged failed );
 			}
-			host_to_union( preserved, union_ptr, host_ptr, count );
-			union_to_device( preserved, device_ptr, union_ptr, count );
+			host_to_union( union_ptr, host_ptr, count );
+			union_to_device( device_ptr, union_ptr, count );
 			cudaFree( union_ptr );
-			// }
 		}
 		else
 		{
@@ -156,29 +98,22 @@ struct Mover : MoverImpl<T>
 		}
 	}
 
-	static void device_to_host( T *preserved, T *host_ptr, T *device_ptr, uint count = 1 )
+	static void device_to_host( T *host_ptr, T *device_ptr, uint count )
 	{
 		KLOG3( "move from device to host", typeid( T ).name(), count );
 		if ( !count ) return;
 		std::size_t alloc_size = sizeof( T ) * count;
 		if ( !std::is_pod<T>::value )
 		{
-			// #if __GNUC__ == 4 && __GNUC_MINOR__ < 9
-			// 			if ( !std::is_standard_layout<T>::value )
-			// #else
-			// 			if ( !std::is_trivially_copyable<T>::value )
-			// #endif
-			// 			{
 			KLOG3( "using non-trival copy for class", typeid( T ).name() );
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
 				KTHROW( cudaMallocManaged failed );
 			}
-			device_to_union( preserved, union_ptr, device_ptr, count );
-			union_to_host( preserved, host_ptr, union_ptr, count );
+			device_to_union( union_ptr, device_ptr, count );
+			union_to_host( host_ptr, union_ptr, count );
 			cudaFree( union_ptr );
-			// }
 		}
 		else
 		{
@@ -189,6 +124,28 @@ struct Mover : MoverImpl<T>
 			}
 		}
 	}
+
+private:
+	static void union_to_device( T *device_ptr, T *union_ptr, uint count )
+	{
+		move_construct( device_ptr, union_ptr, count );
+	}
+
+	static void device_to_union( T *union_ptr, T *device_ptr, uint count )
+	{
+		move_construct( union_ptr, device_ptr, count );
+	}
+
+	static void union_to_host( T *host_ptr, T *union_ptr, uint count )
+	{
+		copy_construct( host_ptr, union_ptr, count );
+	}
+
+	static void host_to_union( T *union_ptr, T *host_ptr, uint count )
+	{
+		copy_construct( union_ptr, host_ptr, count );
+	}
+
 };
 
 #endif
@@ -196,28 +153,6 @@ struct Mover : MoverImpl<T>
 template <typename T>
 struct Destroyer
 {
-#ifdef KOISHI_USE_CUDA
-	static void destroy_device( T *device_ptr, uint count = 1 )
-	{
-		KLOG3( "destroying device objects", typeid( T ).name(), count );
-		std::size_t alloc_size = sizeof( T ) * count;
-		if ( !std::is_pod<T>::value )
-		{
-			T *union_ptr;
-			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
-			{
-				KTHROW( cudaMallocManaged failed );
-			}
-			Mover<T>::device_to_union( union_ptr, device_ptr, count );
-			for ( auto p = union_ptr; p != union_ptr + count; ++p )
-			{
-				p->~T();
-			}
-			cudaFree( union_ptr );
-		}
-	}
-#endif
-
 	static void destroy_host( T *host_ptr, uint count = 1 )
 	{
 		KLOG3( "destroy", host_ptr ); 
@@ -242,13 +177,13 @@ struct arguments<T, Args...> : arguments<Args...>
 	{
 		cudaMallocManaged( &data, sizeof( value_type ) );
 		Emittable::isTransferring() = true;
-		Mover<value_type>::host_to_union( param_ptr, data, param_ptr );
+		Mover<value_type>::host_to_device( data, param_ptr, 1 );
 		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
 		Emittable::isTransferring() = true;
-		Mover<value_type>::union_to_host( param_ptr, param_ptr, data );
+		Mover<value_type>::device_to_host( param_ptr, data, 1 );
 		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
@@ -290,13 +225,13 @@ struct arguments<T> : argument_base
 	{
 		cudaMallocManaged( &data, sizeof( value_type ) );
 		Emittable::isTransferring() = true;
-		Mover<value_type>::host_to_union( param_ptr, data, param_ptr );
+		Mover<value_type>::host_to_device( data, param_ptr, 1 );
 		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
 		Emittable::isTransferring() = true;
-		Mover<value_type>::union_to_host( param_ptr, param_ptr, data );
+		Mover<value_type>::device_to_host( param_ptr, data, 1 );
 		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
@@ -398,33 +333,6 @@ callable<F> kernel( F f, dim3 a, dim3 b, uint c = 0u )
 	return callable<F>( f, a, b, c );
 }
 
-template <typename T>
-using mvfn = void ( * )( T *, T * );
-
-template <typename T>
-__global__ inline void move_construct_fnptr( mvfn<T> mv, T *dst, T *src )
-{
-	auto idx = threadIdx.x;
-	printf( "%d %p %p %p\n", idx, dst, src, mv );
-	mv( dst + idx, src + idx );
-}
-
-template <typename T>
-__global__ inline void get_move_function( mvfn<T> *fn )
-{
-	*fn = T::move_constructor;
-}
-
-template <typename T>
-struct Mvfn
-{
-	static mvfn<T> &value()
-	{
-		static mvfn<T> fn;
-		return fn;
-	}
-};
-
 #endif
 
 }  // namespace __impl
@@ -435,86 +343,17 @@ using __impl::kernel;
 
 #endif
 
-template <typename Type, typename Base = __impl::Emittable>
-struct emittable : public Base
+struct emittable : public __impl::Emittable
 {
-	static_assert( std::is_base_of<__impl::Emittable, Base>::value,
-				   "'emittable' must derive from a emittable type" );
-
-#ifdef KOISHI_USE_CUDA
-	template <typename T>
-	friend __global__ inline void __impl::get_move_function( __impl::mvfn<T> *fn );
-#endif
-	emittable() = default;
-	KOISHI_HOST_DEVICE emittable( emittable &&other ) = default;
-	emittable( const emittable &other ) = default;
-	KOISHI_HOST_DEVICE emittable &operator=( emittable &&other ) = default;
-	emittable &operator=( const emittable &other ) = default;
-
-private:
-#ifdef KOISHI_USE_CUDA
-	KOISHI_DEVICE static void move_constructor( Type *dst, Type *src )
-	{
-		printf( "move_ctor\n" );
-		new ( dst ) Type( std::move( *src ) );
-	}
-	static int getMvfn()
-	{
-		static volatile int k = [&] {
-			__impl::mvfn<Type> *p;
-			cudaMallocManaged( &p, sizeof( p ) );
-			__impl::get_move_function<Type><<<1, 1>>>( p );
-			cudaDeviceSynchronize();
-			__impl::Mvfn<Type>::value() = *p;
-			cudaFree( p );
-			return 0;
-		}();
-		return 0;
-	}
-#endif
-	void __invoke() const override
-	{
-#ifdef KOISHI_USE_CUDA	
-		static volatile int invoke = getMvfn();
-#endif
-	}
-	
-	void __move_construct( void *dst, void *src, uint count ) const override
-	{
-#ifdef KOISHI_USE_CUDA
-		auto d = static_cast<Type *>( dst );
-		auto s = static_cast<Type *>( src );
-		__impl::move_construct_fnptr<<<1, count>>>( __impl::Mvfn<Type>::value(), d, s );
-		cudaDeviceSynchronize();
-#endif
-	}
-
-	void __copy_construct( void *dst, const void *src, uint count ) const override
-	{
-#ifdef KOISHI_USE_CUDA
-		KLOG3( "copy construct", typeid( Type ).name(), dst, src, "using", this, "count", count );
-		auto d = static_cast<Type *>( dst );
-		auto s = static_cast<const Type *>( src );
-		auto q = d;
-		auto p = s;
-		for ( ; p != s + count; ++p, ++q )
-		{
-			new ( q ) Type( *p );
-		}
-#endif
-	}
-};
-
-template <typename Type, typename Base = __impl::Emittable>
-struct abstract_emittable : public Base
-{
-	static_assert( std::is_base_of<__impl::Emittable, Base>::value,
-				   "'emittable' must derive from a emittable type" );
+	KOISHI_HOST_DEVICE emittable() = default;
+	KOISHI_HOST_DEVICE emittable( emittable && ) = default;
+	KOISHI_HOST_DEVICE emittable &operator=( emittable && ) = default;
+	emittable( const emittable & ) = default;
+	emittable &operator=( const emittable & ) = default;
 };
 
 }  // namespace poly
 
-using poly::abstract_emittable;
 using poly::emittable;
 
 }  // namespace koishi

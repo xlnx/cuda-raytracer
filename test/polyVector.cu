@@ -6,7 +6,7 @@ using namespace core;
 
 #ifdef KOISHI_USE_CUDA
 
-struct A : emittable<A>
+struct A : emittable
 {
 	A( int i ) :
 	  n( i )

@@ -4,25 +4,19 @@
 using namespace koishi;
 using namespace core;
 
-TEST( test_poly_object, object_create )
-{
-	poly::object<int> a = poly::make_object<int>( 1 );
-	ASSERT_EQ( *a, 1 );
-	*a = 2;
-	ASSERT_EQ( *a, 2 );
-}
-
-struct A : emittable<A>
+struct A : emittable
 {
 	A() { n++; }
 	A( const A & ) { n++; }
-	A( A && ) { 
+	KOISHI_HOST_DEVICE A( A &&other ):
+	  emittable( std::move( other ) )
+	{ 
 		printf("move A\n");
 #ifndef __CUDA_ARCH__
 		n++;
 #endif
 	}
-	A &operator=( A && ) = default;
+	KOISHI_HOST_DEVICE A &operator=( A && ) = default;
 	A &operator=( const A & ) = default;
 	~A() { n--; }
 	
@@ -35,17 +29,19 @@ struct A : emittable<A>
 	static int n;
 };
 
-struct B : emittable<B, A>
+struct B : A
 {
 	B() { n++; }
 	B( const B & ) { n++; }
-	B( B && ) { 
+	KOISHI_HOST_DEVICE B( B &&other ):
+	  A( std::move( other ) )
+	{ 
 		printf("move B\n");
 #ifndef __CUDA_ARCH__
 		n++;
 #endif
 	}
-	B &operator=( B && ) = default;
+	KOISHI_HOST_DEVICE B &operator=( B && ) = default;
 	B &operator=( const B & ) = default;
 	~B() { n--; }
 
@@ -60,6 +56,14 @@ struct B : emittable<B, A>
 
 int A::n = 0;
 int B::n = 0;
+
+TEST( test_poly_object, object_create )
+{
+	poly::object<A> a = poly::make_object<A>();
+	ASSERT_EQ( a->x, 1 );
+	a->x = 2;
+	ASSERT_EQ( a->x, 2 );
+}
 
 TEST( test_poly_object, object_sealed )
 {
@@ -138,12 +142,12 @@ TEST( test_poly_object, object_sealed_3 )
 
 #ifdef KOISHI_USE_CUDA
 __global__ void g( 
-	poly::vector<int> &b,
-	const poly::object<A> &a
+	const poly::object<A> &a,
+	poly::vector<int> &b
 )
 {
-	// b[ 0 ] = a->x;
-	//b[ 1 ] = a->f();
+	b[ 0 ] = a->x;
+	b[ 1 ] = a->f();
 }
 #endif
 
@@ -152,8 +156,9 @@ TEST( test_poly_object, object_polymorphism )
 #ifdef KOISHI_USE_CUDA
 	poly::object<A> a = poly::make_object<B>();
 	poly::vector<int> b( 2 );
-	poly::kernel( g, 1, 1 )( b, a );
+	poly::kernel( g, 1, 1 )( a, b );
 	EXPECT_EQ( b[ 0 ], 1 );
 	EXPECT_EQ( b[ 1 ], 2 );
 #endif
 }
+
