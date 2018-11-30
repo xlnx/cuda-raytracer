@@ -1,5 +1,6 @@
 #pragma once
 
+#include <cstdio>
 #include <iostream>
 #include <sstream>
 #include <typeinfo>
@@ -38,6 +39,7 @@ inline double tick()
 // 	#define LOG( ... )
 // #endif
 //
+#define KPRINT( ... ) printf( __VA_ARGS__ )
 
 #define KINFO(Session, ...) KLOG( "[", #Session, "] ", __VA_ARGS__ )
 

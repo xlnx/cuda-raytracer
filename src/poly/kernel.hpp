@@ -47,6 +47,7 @@ protected:
 	}
 
 protected:
+	virtual void __invoke() const = 0;
 	virtual void __copy_construct( void *dst, const void *src, uint count ) const = 0;
 	virtual void __move_construct( void *dst, void *src, uint count ) const = 0;
 };
@@ -86,12 +87,14 @@ struct MoverImpl<T, typename std::enable_if<std::is_base_of<Emittable, T>::value
 	static void mvc( T *preserved, T *dst, T *src, uint count )
 	{
 		auto p = static_cast<Emittable *>( preserved );
+		p->__invoke();
 		p->__move_construct( dst, src, count );
 	}
 
 	static void cc( T *preserved, T *dst, const T *src, uint count )
 	{
 		auto p = static_cast<Emittable *>( preserved );
+		p->__invoke();
 		p->__copy_construct( dst, src, count );
 	}
 };
@@ -217,6 +220,7 @@ struct Destroyer
 
 	static void destroy_host( T *host_ptr, uint count = 1 )
 	{
+		KLOG3( "destroy", host_ptr ); 
 		for ( auto p = host_ptr; p != host_ptr + count; ++p )
 		{
 			p->~T();
@@ -401,6 +405,7 @@ template <typename T>
 __global__ inline void move_construct_fnptr( mvfn<T> mv, T *dst, T *src )
 {
 	auto idx = threadIdx.x;
+	printf( "%d %p %p %p\n", idx, dst, src, mv );
 	mv( dst + idx, src + idx );
 }
 
@@ -440,11 +445,17 @@ struct emittable : public Base
 	template <typename T>
 	friend __global__ inline void __impl::get_move_function( __impl::mvfn<T> *fn );
 #endif
+	emittable() = default;
+	KOISHI_HOST_DEVICE emittable( emittable &&other ) = default;
+	emittable( const emittable &other ) = default;
+	KOISHI_HOST_DEVICE emittable &operator=( emittable &&other ) = default;
+	emittable &operator=( const emittable &other ) = default;
 
 private:
 #ifdef KOISHI_USE_CUDA
-	KOISHI_HOST_DEVICE static void move_constructor( Type *dst, Type *src )
+	KOISHI_DEVICE static void move_constructor( Type *dst, Type *src )
 	{
+		printf( "move_ctor\n" );
 		new ( dst ) Type( std::move( *src ) );
 	}
 	static int getMvfn()
@@ -461,19 +472,27 @@ private:
 		return 0;
 	}
 #endif
+	void __invoke() const override
+	{
+#ifdef KOISHI_USE_CUDA	
+		static volatile int invoke = getMvfn();
+#endif
+	}
+	
 	void __move_construct( void *dst, void *src, uint count ) const override
 	{
 #ifdef KOISHI_USE_CUDA
-		static volatile int invoke = getMvfn();
 		auto d = static_cast<Type *>( dst );
 		auto s = static_cast<Type *>( src );
 		__impl::move_construct_fnptr<<<1, count>>>( __impl::Mvfn<Type>::value(), d, s );
 		cudaDeviceSynchronize();
 #endif
 	}
+
 	void __copy_construct( void *dst, const void *src, uint count ) const override
 	{
 #ifdef KOISHI_USE_CUDA
+		KLOG3( "copy construct", typeid( Type ).name(), dst, src, "using", this, "count", count );
 		auto d = static_cast<Type *>( dst );
 		auto s = static_cast<const Type *>( src );
 		auto q = d;

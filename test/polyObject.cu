@@ -16,10 +16,20 @@ struct A : emittable<A>
 {
 	A() { n++; }
 	A( const A & ) { n++; }
-	A( A && ) { n++; }
+	A( A && ) { 
+		printf("move A\n");
+#ifndef __CUDA_ARCH__
+		n++;
+#endif
+	}
 	A &operator=( A && ) = default;
 	A &operator=( const A & ) = default;
 	~A() { n--; }
+	
+	KOISHI_HOST_DEVICE virtual int f() const
+	{
+		return 1;
+	}
 
 	int x = 1;
 	static int n;
@@ -29,10 +39,20 @@ struct B : emittable<B, A>
 {
 	B() { n++; }
 	B( const B & ) { n++; }
-	B( B && ) { n++; }
+	B( B && ) { 
+		printf("move B\n");
+#ifndef __CUDA_ARCH__
+		n++;
+#endif
+	}
 	B &operator=( B && ) = default;
 	B &operator=( const B & ) = default;
 	~B() { n--; }
+
+	KOISHI_HOST_DEVICE int f() const override
+	{
+		return 2;
+	}
 
 	int y = 2;
 	static int n;
@@ -114,4 +134,26 @@ TEST( test_poly_object, object_sealed_3 )
 	}
 	ASSERT_EQ( A::n, 0 );
 	ASSERT_EQ( B::n, 0 );
+}
+
+#ifdef KOISHI_USE_CUDA
+__global__ void g( 
+	poly::vector<int> &b,
+	const poly::object<A> &a
+)
+{
+	// b[ 0 ] = a->x;
+	//b[ 1 ] = a->f();
+}
+#endif
+
+TEST( test_poly_object, object_polymorphism )
+{
+#ifdef KOISHI_USE_CUDA
+	poly::object<A> a = poly::make_object<B>();
+	poly::vector<int> b( 2 );
+	poly::kernel( g, 1, 1 )( b, a );
+	EXPECT_EQ( b[ 0 ], 1 );
+	EXPECT_EQ( b[ 1 ], 2 );
+#endif
 }

@@ -136,6 +136,7 @@ private:
 			{
 				KTHROW( cudaMalloc on device failed );
 			}
+			KLOG3( "object", value, new_ptr, value );
 			__impl::Mover<T>::host_to_device( value, new_ptr, value );
 		}
 		preserved = value;
