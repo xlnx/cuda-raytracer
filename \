@@ -1,4 +1,0 @@
-#!/bin/bash
-
-cmake --build build --target cr -- -j4
-
