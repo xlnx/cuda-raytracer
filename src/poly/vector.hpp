@@ -142,6 +142,7 @@ public:
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
+	  preserved( other.preserved), 
 	  is_device_ptr( other.is_device_ptr )
 	{
 		copyBetweenDevice( other );
@@ -158,6 +159,7 @@ public:
 		total = other.total;
 		curr = other.curr;
 		value = other.value;
+		preserved = other.preserved;
 		is_device_ptr = other.is_device_ptr;
 		copyBetweenDevice( other );
 		return *this;
@@ -209,12 +211,12 @@ private:
 			KLOG3( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
-#ifdef KOISHI_USE_CUDA
-				__impl::Destroyer<T>::destroy_device( value, curr );
-				cudaFree( value );
-#else
+//#ifdef KOISHI_USE_CUDA
+//				__impl::Destroyer<T>::destroy_device( value, curr );
+//				cudaFree( value );
+//#else
 				KTHROW( invalid internal state );
-#endif
+//#endif
 			}
 			else
 			{

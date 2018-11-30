@@ -43,6 +43,7 @@ public:
 	object() = default;
 	object( object &&other ) :
 	  value( other.value ),
+	  preserved( other.preserved ),
 	  alloc_size( other.alloc_size ),
 	  is_device_ptr( other.is_device_ptr )
 	{
@@ -51,6 +52,7 @@ public:
 	template <typename U, typename = typename std::enable_if<std::is_base_of<T, U>::value>::type>
 	object( object<U> &&other ) :
 	  value( static_cast<T *>( other.value ) ),
+	  preserved( static_Cast<T *>( other.preserved ),
 	  alloc_size( other.alloc_size ),
 	  is_device_ptr( other.is_device_ptr )
 	{
@@ -60,6 +62,7 @@ public:
 	{
 		destroy();
 		value = other.value;
+		preserved = other.preserved;
 		alloc_size = other.alloc_size;
 		is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
@@ -70,6 +73,7 @@ public:
 	{
 		destroy();
 		value = static_cast<T *>( other.value );
+		preserved = static_cast<T *>( other.preserved );
 		alloc_size = other.alloc_size;
 		is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
@@ -80,6 +84,7 @@ public:
 #ifdef KOISHI_USE_CUDA
 	  :
 	  value( other.value ),
+	  preserved( other.preserved ),
 	  alloc_size( other.alloc_size ),
 	  is_device_ptr( other.is_device_ptr )
 	{
@@ -94,6 +99,7 @@ public:
 #ifdef KOISHI_USE_CUDA
 	{
 		value = other.value;
+		preserved = other.preserved;
 		alloc_size = other.alloc_size;
 		is_device_ptr = other.is_device_ptr;
 		copyBetweenDevice( other );
@@ -121,8 +127,8 @@ private:
 		pointer new_ptr;
 		if ( is_device_ptr )
 		{
-			new_ptr = (pointer)std::malloc( alloc_size );
-			__impl::Mover<T>::device_to_host( new_ptr, value );
+			new_ptr = preserved;
+			__impl::Mover<T>::device_to_host( preserved, new_ptr, value );
 		}
 		else
 		{
@@ -130,12 +136,9 @@ private:
 			{
 				KTHROW( cudaMalloc on device failed );
 			}
-			__impl::Mover<T>::host_to_device( new_ptr, value );
+			__impl::Mover<T>::host_to_device( value, new_ptr, value );
 		}
-		if ( &other == this )
-		{
-			destroy();
-		}
+		preserved = value;
 		value = new_ptr;
 		is_device_ptr = !is_device_ptr;
 		KLOG3( "value", value );
@@ -149,12 +152,12 @@ private:
 			KLOG3( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
-#ifdef KOISHI_USE_CUDA
-				__impl::Destroyer<T>::destroy_device( value );
-				cudaFree( value );
-#else
+//#ifdef KOISHI_USE_CUDA
+//				__impl::Destroyer<T>::destroy_device( value );
+//				cudaFree( value );
+//#else
 				KTHROW( invalid internal state );
-#endif
+//#endif
 			}
 			else
 			{
@@ -173,6 +176,7 @@ public:
 
 private:
 	T *KOISHI_RESTRICT value = nullptr;
+	T *preserved;
 	std::size_t alloc_size = 0;
 	bool is_device_ptr = false;
 };

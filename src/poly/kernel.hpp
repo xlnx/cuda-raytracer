@@ -85,12 +85,14 @@ struct MoverImpl<T, typename std::enable_if<std::is_base_of<Emittable, T>::value
 {
 	static void mvc( T *preserved, T *dst, T *src, uint count )
 	{
-		preserved->__move_construct( dst, src, count );
+		auto p = static_cast<Emittable *>( preserved );
+		p->__move_construct( dst, src, count );
 	}
 
 	static void cc( T *preserved, T *dst, const T *src, uint count )
 	{
-		preserved->__copy_construct( dst, src, count );
+		auto p = static_cast<Emittable *>( preserved );
+		p->__copy_construct( dst, src, count );
 	}
 };
 
@@ -236,13 +238,13 @@ struct arguments<T, Args...> : arguments<Args...>
 	{
 		cudaMallocManaged( &data, sizeof( value_type ) );
 		Emittable::isTransferring() = true;
-		Mover<value_type>::host_to_union( data, param_ptr );
+		Mover<value_type>::host_to_union( param_ptr, data, param_ptr );
 		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
 		Emittable::isTransferring() = true;
-		Mover<value_type>::union_to_host( param_ptr, data );
+		Mover<value_type>::union_to_host( param_ptr, param_ptr, data );
 		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
@@ -284,13 +286,13 @@ struct arguments<T> : argument_base
 	{
 		cudaMallocManaged( &data, sizeof( value_type ) );
 		Emittable::isTransferring() = true;
-		Mover<value_type>::host_to_union( data, param_ptr );
+		Mover<value_type>::host_to_union( param_ptr, data, param_ptr );
 		Emittable::isTransferring() = false;
 	}
 	~arguments()
 	{
 		Emittable::isTransferring() = true;
-		Mover<value_type>::union_to_host( param_ptr, data );
+		Mover<value_type>::union_to_host( param_ptr, param_ptr, data );
 		Emittable::isTransferring() = false;
 		cudaFree( data );
 	}
