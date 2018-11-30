@@ -115,6 +115,7 @@ public:
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
+	  preserved( other.preserved ),
 	  is_device_ptr( other.is_device_ptr )
 	{
 		other.value = nullptr;
@@ -125,6 +126,7 @@ public:
 		total = other.total;
 		curr = other.curr;
 		value = other.value;
+		preserved = other.preserved;
 		is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
 		return *this;
@@ -175,24 +177,25 @@ private:
 			KTHROW( invalid use of vector( const & ) );
 		}
 		pointer new_ptr;
-		auto alloc_size = sizeof( T ) * total;
 		if ( is_device_ptr )
 		{
-			new_ptr = (pointer)std::malloc( alloc_size );
-			__impl::Mover<T>::device_to_host( new_ptr, value, curr );
+			new_ptr = preserved;
+			__impl::Mover<T>::device_to_host( new_ptr, new_ptr, value, curr );
 		}
 		else
 		{
+			auto alloc_size = sizeof( T ) * total;
 			if ( auto err = cudaMalloc( &new_ptr, alloc_size ) )
 			{
 				KTHROW( cudaMalloc on device failed );
 			}
-			__impl::Mover<T>::host_to_device( new_ptr, value, curr );
+			__impl::Mover<T>::host_to_device( value, new_ptr, value, curr );
+			preserved = value;
 		}
-		if ( &other == this )
-		{
-			destroy();
-		}
+		// if ( &other == this )
+		// {
+		// 	destroy();
+		// }
 		value = new_ptr;
 		is_device_ptr = !is_device_ptr;
 		KLOG3( "value", value );
@@ -307,6 +310,7 @@ private:
 	std::size_t total = MIN_SIZE;
 	size_type curr = 0;
 	T *KOISHI_RESTRICT value = (pointer)std::malloc( sizeof( T ) * total );
+	T *preserved;
 	bool is_device_ptr = false;
 };
 

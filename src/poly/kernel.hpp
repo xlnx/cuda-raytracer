@@ -63,13 +63,13 @@ __global__ inline void move_construct( T *dest, T *src )
 template <typename T, typename>
 struct MoverImpl
 {
-	static void mvc( T *dst, T *src, uint count )
+	static void mvc( T *preserved, T *dst, T *src, uint count )
 	{
 		move_construct<<<1, count>>>( dst, src );
 		cudaDeviceSynchronize();
 	}
 
-	static void cc( T *dst, const T *src, uint count )
+	static void cc( T *preserved, T *dst, const T *src, uint count )
 	{
 		auto q = dst;
 		auto p = src;
@@ -83,77 +83,41 @@ struct MoverImpl
 template <typename T>
 struct MoverImpl<T, typename std::enable_if<std::is_base_of<Emittable, T>::value>::type>
 {
-	static void mvc( T *dst, T *src, uint count )
+	static void mvc( T *preserved, T *dst, T *src, uint count )
 	{
-		if ( count > 0 )
-		{
-			auto em = getSample();
-			if ( !isSampled() )
-			{
-				isSampled() = true;
-				cudaMemcpy( em, src, sizeof( T ), cudaMemcpyHostToHost );
-			}
-			em->__move_construct( dst, src, count );
-		}
+		preserved->__move_construct( dst, src, count );
 	}
 
-	static void cc( T *dst, const T *src, uint count )
+	static void cc( T *preserved, T *dst, const T *src, uint count )
 	{
-		if ( count > 0 )
-		{
-			auto em = getSample();
-			if ( !isSampled() )
-			{
-				isSampled() = true;
-				cudaMemcpy( em, src, sizeof( T ), cudaMemcpyHostToHost );
-			}
-			em->__copy_construct( dst, src, count );
-		}
-	}
-	
-private:
-	static Emittable *getSample()
-	{
-		return static_cast<Emittable *>( reinterpret_cast<T *>( &getSampleStorage() ) );
-	}
-
-	static typename std::aligned_storage<sizeof( T ), alignof( T )>::type &getSampleStorage()
-	{
-		static typename std::aligned_storage<sizeof( T ), alignof( T )>::type sample;
-		return sample;
-	}
-
-	static bool &isSampled()
-	{
-		static bool s = false;
-		return s;
+		preserved->__copy_construct( dst, src, count );
 	}
 };
 
 template <typename T>
 struct Mover : MoverImpl<T>
 {
-	static void union_to_device( T *device_ptr, T *union_ptr, uint count = 1 )
+	static void union_to_device( T *preserved, T *device_ptr, T *union_ptr, uint count = 1 )
 	{
-		MoverImpl<T>::mvc( device_ptr, union_ptr, count );
+		MoverImpl<T>::mvc( preserved, device_ptr, union_ptr, count );
 	}
 
-	static void device_to_union( T *union_ptr, T *device_ptr, uint count = 1 )
+	static void device_to_union( T *preserved, T *union_ptr, T *device_ptr, uint count = 1 )
 	{
-		MoverImpl<T>::mvc( union_ptr, device_ptr, count );
+		MoverImpl<T>::mvc( preserved, union_ptr, device_ptr, count );
 	}
 
-	static void union_to_host( T *host_ptr, T *union_ptr, uint count = 1 )
+	static void union_to_host( T *preserved, T *host_ptr, T *union_ptr, uint count = 1 )
 	{
-		MoverImpl<T>::cc( host_ptr, union_ptr, count );
+		MoverImpl<T>::cc( preserved, host_ptr, union_ptr, count );
 	}
 
-	static void host_to_union( T *union_ptr, T *host_ptr, uint count = 1 )
+	static void host_to_union( T *preserved, T *union_ptr, T *host_ptr, uint count = 1 )
 	{
-		MoverImpl<T>::cc( union_ptr, host_ptr, count );
+		MoverImpl<T>::cc( preserved, union_ptr, host_ptr, count );
 	}
 
-	static void host_to_device( T *device_ptr, T *host_ptr, uint count = 1 )
+	static void host_to_device( T *preserved, T *device_ptr, T *host_ptr, uint count = 1 )
 	{
 		KLOG3( "move from host to device", typeid( T ).name(), count );
 		if ( !count ) return;
@@ -172,8 +136,8 @@ struct Mover : MoverImpl<T>
 			{
 				KTHROW( cudaMallocManaged failed );
 			}
-			host_to_union( union_ptr, host_ptr, count );
-			union_to_device( device_ptr, union_ptr, count );
+			host_to_union( preserved, union_ptr, host_ptr, count );
+			union_to_device( preserved, device_ptr, union_ptr, count );
 			cudaFree( union_ptr );
 			// }
 		}
@@ -187,7 +151,7 @@ struct Mover : MoverImpl<T>
 		}
 	}
 
-	static void device_to_host( T *host_ptr, T *device_ptr, uint count = 1 )
+	static void device_to_host( T *preserved, T *host_ptr, T *device_ptr, uint count = 1 )
 	{
 		KLOG3( "move from device to host", typeid( T ).name(), count );
 		if ( !count ) return;
@@ -206,8 +170,8 @@ struct Mover : MoverImpl<T>
 			{
 				KTHROW( cudaMallocManaged failed );
 			}
-			device_to_union( union_ptr, device_ptr, count );
-			union_to_host( host_ptr, union_ptr, count );
+			device_to_union( preserved, union_ptr, device_ptr, count );
+			union_to_host( preserved, host_ptr, union_ptr, count );
 			cudaFree( union_ptr );
 			// }
 		}
@@ -432,7 +396,7 @@ template <typename T>
 using mvfn = void ( * )( T *, T * );
 
 template <typename T>
-__global__ inline void move_construct_fnptr( mvfn<T> mv, T *dst, T *src ) 
+__global__ inline void move_construct_fnptr( mvfn<T> mv, T *dst, T *src )
 {
 	auto idx = threadIdx.x;
 	mv( dst + idx, src + idx );
@@ -469,28 +433,32 @@ struct emittable : public Base
 {
 	static_assert( std::is_base_of<__impl::Emittable, Base>::value,
 				   "'emittable' must derive from a emittable type" );
+
+#ifdef KOISHI_USE_CUDA
 	template <typename T>
 	friend __global__ inline void __impl::get_move_function( __impl::mvfn<T> *fn );
+#endif
 
 private:
+#ifdef KOISHI_USE_CUDA
 	KOISHI_HOST_DEVICE static void move_constructor( Type *dst, Type *src )
 	{
 		new ( dst ) Type( std::move( *src ) );
 	}
 	static int getMvfn()
 	{
-		static volatile int k = [&]
-		{
+		static volatile int k = [&] {
 			__impl::mvfn<Type> *p;
-			cudaMallocManaged( &p, sizeof(p) );
+			cudaMallocManaged( &p, sizeof( p ) );
 			__impl::get_move_function<Type><<<1, 1>>>( p );
 			cudaDeviceSynchronize();
 			__impl::Mvfn<Type>::value() = *p;
 			cudaFree( p );
 			return 0;
-		} ();
+		}();
 		return 0;
 	}
+#endif
 	void __move_construct( void *dst, void *src, uint count ) const override
 	{
 #ifdef KOISHI_USE_CUDA
