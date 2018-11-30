@@ -52,7 +52,7 @@ public:
 	template <typename U, typename = typename std::enable_if<std::is_base_of<T, U>::value>::type>
 	object( object<U> &&other ) :
 	  value( static_cast<T *>( other.value ) ),
-	  preserved( static_Cast<T *>( other.preserved ),
+	  preserved( static_cast<T *>( other.preserved ) ),
 	  alloc_size( other.alloc_size ),
 	  is_device_ptr( other.is_device_ptr )
 	{
@@ -152,12 +152,12 @@ private:
 			KLOG3( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
-//#ifdef KOISHI_USE_CUDA
-//				__impl::Destroyer<T>::destroy_device( value );
-//				cudaFree( value );
-//#else
+				//#ifdef KOISHI_USE_CUDA
+				//				__impl::Destroyer<T>::destroy_device( value );
+				//				cudaFree( value );
+				//#else
 				KTHROW( invalid internal state );
-//#endif
+				//#endif
 			}
 			else
 			{
@@ -168,11 +168,23 @@ private:
 	}
 
 public:
-	KOISHI_HOST_DEVICE pointer operator->() { return value; }
-	KOISHI_HOST_DEVICE const_pointer operator->() const { return value; }
+	KOISHI_HOST_DEVICE pointer operator->()
+	{
+		return value;
+	}
+	KOISHI_HOST_DEVICE const_pointer operator->() const
+	{
+		return value;
+	}
 
-	KOISHI_HOST_DEVICE reference operator*() { return *value; }
-	KOISHI_HOST_DEVICE const_reference operator*() const { return *value; }
+	KOISHI_HOST_DEVICE reference operator*()
+	{
+		return *value;
+	}
+	KOISHI_HOST_DEVICE const_reference operator*() const
+	{
+		return *value;
+	}
 
 private:
 	T *KOISHI_RESTRICT value = nullptr;
