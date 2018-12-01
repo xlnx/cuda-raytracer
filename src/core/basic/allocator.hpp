@@ -28,22 +28,22 @@ struct Allocator
 	KOISHI_HOST_DEVICE Allocator &operator=( const Allocator & ) = delete;
 };
 
-template <typename T, typename Alloc, typename... Args>
-KOISHI_HOST_DEVICE inline T *create( Alloc &al, Args &&... args )
+template <typename T, typename... Args>
+KOISHI_HOST_DEVICE inline T *create( Allocator &al, Args &&... args )
 {
 	auto ptr = reinterpret_cast<T *>( al.alloc( sizeof( T ) ) );
 	new ( ptr ) T( std::forward<Args>( args )... );
 	return ptr;
 }
 
-template <typename T, typename Alloc>
-KOISHI_HOST_DEVICE inline T *alloc_uninitialized( Alloc &al, std::size_t count )
+template <typename T>
+KOISHI_HOST_DEVICE inline T *alloc_uninitialized( Allocator &al, std::size_t count )
 {
 	return reinterpret_cast<T *>( al.alloc( sizeof( T ) * count ) );
 }
 
-template <typename T, typename Alloc>
-KOISHI_HOST_DEVICE inline T *alloc( Alloc &al, std::size_t count )
+template <typename T>
+KOISHI_HOST_DEVICE inline T *alloc( Allocator &al, std::size_t count )
 {
 	auto ptr = alloc_uninitialized<T>( al, count );
 	if ( !std::is_pod<T>::value )

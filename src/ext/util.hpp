@@ -9,11 +9,7 @@ namespace koishi
 {
 namespace ext
 {
-using Material = core::Material;
-
-using BSDF = core::BSDF;
-
-using BxDF = core::BxDF;
+using namespace core;
 
 }  // namespace ext
 

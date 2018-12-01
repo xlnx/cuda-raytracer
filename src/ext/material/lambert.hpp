@@ -20,13 +20,19 @@ private:
 	float3 R;
 };
 
-struct LambertMaterial : emittable<LambertMaterial, Material>
+struct LambertMaterial : Material
 {
+	LambertMaterial( const MaterialProps &props )
+	{
+	}
+
 	KOISHI_HOST_DEVICE virtual void fetchTo( Interreact &res, Allocator &pool ) const
 	{
 		res.bsdf = create<BSDF>( pool );
-		res.bsdf->add<LambertDiffuse>( pool, 0.5, );
+		res.bsdf->add<LambertDiffuse>( pool, float3{ 0.5, 0.5, 0.5 } );
 	}
+
+private:
 };
 
 }  // namespace ext

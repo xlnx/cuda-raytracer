@@ -7,7 +7,7 @@
 #include <glm/glm.hpp>
 #include <glm/ext.hpp>
 #include <vec/vec.hpp>
-#include <util/exception.hpp>
+#include <util/debug.hpp>
 #include <core/meta/mesh.hpp>
 
 namespace koishi

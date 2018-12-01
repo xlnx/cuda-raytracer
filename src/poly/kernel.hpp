@@ -82,7 +82,7 @@ struct Mover
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
-				KTHROW( cudaMallocManaged failed );
+				KTHROW( "cudaMallocManaged failed" );
 			}
 			host_to_union( union_ptr, host_ptr, count );
 			union_to_device( device_ptr, union_ptr, count );
@@ -93,7 +93,7 @@ struct Mover
 			KLOG3( "using plain copy for class", typeid( T ).name() );
 			if ( auto err = cudaMemcpy( device_ptr, host_ptr, alloc_size, cudaMemcpyHostToDevice ) )
 			{
-				KTHROW( cudaMemcpy to device failed );
+				KTHROW( "cudaMemcpy to device failed" );
 			}
 		}
 	}
@@ -109,7 +109,7 @@ struct Mover
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
-				KTHROW( cudaMallocManaged failed );
+				KTHROW( "cudaMallocManaged failed" );
 			}
 			device_to_union( union_ptr, device_ptr, count );
 			union_to_host( host_ptr, union_ptr, count );
@@ -120,7 +120,7 @@ struct Mover
 			KLOG3( "using plain copy for class", typeid( T ).name() );
 			if ( auto err = cudaMemcpy( host_ptr, device_ptr, alloc_size, cudaMemcpyDeviceToHost ) )
 			{
-				KTHROW( cudaMemcpy to host failed );
+				KTHROW( "cudaMemcpy to host failed" );
 			}
 		}
 	}
@@ -145,7 +145,6 @@ private:
 	{
 		copy_construct( union_ptr, host_ptr, count );
 	}
-
 };
 
 #endif
@@ -155,7 +154,7 @@ struct Destroyer
 {
 	static void destroy_host( T *host_ptr, uint count = 1 )
 	{
-		KLOG3( "destroy", host_ptr ); 
+		KLOG3( "destroy", host_ptr );
 		for ( auto p = host_ptr; p != host_ptr + count; ++p )
 		{
 			p->~T();

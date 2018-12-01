@@ -97,7 +97,7 @@ protected:
 				  }
 				  else
 				  {
-					  throw "No such key named \"" + name + "\".";
+					  KTHROW( "No such key named \"" + name + "\"." );
 				  }
 			  } );
 		}

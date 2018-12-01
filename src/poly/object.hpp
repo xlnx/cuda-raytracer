@@ -69,7 +69,7 @@ struct TypeErasedMover
 		T *union_ptr;
 		if ( auto err = cudaMallocManaged( &union_ptr, desc.alloc_size ) )
 		{
-			KTHROW( cudaMallocManaged failed );
+			KTHROW( "cudaMallocManaged failed" );
 		}
 		host_to_union( union_ptr, host_ptr, desc );
 		union_to_device( device_ptr, union_ptr, desc );
@@ -82,7 +82,7 @@ struct TypeErasedMover
 		T *union_ptr;
 		if ( auto err = cudaMallocManaged( &union_ptr, desc.alloc_size ) )
 		{
-			KTHROW( cudaMallocManaged failed );
+			KTHROW( "cudaMallocManaged failed" );
 		}
 		device_to_union( union_ptr, device_ptr, desc );
 		union_to_host( host_ptr, union_ptr, desc );
@@ -189,7 +189,7 @@ public:
 	}
 #else
 	{
-		KTHROW( invalid use of object( const & ) );
+		KTHROW( "invalid use of object( const & )" );
 	}
 #endif
 	object &operator=( const object &other )
@@ -204,7 +204,7 @@ public:
 	}
 #else
 	{
-		KTHROW( invalid use of object( const & ) );
+		KTHROW( "invalid use of object( const & )" );
 	}
 #endif
 
@@ -219,7 +219,7 @@ private:
 	{
 		if ( !__impl::Emittable::isTransferring() )
 		{
-			KTHROW( invalid use of object( const & ) );
+			KTHROW( "invalid use of object( const & )" );
 		}
 		pointer new_ptr;
 		if ( is_device_ptr )
@@ -232,7 +232,7 @@ private:
 		{
 			if ( auto err = cudaMalloc( &new_ptr, desc->alloc_size ) )
 			{
-				KTHROW( cudaMalloc on device failed );
+				KTHROW( "cudaMalloc on device failed" );
 			}
 			__impl::TypeErasedMover::host_to_device( new_ptr, value, *desc );
 			preserved = value;
@@ -250,7 +250,7 @@ private:
 			KLOG3( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
-				KTHROW( invalid internal state );
+				KTHROW( "invalid internal state" );
 			}
 			else
 			{

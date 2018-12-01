@@ -27,11 +27,10 @@ struct BxDF
 
 struct BSDF final
 {
-	template <typename T, typename = typename std::enable_if<
-							std::is_base_of<BxDF, T>::value>::type>
-	KOISHI_HOST_DEVICE void add( Allocator &pool )
+	template <typename T, typename... Args, typename = typename std::enable_if<std::is_base_of<BxDF, T>::value>::type>
+	KOISHI_HOST_DEVICE void add( Allocator &pool, Args &&... args )
 	{
-		bxdfs[ numBxdfs++ ] = create<T>( pool );
+		bxdfs[ numBxdfs++ ] = create<T>( pool, std::forward<Args>( args )... );
 	}
 
 	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const

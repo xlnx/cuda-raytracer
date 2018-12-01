@@ -15,7 +15,7 @@ Renderer::Renderer( uint w, uint h ) :
 {
 	if ( !glfwInit() )
 	{
-		throw util::Exception( "Failed to init glfw." );
+		KTHROW( "failed to init glfw." );
 	}
 	glfwWindowHint( GLFW_VERSION_MAJOR, 3 );
 	glfwWindowHint( GLFW_VERSION_MINOR, 3 );
@@ -25,7 +25,7 @@ Renderer::Renderer( uint w, uint h ) :
 	glfwMakeContextCurrent( window );
 	if ( !gladLoadGLLoader( (GLADloadproc)glfwGetProcAddress ) )
 	{
-		throw util::Exception( "Failed to get GL proc address." );
+		KTHROW( "failed to get GL proc address." );
 	}
 	glEnable( GL_DEPTH_TEST );
 	glClearColor( 0, 0, 0, 0 );
@@ -78,7 +78,7 @@ void Renderer::render( const std::string &path )
 	{
 		if ( !scene.camera.size() )
 		{
-			throw "no camera in the scene.";
+			KTHROW( "no camera in the scene." );
 		}
 		Camera camera( w, h, scene.camera[ 0 ] );
 		core::poly::vector<Mesh> mesh;

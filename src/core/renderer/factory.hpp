@@ -339,7 +339,7 @@ struct Factory
 		}
 		else
 		{
-			KTHROW( unregistered factory type );
+			KTHROW( "unregistered factory type:", name );
 		}
 	}
 

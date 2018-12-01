@@ -3,7 +3,6 @@
 #include <vector>
 #include <utility>
 #include <iostream>
-#include <util/exception.hpp>
 #include <vec/vmath.hpp>
 #include <util/debug.hpp>
 #include "mesh.hpp"

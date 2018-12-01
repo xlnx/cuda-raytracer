@@ -12,13 +12,12 @@ namespace koishi
 {
 namespace util
 {
-
 inline double tick()
 {
 	using namespace std::chrono;
 	static bool is = false;
-	static decltype(system_clock::now()) prev;
-	if ( is = !is ) 
+	static decltype( system_clock::now() ) prev;
+	if ( is = !is )
 	{
 		prev = system_clock::now();
 		return 0;
@@ -41,7 +40,7 @@ inline double tick()
 //
 #define KPRINT( ... ) printf( __VA_ARGS__ )
 
-#define KINFO(Session, ...) KLOG( "[", #Session, "] ", __VA_ARGS__ )
+#define KINFO( Session, ... ) KLOG( "[", #Session, "] ", __VA_ARGS__ )
 
 //#define KTICK() koishi::core::__impl::tick()
 
@@ -68,7 +67,9 @@ inline double tick()
 #define KTHROW( ... ) K_THROW( __VA_ARGS__ )
 #define K_THROW( ... )                                                             \
 	{                                                                              \
-		throw std::logic_error( __FILE__ ":" KSTR( __LINE__ ) ": " #__VA_ARGS__ ); \
+		std::ostringstream os;                                                     \
+		koishi::util::print( os, __FILE__ ":" KSTR( __LINE__ ) ":", __VA_ARGS__ ); \
+		throw std::logic_error( os.str() );                                        \
 	}                                                                              \
 	while ( 0 )
 #ifdef KOISHI_DEBUG
@@ -190,17 +191,23 @@ inline double tick()
 #define KREPIDID( TIMES, X, Y, Z ) \
 	K_REPIDID( TIMES, KWRAP X, KWRAP Y, KWRAP Z )
 
-inline void println()
+inline void print( std::ostream &os )
 {
-	std::cout << std::endl
-			  << std::flush;
 }
 
 template <typename X, typename... Args>
-void println( const X &x, Args &&... args )
+void print( std::ostream &os, const X &x, Args &&... args )
 {
-	std::cout << x << " ";
-	println( std::forward<Args>( args )... );
+	os << x << " ";
+	print( os, std::forward<Args>( args )... );
+}
+
+template <typename... Args>
+void println( Args &&... args )
+{
+	print( std::cout, std::forward<Args>( args )... );
+	std::cout << std::endl
+			  << std::flush;
 }
 
 }  // namespace util

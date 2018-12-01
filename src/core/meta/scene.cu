@@ -115,18 +115,20 @@ Scene::Scene( const std::string &path )
 		KINFO( scene, "Imported", mesh.size(), "meshes in", util::tick(), "seconds" );
 	}
 
-	//material.resize( mats.size() );
+	material.resize( mats.size() );
 	for ( uint i = 0; i != mats.size(); ++i )
 	{
-		//if ( config.material.find( mats[ i ] ) != config.material.end() )
-		//{
-		//	material[ i ] = std::move( config.material[ mats[ i ] ] );
-		//}
-		//else
-		//{
-		//	std::cout << "configuration for material <" << mats[ i ] << "> not found" << std::endl;
-		//	valid = false;
-		//}
+		KLOG( "Looking for material: ", mats[ i ] );
+		if ( config.material.find( mats[ i ] ) != config.material.end() )
+		{
+			auto &mat = config.material[ mats[ i ] ];
+			material[ i ] = std::move( MaterialFactory::create( mat.name, mat.props ) );
+		}
+		else
+		{
+			KLOG( "Configuration for material {", mats[ i ], "} not found." );
+			valid = false;
+		}
 	}
 	valid = true;
 }

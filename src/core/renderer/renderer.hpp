@@ -43,7 +43,7 @@ struct Renderer : RendererBase
 		{
 			if ( !scene.camera.size() )
 			{
-				KTHROW( No camera in the scene );
+				KTHROW( "no camera in the scene" );
 			}
 			auto &camera = scene.camera[ 0 ];
 

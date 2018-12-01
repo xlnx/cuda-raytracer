@@ -144,14 +144,14 @@ public:
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
-	  preserved( other.preserved), 
+	  preserved( other.preserved ),
 	  is_device_ptr( other.is_device_ptr )
 	{
 		copyBetweenDevice( other );
 	}
 #else
 	{
-		KTHROW( invalid use of vector( const & ) );
+		KTHROW( "invalid use of vector( const & )" );
 	}
 #endif
 	vector &operator=( const vector &other )
@@ -168,7 +168,7 @@ public:
 	}
 #else
 	{
-		KTHROW( invalid use of vector( const & ) );
+		KTHROW( "invalid use of vector( const & )" );
 	}
 #endif
 
@@ -178,7 +178,7 @@ private:
 	{
 		if ( !__impl::Emittable::isTransferring() )
 		{
-			KTHROW( invalid use of vector( const & ) );
+			KTHROW( "invalid use of vector( const & )" );
 		}
 		pointer new_ptr;
 		if ( is_device_ptr )
@@ -192,7 +192,7 @@ private:
 			auto alloc_size = sizeof( T ) * total;
 			if ( auto err = cudaMalloc( &new_ptr, alloc_size ) )
 			{
-				KTHROW( cudaMalloc on device failed );
+				KTHROW( "cudaMalloc on device failed" );
 			}
 			__impl::Mover<T>::host_to_device( new_ptr, value, curr );
 			preserved = value;
@@ -214,12 +214,7 @@ private:
 			KLOG3( "destroy()", typeid( T ).name(), this );
 			if ( is_device_ptr )
 			{
-//#ifdef KOISHI_USE_CUDA
-//				__impl::Destroyer<T>::destroy_device( value, curr );
-//				cudaFree( value );
-//#else
-				KTHROW( invalid internal state );
-//#endif
+				KTHROW( "invalid internal state" );
 			}
 			else
 			{
@@ -274,8 +269,48 @@ public:
 		new ( ptr ) T( std::forward<Args>( args )... );
 	}
 
-	void resize( size_type count, const value_type &val = T() )
+	void resize( size_type count )
 	{
+		KASSERT( !is_device_ptr );
+		if ( curr >= count )
+		{
+			for ( auto p = value + count; p != value + curr; ++p )
+			{
+				p->~T();
+			}
+			curr = count;
+		}
+		else if ( total >= count )
+		{
+			for ( auto p = value + curr; p != value + count; ++p )
+			{
+				new ( p ) T();
+			}
+			curr = count;
+		}
+		else
+		{
+			total = std::max( MIN_SIZE, count );
+			auto new_ptr = (pointer)std::malloc( sizeof( T ) * total );
+			for ( auto p = value, q = new_ptr; p != value + curr; ++p, ++q )
+			{
+				new ( q ) T( std::move( *p ) );
+				p->~T();
+			}
+			destroy();
+			for ( auto p = new_ptr + curr; p != new_ptr + count; ++p )
+			{
+				new ( p ) T();
+			}
+			curr = count;
+			value = new_ptr;
+		}
+	}
+
+	void resize( size_type count, const value_type &val )
+	{
+		static_assert( !std::is_base_of<emittable, value_type>::value,
+					   "emittable type is not copyable" );
 		KASSERT( !is_device_ptr );
 		if ( curr >= count )
 		{
@@ -300,6 +335,7 @@ public:
 			for ( auto p = value, q = new_ptr; p != value + curr; ++p, ++q )
 			{
 				new ( q ) T( std::move( *p ) );
+				p->~T();
 			}
 			destroy();
 			for ( auto p = new_ptr + curr; p != new_ptr + count; ++p )
