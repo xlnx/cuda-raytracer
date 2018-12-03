@@ -46,7 +46,9 @@ PolyFunction( Radiance, Require<Random> )
 	float3 L = { 0, 0, 0 };
 	constexpr auto maxBounce = 10;
 
-	for ( auto bounce = 0; ( isect = scene.intersect( ray, pool ) ) && bounce != maxBounce; ++bounce )
+	for ( auto bounce = 0; ( isect = scene.intersect( ray, pool ) ) &&
+						   bounce != maxBounce;
+		  ++bounce )
 	{
 		// auto spec = reflect( ray.d, isect.n );
 		// auto diff = call<SampleBsdf<Random>>( spec );
@@ -58,6 +60,9 @@ PolyFunction( Radiance, Require<Random> )
 
 		// wo = reflect( ray.d, isect.n );
 		auto wo = isect.local( -ray.d );
+		float3 wi;
+		float pdf;
+		isect.bsdf->sample_f( wo, wi, float2{ call<Random>(), call<Random>() }, pdf );
 		L = wo;
 		break;
 		pool.clear();

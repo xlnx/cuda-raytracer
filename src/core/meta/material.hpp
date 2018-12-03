@@ -19,7 +19,8 @@ struct Material : emittable
 	Material() = default;
 	Material( const MaterialProps &config ) {}
 
-	KOISHI_HOST_DEVICE virtual void fetchTo( Interreact &res, Allocator &pool ) const = 0;
+	KOISHI_HOST_DEVICE virtual void apply( Interreact &res, Allocator &pool ) const = 0;
+	virtual void print( std::ostream &os ) const { os << "{}"; }
 };
 
 struct MaterialFactory

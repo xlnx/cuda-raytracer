@@ -48,7 +48,8 @@ struct Scene : emittable
 			res.uv = hit.uv;
 			res.u = cross( res.n, float3{ 0, 1, 0 } );
 			res.v = cross( res.n, res.u );
-			// pm->material->fetchTo( res, pool );
+			material[ pm->matid ]->apply( res, pool );
+			// pm->material->apply( res, pool );
 		}
 		return res;
 	}

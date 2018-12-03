@@ -136,4 +136,23 @@ inline std::istream &operator>>( std::istream &is, T &t )
 
 using jsel::serializable;
 
+template <typename T>
+inline T get( const nlohmann::json &json, const std::string &key, const T &val )
+{
+	if ( json.find( key ) != json.end() )
+	{
+		return json.at( key );
+	}
+	else
+	{
+		return val;
+	}
+}
+
+template <typename T>
+inline T get( const nlohmann::json &json, const std::string &key )
+{
+	return json.at( key );
+}
+
 }  // namespace koishi

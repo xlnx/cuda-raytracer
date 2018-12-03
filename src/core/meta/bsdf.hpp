@@ -39,6 +39,7 @@ struct BSDF final
 		// if ( wo.z == 0 ) return 0.;
 		// bool reflect = Dot( wiW, ng ) * Dot( woW, ng ) > 0;
 		float3 f = { 0, 0, 0 };
+		// float3 f = reflect(wo, )
 		// for ( int i = 0; i < nBxdfs; ++i )
 		// 	if ( bxdfs[ i ]->MatchesFlags( flags ) &&
 		// 		 ( ( reflect && ( bxdfs[ i ]->type & BSDF_REFLECTION ) ) ||

@@ -123,6 +123,8 @@ Scene::Scene( const std::string &path )
 		{
 			auto &mat = config.material[ mats[ i ] ];
 			material[ i ] = std::move( MaterialFactory::create( mat.name, mat.props ) );
+			material[ i ]->print( std::cout );
+			std::cout << std::endl;
 		}
 		else
 		{

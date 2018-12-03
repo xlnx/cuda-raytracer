@@ -22,17 +22,27 @@ private:
 
 struct LambertMaterial : Material
 {
-	LambertMaterial( const MaterialProps &props )
+	LambertMaterial( const MaterialProps &props ) :
+	  R( get( props, "R", float3{ 0.5, 0.5, 0.5 } ) )
 	{
 	}
 
-	KOISHI_HOST_DEVICE virtual void fetchTo( Interreact &res, Allocator &pool ) const
+	KOISHI_HOST_DEVICE virtual void apply( Interreact &res, Allocator &pool ) const
 	{
 		res.bsdf = create<BSDF>( pool );
-		res.bsdf->add<LambertDiffuse>( pool, float3{ 0.5, 0.5, 0.5 } );
+		res.bsdf->add<LambertDiffuse>( pool, R );
+	}
+
+	void print( std::ostream &os ) const
+	{
+		nlohmann::json json = nlohmann::json::object();
+		auto &root = json[ "LambertMaterial" ] = nlohmann::json::object();
+		root[ "R" ] = R;
+		os << json.dump();
 	}
 
 private:
+	float3 R;
 };
 
 }  // namespace ext
