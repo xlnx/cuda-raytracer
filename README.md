@@ -1,6 +1,28 @@
 # cuda-raytracer
 
-## Examples
+## Current Status
+
+* Basic cuda raytracing framework was successfully **built, tested and profiled**.
+	* Nvidia Tesla K40m
+* Compatible CPU multicore version was **built and tested**.
+	* Intel(R) Core(TM) i7-8550U CPU @ 1.80GHz, 8 Logic Cores
+	* Intel(R) Xeon(R) CPU E5-2670 v3 @ 2.30GHz, 48 Logic Cores
+* Visualization module is currently broken because I modified the data structure of mesh. It is to be repaired soon.
+* Material and BSDF system are being built, currently the raytracing kernel **does not integrate radiance**.
+* Build environments:
+	* Windows 10 Education Insider Preview 18290.rs_prerelease
+		* MinGW-w64 8.1.0 (test CPU multicore)
+	* CentOS Linux release 7.5.1804 (Core)
+		* CUDA 9.0 (test cuda)
+		* gcc (GCC) 6.3.1 20170216 (Red Hat 6.3.1-3)
+
+*Perfect mirror reflection.*
+
+![](doc/h.png)
+
+## Previous Version
+
+*The ray emitter of this version is somehow buggy, and raytracing process is not completely correct.*
 
 ### CPU Single Core 1024spp
 

@@ -43,27 +43,21 @@ PolyFunction( Radiance, Require<Random> )
 {
 	auto ray = r;
 	Interreact isect;
-	float3 L = { 0, 0, 0 };
+	float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
 	constexpr auto maxBounce = 10;
 
 	for ( auto bounce = 0; ( isect = scene.intersect( ray, pool ) ) &&
 						   bounce != maxBounce;
 		  ++bounce )
 	{
-		// auto spec = reflect( ray.d, isect.n );
-		// auto diff = call<SampleBsdf<Random>>( spec );
-
-		// L += isect.mesh->emissive;
-
-		// ray = isect.emitRay( call<Random>() < .9 ? diff : spec );
-		// clear( pool );
-
-		// wo = reflect( ray.d, isect.n );
+		// evaluate direct lighting
+		// emit new light for indirect lighting, according to BSDF
 		auto wo = isect.local( -ray.d );
 		float3 wi;
 		float pdf;
-		isect.bsdf->sample_f( wo, wi, float2{ call<Random>(), call<Random>() }, pdf );
-		L = wo;
+		isect.bsdf->sample( wo, wi, call<Float2<Random>>(), pdf );
+		ray = isect.emitRay( isect.global( wi ) );
+		L = isect.global( wi );
 		break;
 		pool.clear();
 	}

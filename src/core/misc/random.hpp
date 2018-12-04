@@ -35,6 +35,45 @@ PolyFunction( FakeRand, Require<Device>, Require<Host> )
 
 EndPolyFunction();
 
+template <typename Function>
+PolyFunction( Float2, Require<Function> )
+
+  ()
+	->float2
+{
+	return float2{ call<Function>(),
+				   call<Function>() };
+}
+
+EndPolyFunction();
+
+template <typename Function>
+PolyFunction( Float3, Require<Function> )
+
+  ()
+	->float3
+{
+	return float3{ call<Function>(),
+				   call<Function>(),
+				   call<Function>() };
+}
+
+EndPolyFunction();
+
+template <typename Function>
+PolyFunction( Float4, Require<Function> )
+
+  ()
+	->float4
+{
+	return float4{ call<Function>(),
+				   call<Function>(),
+				   call<Function>(),
+				   call<Function>() };
+}
+
+EndPolyFunction();
+
 }  // namespace core
 
 }  // namespace koishi

@@ -10,6 +10,11 @@ struct Specular : BxDF
 	{
 		return float3{ 0.f };
 	}
+	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, float3 &wi, const float2 &rn, float &pdf ) const override
+	{
+		wi = -reflect( wo, float3{ 0, 0, -1 } );
+		return f( wo, wi );
+	}
 };
 
 struct SpecularMaterial : Material

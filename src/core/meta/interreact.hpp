@@ -25,10 +25,10 @@ public:
 		return !isNull;
 	}
 
-	KOISHI_HOST_DEVICE Ray emitRay( const float3 &wo ) const
+	KOISHI_HOST_DEVICE Ray emitRay( const float3 &w ) const
 	{
 		Ray r;
-		auto nwo = normalize( wo );
+		auto nwo = normalize( w );
 		constexpr float eps = 1e-3;
 		r.o = p + nwo * eps, r.d = nwo;
 		return r;
@@ -37,6 +37,11 @@ public:
 	KOISHI_HOST_DEVICE float3 local( const float3 &w ) const
 	{
 		return float3{ dot( w, u ), dot( w, v ), dot( w, n ) };
+	}
+
+	KOISHI_HOST_DEVICE float3 global( const float3 &w ) const
+	{
+		return w.x * u + w.y * v + w.z * n;
 	}
 
 	KOISHI_HOST_DEVICE float3 world( const float3 &w ) const
