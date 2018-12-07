@@ -14,14 +14,15 @@ struct BxDF
 	KOISHI_HOST_DEVICE virtual ~BxDF() = default;
 
 	KOISHI_HOST_DEVICE virtual float3 f( const float3 &wo, const float3 &wi ) const = 0;
-	KOISHI_HOST_DEVICE virtual float pdf( const float3 &wo, const float3 &wi ) const  // cosHemisphere
+	KOISHI_HOST_DEVICE virtual float3 sample( const float3 &wo, const float3 &rn, float &pdf ) const
 	{
-		return hemisphere::isSame( wo, wi ) ? hemisphere::h( wi ) * invPI : 0.;
+		auto wi = hemisphere::sampleCos( float2{ rn.x, rn.y } );
+		pdf = hemisphere::isSame( wo, wi ) ? hemisphere::h( wi ) * invPI : 0.;
+		return wi;
 	}
-	KOISHI_HOST_DEVICE virtual float3 sample( const float3 &wo, float3 &wi, const float2 &rn, float &pdf ) const
+	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float2 &rn, float &pdf ) const
 	{
-		wi = hemisphere::sampleCos( rn );
-		return f( wo, wi );
+		return sample( wo, float3{ rn.x, rn.y, 0.f }, pdf );
 	}
 };
 
@@ -50,12 +51,10 @@ struct BSDF final
 	KOISHI_HOST_DEVICE float pdf( const float3 &wo, const float3 &wi ) const
 	{
 	}
-	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, float3 &wi, const float2 &rn, float &pdf ) const
+	KOISHI_HOST_DEVICE BxDF *sampleBxDF( float rn )
 	{
-		int comp = min( (int)floor( rn.x * numBxdfs ), (int)numBxdfs - 1 );
-		auto bxdf = bxdfs[ comp ];
-		auto f = bxdf->sample( wo, wi, rn, pdf );
-		return f;
+		int comp = min( (int)floor( rn * numBxdfs ), (int)numBxdfs - 1 );
+		return bxdfs[ comp ];
 	}
 
 public:

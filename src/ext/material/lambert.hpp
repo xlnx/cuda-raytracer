@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ext/util.hpp>
 
 namespace koishi
@@ -22,7 +24,7 @@ private:
 
 struct LambertMaterial : Material
 {
-	LambertMaterial( const MaterialProps &props ) :
+	LambertMaterial( const Properties &props ) :
 	  R( get( props, "R", float3{ 0.5, 0.5, 0.5 } ) )
 	{
 	}
@@ -35,9 +37,9 @@ struct LambertMaterial : Material
 
 	void print( std::ostream &os ) const
 	{
-		nlohmann::json json = nlohmann::json::object();
-		auto &root = json[ "LambertMaterial" ] = nlohmann::json::object();
-		root[ "R" ] = R;
+		nlohmann::json json = {
+			{ "LambertMaterial", { { "R", R } } }
+		};
 		os << json.dump();
 	}
 

@@ -316,14 +316,14 @@ struct CtorForEach<types<>>
 }  // namespace __trait
 
 template <typename... Args>
-struct Factory
+struct TemplateFactory
 {
 	template <typename T>
 	struct dummy;
 
 	using value_type = std::shared_ptr<RendererBase>;
 
-	Factory()
+	TemplateFactory()
 	{
 		using permute = __trait::RecursedPermutation<Args...>;
 		permute::apply();

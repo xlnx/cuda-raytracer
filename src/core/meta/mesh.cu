@@ -365,6 +365,7 @@ PolyMesh::PolyMesh( poly::vector<float3> &&vertices,
 		idxBuffer[ 3 * j + 2 ] = indices[ j ].index.z;
 	}
 	m.indices = std::move( idxBuffer );
+	m.matid = 0;
 	mesh.emplace_back( std::move( m ) );
 }
 

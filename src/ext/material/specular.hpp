@@ -1,3 +1,5 @@
+#pragma once
+
 #include <ext/util.hpp>
 
 namespace koishi
@@ -8,18 +10,18 @@ struct Specular : BxDF
 {
 	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const override
 	{
-		return float3{ 0.f };
+		return float3{ 1.f, 1.f, 1.f };
 	}
-	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, float3 &wi, const float2 &rn, float &pdf ) const override
+	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float3 &rn, float &pdf ) const override
 	{
-		wi = -reflect( wo, float3{ 0, 0, -1 } );
-		return f( wo, wi );
+		pdf = 1.f;
+		return -reflect( wo, float3{ 0, 0, -1 } );
 	}
 };
 
 struct SpecularMaterial : Material
 {
-	SpecularMaterial( const MaterialProps &props )
+	SpecularMaterial( const Properties &props )
 	{
 	}
 	KOISHI_HOST_DEVICE void apply( Interreact &res, Allocator &pool ) const
@@ -29,8 +31,9 @@ struct SpecularMaterial : Material
 	}
 	void print( std::ostream &os ) const
 	{
-		nlohmann::json json = nlohmann::json::object();
-		json[ "SpecularMaterial" ] = nlohmann::json::object();
+		nlohmann::json json = {
+			{ "SpecularMaterial", {} }
+		};
 		os << json.dump();
 	}
 };

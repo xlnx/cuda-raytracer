@@ -12,6 +12,14 @@ namespace koishi
 {
 namespace jsel
 {
+struct as_object
+{
+};
+
+struct as_array
+{
+};
+
 namespace __flag
 {
 struct IsSerializable
@@ -37,8 +45,11 @@ inline void from_json( const nlohmann::json &j, T &e )
 #define Property( T, name, ... ) \
 	T name = init_metadata<T>( #name, &type::name, ##__VA_ARGS__ )  // if no init value the comma will be removed.
 
+template <typename T, typename U = as_object>
+struct serializable;
+
 template <typename T>
-struct serializable : __flag::IsSerializable
+struct serializable<T, as_object> : __flag::IsSerializable
 {
 	using type = T;
 
@@ -66,7 +77,7 @@ protected:
 		{
 			get_components().emplace_back(
 			  [=]( nlohmann::json &j, const T &t ) {
-				  j.at( name ) = t.*offset;
+				  j[ name ] = t.*offset;
 			  },
 			  [=]( const nlohmann::json &j, T &t ) {
 				  if ( j.find( name ) != j.end() )
@@ -88,7 +99,7 @@ protected:
 		{
 			get_components().emplace_back(
 			  [=]( nlohmann::json &j, const T &t ) {
-				  j.at( name ) = t.*offset;
+				  j[ name ] = t.*offset;
 			  },
 			  [=]( const nlohmann::json &j, T &t ) {
 				  if ( j.find( name ) != j.end() )
@@ -123,6 +134,101 @@ private:
 	}
 };
 
+template <typename T>
+struct serializable<T, as_array> : __flag::IsSerializable
+{
+	using type = T;
+
+	serializable()
+	{
+		get_state() = get_state() == 0 ? 1 : 2;
+	}
+	void serialize( nlohmann::json &j ) const
+	{
+		j = nlohmann::json{};
+		for ( auto &e : get_components() )
+			e.first( j, static_cast<const T &>( *this ) );
+	}
+	void deserialize( const nlohmann::json &j )
+	{
+		for ( auto &e : get_components() )
+			e.second( j, static_cast<T &>( *this ) );
+	}
+
+protected:
+	template <typename U>
+	static U init_metadata( const std::string &name, U T::*offset, const U &default_value )
+	{
+		if ( get_state() == 1 )  // if this object is the first instance of this class
+		{
+			auto index = get_index();
+			get_components().emplace_back(
+			  [=]( nlohmann::json &j, const T &t ) {
+				  j[ index ] = t.*offset;
+			  },
+			  [=]( const nlohmann::json &j, T &t ) {
+				  if ( j.size() > index )
+				  {
+					  t.*offset = j.at( index ).get<U>();
+				  }
+				  else
+				  {
+					  t.*offset = default_value;
+				  }
+			  } );
+			get_index()++;
+		}
+		return default_value;
+	}
+	template <typename U>
+	static U init_metadata( const std::string &name, U T::*offset )
+	{
+		if ( get_state() == 1 )  // if this object is the first instance of this class
+		{
+			auto index = get_index();
+			get_components().emplace_back(
+			  [=]( nlohmann::json &j, const T &t ) {
+				  j[ index ] = t.*offset;
+			  },
+			  [=]( const nlohmann::json &j, T &t ) {
+				  if ( j.size() > index )
+				  {
+					  t.*offset = j.at( index ).get<U>();
+				  }
+				  else
+				  {
+					  KTHROW( "No such key named \"" + name + "\"." );
+				  }
+			  } );
+			get_index()++;
+		}
+		return U();
+	}
+
+private:
+	static std::vector<std::pair<
+	  std::function<void( nlohmann::json &, const T & )>,
+	  std::function<void( const nlohmann::json &, T & )>>> &
+	  get_components()
+	{
+		static std::vector<std::pair<
+		  std::function<void( nlohmann::json &, const T & )>,
+		  std::function<void( const nlohmann::json &, T & )>>>
+		  val;
+		return val;
+	}
+	static int &get_state()
+	{
+		static int state = 0;
+		return state;
+	}
+	static int &get_index()
+	{
+		static int index = 0;
+		return index;
+	}
+};
+
 template <typename T, typename = typename std::enable_if<
 						std::is_base_of<__flag::IsSerializable, T>::value>::type>
 inline std::istream &operator>>( std::istream &is, T &t )
@@ -136,23 +242,44 @@ inline std::istream &operator>>( std::istream &is, T &t )
 
 using jsel::serializable;
 
+using jsel::as_array;
+using jsel::as_object;
+
 template <typename T>
 inline T get( const nlohmann::json &json, const std::string &key, const T &val )
 {
-	if ( json.find( key ) != json.end() )
+	int start = 0, next;
+	auto j = &json;
+	do
 	{
-		return json.at( key );
-	}
-	else
-	{
-		return val;
-	}
+		next = key.find_first_of( '.', start );
+		auto sub = key.substr( start, next );
+		if ( j->find( sub ) != j->end() )
+		{
+			j = &json.at( sub );
+		}
+		else
+		{
+			return val;
+		}
+		start = next + 1;
+	} while ( next != key.npos );
+	return *j;
 }
 
 template <typename T>
 inline T get( const nlohmann::json &json, const std::string &key )
 {
-	return json.at( key );
+	int start = 0, next;
+	auto j = &json;
+	do
+	{
+		next = key.find_first_of( '.', start );
+		auto sub = key.substr( start, next );
+		j = &json.at( sub );
+		start = next + 1;
+	} while ( next != key.npos );
+	return *j;
 }
 
 }  // namespace koishi

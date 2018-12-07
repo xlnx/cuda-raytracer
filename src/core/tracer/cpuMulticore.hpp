@@ -23,7 +23,12 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )
 	uint w = image.width();
 	uint h = image.height();
 
-	static constexpr uint MaxThreads = 1u;  //-1u;
+	static constexpr uint MaxThreads =
+#ifndef DEBUG
+	  -1u;
+#else
+	  1u;
+#endif
 
 	auto ncores = std::thread::hardware_concurrency();
 	if ( MaxThreads < ncores ) ncores = MaxThreads;

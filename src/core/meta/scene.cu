@@ -122,7 +122,7 @@ Scene::Scene( const std::string &path )
 		if ( config.material.find( mats[ i ] ) != config.material.end() )
 		{
 			auto &mat = config.material[ mats[ i ] ];
-			material[ i ] = std::move( MaterialFactory::create( mat.name, mat.props ) );
+			material[ i ] = std::move( Factory<Material>::create( mat ) );
 			material[ i ]->print( std::cout );
 			std::cout << std::endl;
 		}

@@ -19,6 +19,16 @@ KOISHI_HOST_DEVICE inline float h( const float3 &w )
 	return abs( w.z );
 }
 
+KOISHI_HOST_DEVICE inline float3 fromEular( float sinth, float costh, float phi )
+{
+	return float3{ sinth * sin( phi ), sinth * cos( phi ), costh };
+}
+
+KOISHI_HOST_DEVICE inline float3 fromEular( float th, float phi )
+{
+	return fromEular( sin( th ), cos( th ), phi );
+}
+
 KOISHI_HOST_DEVICE inline float3 sampleCos( const float2 &rn )
 {
 	auto uv = 2. * rn - 1;  // map uniform rn to [-1,1]

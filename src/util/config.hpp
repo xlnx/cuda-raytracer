@@ -20,20 +20,20 @@ struct CameraConfig : serializable<CameraConfig>, emittable
 	Property( float, zFar, 1e5 );
 };
 
-using MaterialProps = std::map<std::string, nlohmann::json>;
+using Properties = std::map<std::string, nlohmann::json>;
 
-struct MaterialConfig : serializable<MaterialConfig>, emittable
+struct Config : serializable<Config, as_array>, emittable
 {
 	Property( std::string, name );
-	Property( MaterialProps, props );
+	Property( Properties, props, {} );
 };
 
 struct SceneConfig : serializable<SceneConfig>
 {
-	using TMaterials = std::map<std::string, MaterialConfig>;
+	using TConfig = std::map<std::string, Config>;
 	Property( std::vector<CameraConfig>, camera, {} );
 	Property( std::string, path );
-	Property( TMaterials, material );
+	Property( TConfig, material );
 };
 
 }  // namespace koishi

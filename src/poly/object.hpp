@@ -21,6 +21,9 @@ object<T> &&make_object( Args &&... args );
 template <typename T, typename U>
 KOISHI_HOST_DEVICE object<T> &&static_object_cast( object<U> &&other );
 
+template <typename T, typename U>
+KOISHI_HOST_DEVICE object<T> &&dynamic_object_cast( object<U> &&other );
+
 namespace __impl
 {
 using cc_erased_t = void ( * )( Emittable *, Emittable * );
@@ -129,6 +132,9 @@ struct object final : emittable
 
 	template <typename V, typename U>
 	friend KOISHI_HOST_DEVICE object<V> &&static_object_cast( object<U> &&other );
+
+	template <typename V, typename U>
+	friend KOISHI_HOST_DEVICE object<V> &&dynamic_object_cast( object<U> &&other );
 
 	template <typename U>
 	friend struct object;
@@ -315,6 +321,23 @@ KOISHI_HOST_DEVICE object<T> &&static_object_cast( object<U> &&other )
 	static object<T> &ptr = reinterpret_cast<object<T> &>( buffer );
 	new ( &ptr ) object<T>;
 	ptr.value = static_cast<T *>( other.value );
+	ptr.desc = other.desc;
+	ptr.is_device_ptr = other.is_device_ptr;
+	other.value = nullptr;
+	return std::move( ptr );
+}
+
+template <typename T, typename U>
+KOISHI_HOST_DEVICE object<T> &&dynamic_object_cast( object<U> &&other )
+{
+	static typename std::aligned_storage<sizeof( object<T> ),
+										 alignof( object<T> )>::type buffer;
+	static object<T> &ptr = reinterpret_cast<object<T> &>( buffer );
+	new ( &ptr ) object<T>;
+	if ( !( ptr.value = dynamic_cast<T *>( other.value ) ) )
+	{
+		KTHROW( "dynamic object cast failed" );
+	}
 	ptr.desc = other.desc;
 	ptr.is_device_ptr = other.is_device_ptr;
 	other.value = nullptr;

@@ -45,7 +45,7 @@ int main( int argc, char **argv )
 		else
 		{
 			// clang-format off
-			Factory<
+			TemplateFactory<
 			  templates2<CPUMultiCoreTracer
 #ifdef KOISHI_USE_CUDA
 						  , CudaSingleGPUTracer

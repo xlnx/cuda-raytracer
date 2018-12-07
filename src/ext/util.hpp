@@ -2,6 +2,7 @@
 
 #include <vec/vmath.hpp>
 #include <core/basic/allocator.hpp>
+#include <core/meta/distribution.hpp>
 #include <core/meta/material.hpp>
 #include <core/meta/bsdf.hpp>
 
