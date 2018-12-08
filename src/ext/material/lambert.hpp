@@ -13,9 +13,11 @@ struct LambertDiffuse : BxDF
 	{
 	}
 
-	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const override
+	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float3 &u, float3 &f ) const override
 	{
-		return R * invPI;
+		auto wi = hemisphere::sampleCos( float2{ u.x, u.y } );  // sample lambert
+		f = hemisphere::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
+		return wi;
 	}
 
 private:
@@ -29,7 +31,7 @@ struct LambertMaterial : Material
 	{
 	}
 
-	KOISHI_HOST_DEVICE virtual void apply( Interreact &res, Allocator &pool ) const
+	KOISHI_HOST_DEVICE void apply( Interreact &res, Allocator &pool ) const override
 	{
 		res.bsdf = create<BSDF>( pool );
 		res.bsdf->add<LambertDiffuse>( pool, R );

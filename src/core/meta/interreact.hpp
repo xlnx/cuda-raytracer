@@ -19,6 +19,10 @@ struct Interreact
 
 	bool isNull = true;
 
+	float3 color{ 0, 0, 0 };
+
+	float3 emissive{ 0, 0, 0 };
+
 public:
 	KOISHI_HOST_DEVICE operator bool() const
 	{

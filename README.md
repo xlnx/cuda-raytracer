@@ -16,6 +16,10 @@
 		* CUDA 9.0 (test cuda)
 		* gcc (GCC) 6.3.1 20170216 (Red Hat 6.3.1-3)
 
+*Microfacet BRDF with Beckmann Distribution of different alpha*
+
+![](doc/coffe.png)
+
 *Perfect mirror reflection.*
 
 ![](doc/h.png)

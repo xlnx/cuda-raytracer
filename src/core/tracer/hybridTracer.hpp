@@ -1,4 +1,4 @@
-#pragma once : poly::vector
+#pragma once
 
 #include <vec/vec.hpp>
 #include <util/debug.hpp>
