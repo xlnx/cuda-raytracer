@@ -13,7 +13,7 @@ struct BeckmannDistribution : IsotropicSphericalDistribution
 	{
 	}
 
-	KOISHI_HOST_DEVICE float3 sample( const float3 &u, float &pdf ) const override
+	KOISHI_HOST_DEVICE normalized_float3 sample( const float3 &u, float &pdf ) const override
 	{
 		auto logu = log( u.x );
 		auto alpha2 = alpha * alpha;
