@@ -6,6 +6,7 @@
 #include <core/basic/ray.hpp>
 #include <core/basic/poly.hpp>
 #include <core/basic/allocator.hpp>
+#include <core/misc/sampler.hpp>
 #include <core/meta/scene.hpp>
 
 namespace koishi
@@ -20,40 +21,39 @@ constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh
 template <typename Radiance, typename Alloc>
 PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 
-  ( poly::vector<float3> & buffer, const poly::vector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
+  ( poly::vector<float3> & buffer, const Sampler &sampler, const Scene &scene, uint spp, uint unroll )
 	->void {
 		char stackPool[ stackPoolSize ];
 		Alloc pool( stackPool, stackPoolSize );
 
+		uint x = blockIdx.x * blockDim.x + threadIdx.x;
+		uint y = blockIdx.y * blockDim.y + threadIdx.y;
 		int line = blockDim.x * gridDim.x;
-		int index = blockIdx.x * blockDim.x + threadIdx.x +
-					( blockIdx.y * blockDim.y + threadIdx.y ) * line;
+		int index = x + y * line;
 
 		float invSpp = 1.0 / spp;
 
-		int rayIndex = index * spp;
 		float3 sum{ 0, 0, 0 };
 
-		for ( uint i = rayIndex; i < rayIndex + spp; ++i ) \
-		{                                                  \
-			auto ray = rays[ i ];                          \
-			sum += call<Radiance>( ray, scene, pool );     \
-			pool.clear();                                  \
-		}                                                  \
+		for ( uint i = 0; i < spp; ++i )
+		{
+			sum += call<Radiance>( sampler.sample( x, y, i ), scene, pool );
+			pool.clear();
+		}
 
 		buffer[ index ] = sum * invSpp;
 	} );
 
 template <typename Radiance, typename Alloc>
-__global__ void integrate( poly::vector<float3> &buffer, const poly::vector<Ray> &rays, const Scene &scene, uint spp, uint unroll )
+__global__ void integrate( poly::vector<float3> &buffer, const Sampler &sampler, const Scene &scene, uint spp, uint unroll )
 {
-	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, rays, scene, spp, unroll );
+	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, sampler, scene, spp, unroll );
 }
 
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
 
-  ( util::Image<3> & image, poly::vector<Ray> &rays, Scene &scene, uint spp )
+  ( util::Image<3> & image, Sampler &sampler, Scene &scene, uint spp )
 	->void {
 		uint w = image.width();
 		uint h = image.height();
@@ -84,7 +84,7 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 		poly::kernel( integrate<Radiance, Alloc>,
 					  dim3( w / blockDim, h / blockDim ),
 					  dim3( blockDim, blockDim ),
-					  sharedMemPerBlock )( buffer, rays, scene, spp, unroll );
+					  sharedMemPerBlock )( buffer, sampler, scene, spp, unroll );
 
 		for ( uint j = 0; j != h; ++j )
 		{

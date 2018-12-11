@@ -10,11 +10,11 @@ using namespace core;
 
 #endif
 
-static char buf [1024];
+static char buf[ 1024 ];
 
 TEST( test_cyclic_queue, push_queue )
 {
-	HybridAllocator al( buf, 1024 );
+	HybridAllocator al( buf, 8 );
 	CyclicQueue<int> q( al );
 	KLOG( q.capacity() );
 	q.emplace( 1 );

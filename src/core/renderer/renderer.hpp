@@ -47,13 +47,13 @@ struct Renderer : RendererBase
 			}
 			auto &camera = scene.camera[ 0 ];
 
-			rays = core::Sampler( w, h ).sample( camera, spp );
-
 			util::Image<3> image( w, h );
 			KLOG( "Target resolution:", w, "x", h );
 
+			Sampler sampler( camera, w, h, spp );
+
 			KLOG( "Start intergrating" );
-			Host::call<Tracer>( image, rays, scene, spp );
+			Host::call<Tracer>( image, sampler, scene, spp );
 			KLOG( "Finished intergrating" );
 
 			KINFO( renderer, "Writting image to file" );
