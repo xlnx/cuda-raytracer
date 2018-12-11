@@ -8,71 +8,51 @@ namespace koishi
 {
 namespace core
 {
-PolyFunction( DRand48, Require<Host> )
-
+PolyFunction( DRand48, Require<Host> )(
   ()
-	->float
-{
-	static unsigned long long seed = ( ( (long long int)time( nullptr ) ) << 16 ) | ::rand();
+	->float {
+		static unsigned long long seed = ( ( (long long int)time( nullptr ) ) << 16 ) | ::rand();
 
-	constexpr auto m = 0x100000000LL;
-	constexpr auto c = 0xB16;
-	constexpr auto a = 0x5DEECE66DLL;
-	seed = ( a * seed + c ) & 0xFFFFFFFFFFFFLL;
-	unsigned int x = seed >> 16;
-	return ( (float)x / (float)m );
-}
+		constexpr auto m = 0x100000000LL;
+		constexpr auto c = 0xB16;
+		constexpr auto a = 0x5DEECE66DLL;
+		seed = ( a * seed + c ) & 0xFFFFFFFFFFFFLL;
+		unsigned int x = seed >> 16;
+		return ( (float)x / (float)m );
+	} );
 
-EndPolyFunction();
-
-PolyFunction( FakeRand, Require<Device>, Require<Host> )
-
+PolyFunction( FakeRand, Require<Device>, Require<Host> )(
   ()
-	->float
-{
-	return 0.5;
-}
-
-EndPolyFunction();
+	->float {
+		return 0.5;
+	} );
 
 template <typename Function>
-PolyFunction( Float2, Require<Function> )
-
+PolyFunction( Float2, Require<Function> )(
   ()
-	->float2
-{
-	return float2{ call<Function>(),
-				   call<Function>() };
-}
-
-EndPolyFunction();
+	->float2 {
+		return float2{ call<Function>(),
+					   call<Function>() };
+	} );
 
 template <typename Function>
-PolyFunction( Float3, Require<Function> )
-
+PolyFunction( Float3, Require<Function> )(
   ()
-	->float3
-{
-	return float3{ call<Function>(),
-				   call<Function>(),
-				   call<Function>() };
-}
-
-EndPolyFunction();
+	->float3 {
+		return float3{ call<Function>(),
+					   call<Function>(),
+					   call<Function>() };
+	} );
 
 template <typename Function>
-PolyFunction( Float4, Require<Function> )
-
+PolyFunction( Float4, Require<Function> )(
   ()
-	->float4
-{
-	return float4{ call<Function>(),
-				   call<Function>(),
-				   call<Function>(),
-				   call<Function>() };
-}
-
-EndPolyFunction();
+	->float4 {
+		return float4{ call<Function>(),
+					   call<Function>(),
+					   call<Function>(),
+					   call<Function>() };
+	} );
 
 }  // namespace core
 
