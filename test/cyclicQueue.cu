@@ -10,9 +10,11 @@ using namespace core;
 
 #endif
 
+static char buf [1024];
+
 TEST( test_cyclic_queue, push_queue )
 {
-	HostAllocator al;
+	HybridAllocator al( buf, 1024 );
 	CyclicQueue<int> q( al );
 	KLOG( q.capacity() );
 	q.emplace( 1 );
@@ -24,7 +26,7 @@ TEST( test_cyclic_queue, push_queue )
 
 TEST( test_cyclic_queue, overflow )
 {
-	HostAllocator al;
+	HybridAllocator al( buf, 1024 );
 	CyclicQueue<int> q( al );
 	for ( auto i = 0; i != q.capacity(); ++i )
 	{
@@ -40,7 +42,7 @@ TEST( test_cyclic_queue, overflow )
 
 TEST( test_cyclic_queue, huge_amount_of_data )
 {
-	HostAllocator al;
+	HybridAllocator al( buf, 1024 );
 	CyclicQueue<int> q( al );
 	for ( auto i = 0; i != 1 << 24; ++i )
 	{

@@ -57,8 +57,7 @@ int main( int argc, char **argv )
 				types<FakeRand, DRand48>
 			  >,
 			  types<
-				HybridAllocator,
-				HostAllocator
+				HybridAllocator
 			  >
 			>
 			  factory;

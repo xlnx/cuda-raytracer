@@ -52,7 +52,7 @@ struct normalized_type;
 template <typename T>
 struct unnormalized_type;
 
-#define KOISHI_DEV_VEC( T )                     \
+#define KOISHI_DEF_VEC( T )                     \
 	template <uint N>                           \
 	struct vec##T;                              \
 	template <>                                 \
@@ -156,8 +156,8 @@ struct unnormalized_type;
 		using type = T##4;                      \
 	}
 
-KOISHI_DEV_VEC( float );
-KOISHI_DEV_VEC( double );
+KOISHI_DEF_VEC( float );
+KOISHI_DEF_VEC( double );
 
 #define KOISHI_VEC_FLOAT float1, float2, float3, float4, normalized_float1, normalized_float2, normalized_float3, normalized_float4
 #define KOISHI_VEC_DOUBLE double1, double2, double3, double4, normalized_double1, normalized_double2, normalized_double3, normalized_double4
@@ -169,6 +169,8 @@ KOISHI_DEV_VEC( double );
 
 }  // namespace koishi
 
+using namespace koishi::vec;
+
 #if !defined( KOISHI_USE_CUDA )
 
 namespace koishi
@@ -178,25 +180,25 @@ namespace vec
 #endif
 
 #define KOISHI_VEC_PRINT( ... )                                                                                                                                          \
-	template <typename T, int = 0, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && trait::is_vec1<T>::value>::type>                            \
+	template <typename T, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec1<T>::value>::type>                            \
 	std::ostream &operator<<( std::ostream &os, const T &t )                                                                                                             \
 	{                                                                                                                                                                    \
 		os << "[ " << t.x << " ]";                                                                                                                                       \
 		return os;                                                                                                                                                       \
 	}                                                                                                                                                                    \
-	template <typename T, int = 0, int = 0, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && trait::is_vec2<T>::value>::type>                   \
+	template <typename T, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec2<T>::value>::type>                   \
 	std::ostream &operator<<( std::ostream &os, const T &t )                                                                                                             \
 	{                                                                                                                                                                    \
 		os << "[ " << t.x << ", " << t.y << " ]";                                                                                                                        \
 		return os;                                                                                                                                                       \
 	}                                                                                                                                                                    \
-	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && trait::is_vec3<T>::value>::type>          \
+	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type>          \
 	std::ostream &operator<<( std::ostream &os, const T &t )                                                                                                             \
 	{                                                                                                                                                                    \
 		os << "[ " << t.x << ", " << t.y << ", " << t.z << " ]";                                                                                                         \
 		return os;                                                                                                                                                       \
 	}                                                                                                                                                                    \
-	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<trait::is_in<T, __VA_ARGS__>::value && trait::is_vec4<T>::value>::type> \
+	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec4<T>::value>::type> \
 	std::ostream &operator<<( std::ostream &os, const T &t )                                                                                                             \
 	{                                                                                                                                                                    \
 		os << "[ " << t.x << ", " << t.y << ", " << t.z << ", " << t.w << " ]";                                                                                          \
@@ -212,4 +214,3 @@ KOISHI_VEC_PRINT( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE, KOISHI_VEC_INT, KOISHI_VE
 }
 #endif
 
-using namespace koishi::vec;
