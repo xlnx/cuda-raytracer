@@ -12,6 +12,7 @@
 #include <core/basic/allocator.hpp>
 #include <core/meta/mesh.hpp>
 #include <core/meta/scene.hpp>
+#include <core/misc/lens.hpp>
 #include <core/misc/sampler.hpp>
 
 namespace koishi
@@ -50,10 +51,11 @@ struct Renderer : RendererBase
 			util::Image<3> image( w, h );
 			KLOG( "Target resolution:", w, "x", h );
 
-			Sampler sampler( camera, w, h, spp );
+			Lens lens( camera, w, h, spp );
+			Sampler rng;
 
 			KLOG( "Start intergrating" );
-			Host::call<Tracer>( image, sampler, scene, spp );
+			Host::call<Tracer>( image, lens, rng, scene, spp );
 			KLOG( "Finished intergrating" );
 
 			KINFO( renderer, "Writting image to file" );

@@ -1,5 +1,4 @@
 #include <cstdio>
-#include <core/misc/random.hpp>
 #include <core/kernel/radiance.hpp>
 #include <core/kernel/normal.hpp>
 #include <core/tracer/cpuMulticore.hpp>
@@ -22,7 +21,6 @@ int main( int argc, char **argv )
 	  "h,help", "Show help message." )(
 	  "t,tracer", "Specify target tracer.", cxxopts::value<std::string>()->default_value( "CPUMultiCoreTracer" ) )(
 	  "k,kernel", "Specify kernel function.", cxxopts::value<std::string>()->default_value( "Radiance" ) )(
-	  "r,random-number-generator", "Specify random number generator.", cxxopts::value<std::string>()->default_value( "DRand48" ) )(
 	  "a,allocator", "Specify allocator.", cxxopts::value<std::string>()->default_value( "HybridAllocator" ) )(
 	  "resolution", "Specify target resolution.", cxxopts::value<std::string>()->default_value( "1024x768" ) );
 
@@ -51,8 +49,7 @@ int main( int argc, char **argv )
 #endif
 						>,
 			  types<
-				templates1<Radiance, Normal>,
-				types<FakeRand, DRand48>
+				Radiance, Normal
 			  >,
 			  types<
 				HybridAllocator
@@ -72,10 +69,9 @@ int main( int argc, char **argv )
 			{
 				auto tracer = opt[ "t" ].as<std::string>();
 				auto kernel = opt[ "k" ].as<std::string>();
-				auto rng = opt[ "r" ].as<std::string>();
 				auto alloc = opt[ "a" ].as<std::string>();
 
-				auto targetClass = tracer + "<" + kernel + "<" + rng + ">" + ", " + alloc + ">";
+				auto targetClass = tracer + "<" + kernel + ", " + alloc + ">";
 
 				uint w = 1024, h = 768;
 				auto resolution = opt[ "resolution" ].as<std::string>();

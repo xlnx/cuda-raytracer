@@ -109,6 +109,15 @@ public:
 		is_device_ptr = false;
 		return *this;
 	}
+	void swap( T *&other, std::size_t &count )
+	{
+		auto tmp = curr;
+		total = curr = count;
+		count = tmp;
+		auto old = value;
+		value = other;
+		other = old;
+	}
 
 public:
 	KOISHI_HOST_DEVICE vector( vector &&other ) :

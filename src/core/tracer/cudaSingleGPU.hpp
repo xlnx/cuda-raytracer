@@ -6,6 +6,7 @@
 #include <core/basic/ray.hpp>
 #include <core/basic/poly.hpp>
 #include <core/basic/allocator.hpp>
+#include <core/misc/lens.hpp>
 #include <core/misc/sampler.hpp>
 #include <core/meta/scene.hpp>
 
@@ -21,7 +22,7 @@ constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh
 template <typename Radiance, typename Alloc>
 PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 
-  ( poly::vector<float3> & buffer, const Sampler &sampler, const Scene &scene, uint spp, uint unroll )
+  ( poly::vector<float3> & buffer, const Lens &lens, Sampler &rng, const Scene &scene, uint spp, uint unroll )
 	->void {
 		char stackPool[ stackPoolSize ];
 		Alloc pool( stackPool, stackPoolSize );
@@ -37,7 +38,7 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 
 		for ( uint i = 0; i < spp; ++i )
 		{
-			sum += call<Radiance>( sampler.sample( x, y, i ), scene, pool );
+			sum += call<Radiance>( lens.sample( x, y, i ), scene, pool, rng );
 			pool.clear();
 		}
 
@@ -45,15 +46,15 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 	} );
 
 template <typename Radiance, typename Alloc>
-__global__ void integrate( poly::vector<float3> &buffer, const Sampler &sampler, const Scene &scene, uint spp, uint unroll )
+__global__ void integrate( poly::vector<float3> &buffer, const Lens &lens, Sampler &rng, const Scene &scene, uint spp, uint unroll )
 {
-	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, sampler, scene, spp, unroll );
+	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, lens, rng, scene, spp, unroll );
 }
 
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
 
-  ( util::Image<3> & image, Sampler &sampler, Scene &scene, uint spp )
+  ( util::Image<3> & image, Lens &lens, Sampler &rng, Scene &scene, uint spp )
 	->void {
 		uint w = image.width();
 		uint h = image.height();
@@ -84,7 +85,7 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 		poly::kernel( integrate<Radiance, Alloc>,
 					  dim3( w / blockDim, h / blockDim ),
 					  dim3( blockDim, blockDim ),
-					  sharedMemPerBlock )( buffer, sampler, scene, spp, unroll );
+					  sharedMemPerBlock )( buffer, lens, rng, scene, spp, unroll );
 
 		for ( uint j = 0; j != h; ++j )
 		{

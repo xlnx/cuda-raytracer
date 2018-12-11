@@ -8,6 +8,7 @@
 #include <core/basic/ray.hpp>
 #include <core/basic/poly.hpp>
 #include <core/basic/allocator.hpp>
+#include <core/misc/lens.hpp>
 #include <core/misc/sampler.hpp>
 #include <core/meta/scene.hpp>
 
@@ -17,7 +18,7 @@ namespace core
 {
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
-  ( util::Image<3> & image, Sampler &sampler, Scene &scene, uint spp )
+  ( util::Image<3> & image, Lens &lens, Sampler &rng, Scene &scene, uint spp )
 	->void {
 		uint w = image.width();
 		uint h = image.height();
@@ -35,7 +36,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 		std::vector<std::thread> ts;
 		KINFO( tracer, "Tracing start" );
 		util::tick();
-		auto tracer_thread = [ncores, spp, h, w, &scene, &image, &sampler]( uint id ) {
+		auto tracer_thread = [ncores, spp, h, w, &scene, &image, &lens, &rng]( uint id ) {
 			static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
 			static constexpr uint block_size = 480 * b;
 
@@ -50,7 +51,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 					float3 rad = { 0, 0, 0 };
 					for ( uint k = 0; k != spp; ++k )
 					{
-						rad += Self::template call<Radiance>( sampler.sample( i, j, k ), scene, pool );
+						rad += Self::template call<Radiance>( lens.sample( i, j, k ), scene, pool, rng );
 						pool.clear();
 					}
 					image.at( i, j ) = rad / spp;
