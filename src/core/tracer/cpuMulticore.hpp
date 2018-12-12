@@ -18,7 +18,7 @@ namespace core
 {
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
-  ( util::Image<3> & image, Lens &lens, SamplerGenerator &rng_gen, Scene &scene, uint spp )
+  ( util::Image<3> & image, poly::object<Lens> &lens, SamplerGenerator &rng_gen, Scene &scene, uint spp )
 	->void {
 		uint w = image.width();
 		uint h = image.height();
@@ -52,7 +52,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 					float3 rad = { 0, 0, 0 };
 					for ( uint k = 0; k != spp; ++k )
 					{
-						rad += Self::template call<Radiance>( lens.sample( i, j, k ), scene, pool, rng );
+						rad += Self::template call<Radiance>( lens->sample( i, j, k ), scene, pool, rng );
 						pool.clear();
 					}
 					image.at( i, j ) = rad / spp;

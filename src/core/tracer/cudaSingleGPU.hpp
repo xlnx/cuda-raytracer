@@ -22,7 +22,7 @@ constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh
 template <typename Radiance, typename Alloc>
 PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 
-  ( poly::vector<float3> & buffer, const Lens &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
+  ( poly::vector<float3> & buffer, const poly::object<Lens> &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
 	->void {
 		char stackPool[ stackPoolSize ];
 		Alloc pool( stackPool, stackPoolSize );
@@ -39,7 +39,7 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 
 		for ( uint i = 0; i < spp; ++i )
 		{
-			sum += call<Radiance>( lens.sample( x, y, i ), scene, pool, rng );
+			sum += call<Radiance>( lens->sample( x, y, i ), scene, pool, rng );
 			pool.clear();
 		}
 
@@ -47,7 +47,7 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 	} );
 
 template <typename Radiance, typename Alloc>
-__global__ void integrate( poly::vector<float3> &buffer, const Lens &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
+__global__ void integrate( poly::vector<float3> &buffer, const poly::object<Lens> &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
 {
 	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, lens, rng_gen, scene, spp, unroll );
 }
@@ -55,7 +55,7 @@ __global__ void integrate( poly::vector<float3> &buffer, const Lens &lens, Sampl
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
 
-  ( util::Image<3> & image, Lens &lens, SamplerGenerator &rng_gen, Scene &scene, uint spp )
+  ( util::Image<3> & image, poly::object<Lens> &lens, SamplerGenerator &rng_gen, Scene &scene, uint spp )
 	->void {
 		uint w = image.width();
 		uint h = image.height();

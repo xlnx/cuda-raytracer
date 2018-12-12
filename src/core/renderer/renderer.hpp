@@ -51,7 +51,7 @@ struct Renderer : RendererBase
 			util::Image<3> image( w, h );
 			KLOG( "Target resolution:", w, "x", h );
 
-			SquareLens lens( camera, w, h, spp );
+			poly::object<Lens> lens = poly::make_object<SquareLens>( camera, w, h, spp );
 			SamplerGenerator rng_gen;
 
 			KLOG( "Start intergrating" );
