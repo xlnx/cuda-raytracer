@@ -144,7 +144,7 @@ public:
 	KOISHI_HOST_DEVICE object( object &&other ) :
 	  emittable( std::move( other ) ),
 	  value( other.value ),
-	  preserved( other.preserved ),
+	  device_value( other.device_value ),
 	  desc( other.desc ),
 	  is_device_ptr( other.is_device_ptr )
 	{
@@ -154,7 +154,7 @@ public:
 	KOISHI_HOST_DEVICE object( object<U> &&other ) :
 	  emittable( std::move( other ) ),
 	  value( static_cast<T *>( other.value ) ),
-	  preserved( static_cast<T *>( other.preserved ) ),
+	  device_value( static_cast<T *>( other.device_value ) ),
 	  desc( other.desc ),
 	  is_device_ptr( other.is_device_ptr )
 	{
@@ -164,7 +164,7 @@ public:
 	{
 		destroy();
 		value = other.value;
-		preserved = other.preserved;
+		device_value = other.device_value;
 		desc = other.desc;
 		is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
@@ -175,7 +175,7 @@ public:
 	{
 		destroy();
 		value = static_cast<T *>( other.value );
-		preserved = static_cast<T *>( other.preserved );
+		device_value = static_cast<T *>( other.device_value );
 		desc = other.desc;
 		is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
@@ -187,7 +187,7 @@ public:
 	  :
 	  emittable( other ),
 	  value( other.value ),
-	  preserved( other.preserved ),
+	  device_value( other.device_value ),
 	  desc( other.desc ),
 	  is_device_ptr( other.is_device_ptr )
 	{
@@ -202,7 +202,7 @@ public:
 #ifdef KOISHI_USE_CUDA
 	{
 		value = other.value;
-		preserved = other.preserved;
+		device_value = other.device_value;
 		desc = other.desc;
 		is_device_ptr = other.is_device_ptr;
 		copyBetweenDevice( other );
@@ -227,23 +227,21 @@ private:
 		{
 			KTHROW( "invalid use of object( const & )" );
 		}
-		pointer new_ptr;
 		if ( is_device_ptr )
 		{
-			new_ptr = preserved;
-			__impl::TypeErasedMover::device_to_host( new_ptr, value, *desc );
+			__impl::TypeErasedMover::device_to_host( value, device_value, *desc );
 			cudaFree( value );
 		}
 		else
 		{
-			if ( auto err = cudaMalloc( &new_ptr, desc->alloc_size ) )
+			T *ptr;
+			if ( auto err = cudaMalloc( &ptr, desc->alloc_size ) )
 			{
 				KTHROW( "cudaMalloc on device failed" );
 			}
-			__impl::TypeErasedMover::host_to_device( new_ptr, value, *desc );
-			preserved = value;
+			device_value = ptr;
+			__impl::TypeErasedMover::host_to_device( device_value, value, *desc );
 		}
-		value = new_ptr;
 		is_device_ptr = !is_device_ptr;
 		KLOG3( "value", value );
 	}
@@ -267,23 +265,29 @@ private:
 	}
 
 public:
+#ifdef __CUDA_ARCH__
+#define KOISHI_DATA_PTR device_value
+#else
+#define KOISHI_DATA_PTR value
+#endif
 	KOISHI_HOST_DEVICE pointer operator->()
 	{
-		return value;
+		return KOISHI_DATA_PTR;
 	}
 	KOISHI_HOST_DEVICE const_pointer operator->() const
 	{
-		return value;
+		return KOISHI_DATA_PTR;
 	}
 
 	KOISHI_HOST_DEVICE reference operator*()
 	{
-		return *value;
+		return *KOISHI_DATA_PTR;
 	}
 	KOISHI_HOST_DEVICE const_reference operator*() const
 	{
-		return *value;
+		return *KOISHI_DATA_PTR;
 	}
+#undef KOISHI_DATA_PTR
 
 private:
 	static __impl::type_desc &getDesc()
@@ -294,7 +298,7 @@ private:
 
 private:
 	T *KOISHI_RESTRICT value = nullptr;
-	T *preserved;
+	T *KOISHI_RESTRICT device_value;
 	__impl::type_desc *desc;
 	bool is_device_ptr = false;
 };

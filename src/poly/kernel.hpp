@@ -82,7 +82,7 @@ struct Mover
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
-				KTHROW( "cudaMallocManaged failed" );
+				KTHROW( "cudaMallocManaged failed to allocate", alloc_size, "bytes on device" );
 			}
 			host_to_union( union_ptr, host_ptr, count );
 			union_to_device( device_ptr, union_ptr, count );
@@ -109,7 +109,7 @@ struct Mover
 			T *union_ptr;
 			if ( auto err = cudaMallocManaged( &union_ptr, alloc_size ) )
 			{
-				KTHROW( "cudaMallocManaged failed" );
+				KTHROW( "cudaMallocManaged failed to allocate", alloc_size, "bytes on device" );
 			}
 			device_to_union( union_ptr, device_ptr, count );
 			union_to_host( host_ptr, union_ptr, count );

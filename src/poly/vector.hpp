@@ -125,7 +125,7 @@ public:
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
-	  preserved( other.preserved ),
+	  device_value( other.device_value ),
 	  is_device_ptr( other.is_device_ptr )
 	{
 		other.value = nullptr;
@@ -136,7 +136,7 @@ public:
 		total = other.total;
 		curr = other.curr;
 		value = other.value;
-		preserved = other.preserved;
+		device_value = other.device_value;
 		is_device_ptr = other.is_device_ptr;
 		other.value = nullptr;
 		return *this;
@@ -153,7 +153,7 @@ public:
 	  total( other.total ),
 	  curr( other.curr ),
 	  value( other.value ),
-	  preserved( other.preserved ),
+	  device_value( other.device_value ),
 	  is_device_ptr( other.is_device_ptr )
 	{
 		copyBetweenDevice( other );
@@ -170,7 +170,7 @@ public:
 		total = other.total;
 		curr = other.curr;
 		value = other.value;
-		preserved = other.preserved;
+		device_value = other.device_value;
 		is_device_ptr = other.is_device_ptr;
 		copyBetweenDevice( other );
 		return *this;
@@ -189,28 +189,22 @@ private:
 		{
 			KTHROW( "invalid use of vector( const & )" );
 		}
-		pointer new_ptr;
 		if ( is_device_ptr )
 		{
-			new_ptr = preserved;
-			__impl::Mover<T>::device_to_host( new_ptr, value, curr );
-			cudaFree( value );
+			__impl::Mover<T>::device_to_host( value, device_value, curr );
+			cudaFree( device_value );
 		}
 		else
 		{
 			auto alloc_size = sizeof( T ) * total;
-			if ( auto err = cudaMalloc( &new_ptr, alloc_size ) )
+			T *ptr;
+			if ( auto err = cudaMalloc( &ptr, alloc_size ) )
 			{
 				KTHROW( "cudaMalloc on device failed" );
 			}
-			__impl::Mover<T>::host_to_device( new_ptr, value, curr );
-			preserved = value;
+			device_value = ptr;
+			__impl::Mover<T>::host_to_device( device_value, value, curr );
 		}
-		// if ( &other == this )
-		// {
-		// 	destroy();
-		// }
-		value = new_ptr;
 		is_device_ptr = !is_device_ptr;
 		KLOG3( "value", value );
 	}
@@ -234,29 +228,35 @@ private:
 	}
 
 public:
-	KOISHI_HOST_DEVICE reference operator[]( size_type idx ) { return value[ idx ]; }
-	KOISHI_HOST_DEVICE const_reference operator[]( size_type idx ) const { return value[ idx ]; }
+#ifdef __CUDA_ARCH__
+#  define KOISHI_DATA_PTR device_value
+#else
+#  define KOISHI_DATA_PTR value
+#endif
+	KOISHI_HOST_DEVICE reference operator[]( size_type idx ) { return KOISHI_DATA_PTR[ idx ]; }
+	KOISHI_HOST_DEVICE const_reference operator[]( size_type idx ) const { return KOISHI_DATA_PTR[ idx ]; }
 
-	KOISHI_HOST_DEVICE reference front() { return *value; }
-	KOISHI_HOST_DEVICE const_reference front() const { return *value; }
+	KOISHI_HOST_DEVICE reference front() { return *KOISHI_DATA_PTR; }
+	KOISHI_HOST_DEVICE const_reference front() const { return *KOISHI_DATA_PTR; }
 
-	KOISHI_HOST_DEVICE reference back() { return value[ curr - 1 ]; }
-	KOISHI_HOST_DEVICE const_reference back() const { return value[ curr - 1 ]; }
+	KOISHI_HOST_DEVICE reference back() { return KOISHI_DATA_PTR[ curr - 1 ]; }
+	KOISHI_HOST_DEVICE const_reference back() const { return KOISHI_DATA_PTR[ curr - 1 ]; }
 
-	KOISHI_HOST pointer data() { return value; }
-	KOISHI_HOST const_pointer data() const { return value; }
+	KOISHI_HOST pointer data() { return KOISHI_DATA_PTR; }
+	KOISHI_HOST const_pointer data() const { return KOISHI_DATA_PTR; }
 
-	KOISHI_HOST_DEVICE iterator begin() { return value; }
-	KOISHI_HOST_DEVICE const_iterator begin() const { return value; }
+	KOISHI_HOST_DEVICE iterator begin() { return KOISHI_DATA_PTR; }
+	KOISHI_HOST_DEVICE const_iterator begin() const { return KOISHI_DATA_PTR; }
 
-	KOISHI_HOST_DEVICE iterator end() { return value + curr; }
-	KOISHI_HOST_DEVICE const_iterator end() const { return value + curr; }
+	KOISHI_HOST_DEVICE iterator end() { return KOISHI_DATA_PTR + curr; }
+	KOISHI_HOST_DEVICE const_iterator end() const { return KOISHI_DATA_PTR + curr; }
 
 	KOISHI_HOST_DEVICE bool empty() const { return curr == 0; }
 
 	KOISHI_HOST_DEVICE size_type size() const { return curr; }
 
 	KOISHI_HOST_DEVICE size_type capacity() const { return total; }
+#undef KOISHI_DATA_PTR
 
 public:
 	template <typename... Args>
@@ -360,7 +360,7 @@ private:
 	std::size_t total = MIN_SIZE;
 	size_type curr = 0;
 	T *KOISHI_RESTRICT value = (pointer)std::malloc( sizeof( T ) * total );
-	T *preserved;
+	T *KOISHI_RESTRICT device_value = nullptr;
 	bool is_device_ptr = false;
 };
 

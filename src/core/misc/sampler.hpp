@@ -23,7 +23,7 @@ struct Sampler
 	KOISHI_HOST_DEVICE float sample()
 	{
 #ifdef __CUDA_ARCH__
-		return nums[ id++ ];
+		return nums[ id += det ];
 #else
 		static unsigned long long seed = ( ( (long long int)time( nullptr ) ) << 16 ) | ::rand();
 
@@ -79,11 +79,15 @@ private:
 		unsigned int x = seed >> 8;
 		float r = (float)x / (float)m;
 		id = uint(nums.size() * r) % nums.size();
+		seed = ( a * seed + c ) & 0xFFFFFFFFFFFFLL;
+		x = seed >> 8;
+		r = (float)x / (float)m;
+		det = uint(nums.size() * r) % ( nums.size() / 4 ) + 1u;
 #endif
 	}
 
 private:
-	uint16_t id = 0;
+	uint16_t id = 0, det = 1;
 	const poly::vector<float> &nums;
 };
 
