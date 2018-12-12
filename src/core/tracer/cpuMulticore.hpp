@@ -18,7 +18,7 @@ namespace core
 {
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
-  ( util::Image<3> & image, Lens &lens, Sampler &rng, Scene &scene, uint spp )
+  ( util::Image<3> & image, Lens &lens, SamplerGenerator &rng_gen, Scene &scene, uint spp )
 	->void {
 		uint w = image.width();
 		uint h = image.height();
@@ -36,6 +36,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 		std::vector<std::thread> ts;
 		KINFO( tracer, "Tracing start" );
 		util::tick();
+		auto rng = rng_gen.create();
 		auto tracer_thread = [ncores, spp, h, w, &scene, &image, &lens, &rng]( uint id ) {
 			static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
 			static constexpr uint block_size = 480 * b;

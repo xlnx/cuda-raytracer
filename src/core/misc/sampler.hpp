@@ -13,34 +13,12 @@ namespace koishi
 {
 namespace core
 {
-struct Sampler : emittable
+
+struct SamplerGenerator;
+
+struct Sampler
 {
-#ifdef KOISHI_USE_CUDA
-	Sampler() :
-	  nums( int( uint16_t( -1u ) ) + 1 )
-	{
-		float *value = nullptr, *dev_ptr;
-		std::size_t count = 0;
-		curandGenerator_t gen;
-
-		nums.swap( value, count );
-
-		cudaMalloc( &dev_ptr, count * sizeof( float ) );
-		curandCreateGenerator( &gen, CURAND_RNG_PSEUDO_MTGP32 );
-		curandSetPseudoRandomGeneratorSeed( gen, (long long int)time( nullptr ) );
-		curandGenerateUniform( gen, dev_ptr, count );
-		cudaMemcpy( valuem, dev_ptr, count * sizeof( float ), cudaMemcpyDeviceToHost );
-		curandDestroyGenerator( gen );
-		cudaFree( dev_ptr );
-
-		nums.swap( value, count );
-	}
-#else
-	Sampler() :
-	  nums( 0 )
-	{
-	}
-#endif
+	friend struct SamplerGenerator;
 
 	KOISHI_HOST_DEVICE float sample()
 	{
@@ -74,7 +52,75 @@ struct Sampler : emittable
 	}
 
 private:
+	KOISHI_HOST_DEVICE Sampler( const poly::vector<float> &nums ):
+	  nums( nums )
+	{
+#ifdef __CUDA_ARCH__
+		using ull = unsigned long long;
+		ull bd_x = blockDim.x;
+		ull bd_xy = bd_x * blockDim.y;
+		ull bd_xyz = bd_xy * blockDim.z;
+		ull gd_x = gridDim.x;
+		ull gd_xy = gd_x * gridDim.y;
+		ull gd_xyz = gd_xy * gridDim.z;
+		ull th_idx = threadIdx.x + 
+		             threadIdx.y * bd_x +
+		             threadIdx.z * bd_xy;
+		ull bl_idx = blockIdx.x + 
+		             blockIdx.y * gd_x +
+		             blockIdx.z * gd_xy;
+		ull idx = th_idx + 
+		          bl_idx * bd_xyz;
+
+		constexpr auto m = 0x100000000LL;
+		constexpr auto c = 0xB16;
+		constexpr auto a = 0x5DEECE66DLL;
+		auto seed = ( a * idx + c ) & 0xFFFFFFFFFFFFLL;
+		unsigned int x = seed >> 16;
+		float r = (float)x / (float)m;
+		id = uint(nums.size() * r) % nums.size();
+#endif
+	}
+
+private:
 	uint16_t id = 0;
+	const poly::vector<float> &nums;
+};
+
+struct SamplerGenerator: emittable
+{
+#ifdef KOISHI_USE_CUDA
+	SamplerGenerator() :
+	  nums( int( uint16_t( -1u ) ) + 1 )
+	{
+		float *value = nullptr, *dev_ptr;
+		std::size_t count = 0;
+		curandGenerator_t gen;
+
+		nums.swap( value, count );
+
+		cudaMalloc( &dev_ptr, count * sizeof( float ) );
+		curandCreateGenerator( &gen, CURAND_RNG_PSEUDO_MTGP32 );
+		curandSetPseudoRandomGeneratorSeed( gen, (long long int)time( nullptr ) );
+		curandGenerateUniform( gen, dev_ptr, count );
+		cudaMemcpy( value, dev_ptr, count * sizeof( float ), cudaMemcpyDeviceToHost );
+		curandDestroyGenerator( gen );
+		cudaFree( dev_ptr );
+
+		nums.swap( value, count );
+	}
+#else
+	SamplerGenerator() :
+	  nums( 0 )
+	{
+	}
+#endif
+	KOISHI_HOST_DEVICE Sampler create() const
+	{
+		return Sampler( nums );
+	}
+
+private:
 	poly::vector<float> nums;
 };
 

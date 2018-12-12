@@ -52,10 +52,10 @@ struct Renderer : RendererBase
 			KLOG( "Target resolution:", w, "x", h );
 
 			Lens lens( camera, w, h, spp );
-			Sampler rng;
+			SamplerGenerator rng_gen;
 
 			KLOG( "Start intergrating" );
-			Host::call<Tracer>( image, lens, rng, scene, spp );
+			Host::call<Tracer>( image, lens, rng_gen, scene, spp );
 			KLOG( "Finished intergrating" );
 
 			KINFO( renderer, "Writting image to file" );

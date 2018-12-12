@@ -53,6 +53,11 @@ if (${CUDA} STREQUAL "ON")
 	set(CUDA_ATTACH_VS_BUILD_RULE_TO_CUDA_FILE ON)
 	set(CUDA_SEPARABLE_COMPILATION ON)
 	add_definitions(-DKOISHI_USE_CUDA)
+	link_directories(
+		${CUDA_TOOLKIT_ROOT_DIR}/lib
+		${CUDA_TOOLKIT_ROOT_DIR}/lib64
+	)
+	link_libraries(curand)
 	set(CUDA_NVCC_FLAGS ${CMAKE_NVCC_FLAGS} 
 		-std=c++14 
 		--expt-extended-lambda

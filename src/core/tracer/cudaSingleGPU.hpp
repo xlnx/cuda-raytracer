@@ -22,10 +22,11 @@ constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh
 template <typename Radiance, typename Alloc>
 PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 
-  ( poly::vector<float3> & buffer, const Lens &lens, Sampler &rng, const Scene &scene, uint spp, uint unroll )
+  ( poly::vector<float3> & buffer, const Lens &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
 	->void {
 		char stackPool[ stackPoolSize ];
 		Alloc pool( stackPool, stackPoolSize );
+		auto rng = rng_gen.create();
 
 		uint x = blockIdx.x * blockDim.x + threadIdx.x;
 		uint y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -46,15 +47,15 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 	} );
 
 template <typename Radiance, typename Alloc>
-__global__ void integrate( poly::vector<float3> &buffer, const Lens &lens, Sampler &rng, const Scene &scene, uint spp, uint unroll )
+__global__ void integrate( poly::vector<float3> &buffer, const Lens &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
 {
-	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, lens, rng, scene, spp, unroll );
+	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, lens, rng_gen, scene, spp, unroll );
 }
 
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
 
-  ( util::Image<3> & image, Lens &lens, Sampler &rng, Scene &scene, uint spp )
+  ( util::Image<3> & image, Lens &lens, SamplerGenerator &rng_gen, Scene &scene, uint spp )
 	->void {
 		uint w = image.width();
 		uint h = image.height();
@@ -85,7 +86,7 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 		poly::kernel( integrate<Radiance, Alloc>,
 					  dim3( w / blockDim, h / blockDim ),
 					  dim3( blockDim, blockDim ),
-					  sharedMemPerBlock )( buffer, lens, rng, scene, spp, unroll );
+					  sharedMemPerBlock )( buffer, lens, rng_gen, scene, spp, unroll );
 
 		for ( uint j = 0; j != h; ++j )
 		{
