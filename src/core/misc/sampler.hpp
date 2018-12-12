@@ -76,7 +76,7 @@ private:
 		constexpr auto c = 0xB16;
 		constexpr auto a = 0x5DEECE66DLL;
 		auto seed = ( a * idx + c ) & 0xFFFFFFFFFFFFLL;
-		unsigned int x = seed >> 16;
+		unsigned int x = seed >> 8;
 		float r = (float)x / (float)m;
 		id = uint(nums.size() * r) % nums.size();
 #endif
