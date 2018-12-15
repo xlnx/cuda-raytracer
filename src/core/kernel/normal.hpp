@@ -18,8 +18,7 @@ PolyFunction( Normal, Host, Device )(
 
 		if ( auto isect = scene.intersect( r, pool ) )
 		{
-			auto wo = isect.local( -r.d );
-			L = wo;
+			L = isect.n;
 		}
 
 		return L;

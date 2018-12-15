@@ -13,6 +13,7 @@ struct Hit
 	uint id;
 	float t = INFINITY;
 	float2 uv;
+	float3 data;
 
 	KOISHI_HOST_DEVICE operator bool() const
 	{

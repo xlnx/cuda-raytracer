@@ -18,7 +18,7 @@ PolyFunction( Radiance, Host, Device )(
 		auto ray = r;
 		Interreact isect;
 		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
-		constexpr auto maxBounce = 8;
+		constexpr auto maxBounce = 12;
 
 		for ( auto bounce = 0; ( isect = scene.intersect( ray, pool ) ) &&
 							   bounce != maxBounce;
@@ -38,6 +38,14 @@ PolyFunction( Radiance, Host, Device )(
 				ray = isect.emitRay( isect.global( wi ) );
 			}
 			pool.clear();
+
+			auto rr = max( beta.x, max( beta.y, beta.z ) );
+			if ( rr < 1. && bounce > 3 )
+			{
+				auto q = max( .05f, 1 - rr );
+				if ( rng.sample() < q ) break;
+				beta /= 1 - q;
+			}
 		}
 
 		return L;

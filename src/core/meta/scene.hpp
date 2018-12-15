@@ -3,7 +3,6 @@
 #include <string>
 #include <vector>
 #include <core/basic/poly.hpp>
-#include "mesh.hpp"
 #include "material.hpp"
 #include "interreact.hpp"
 
@@ -15,7 +14,7 @@ struct Scene : emittable
 {
 	Scene( const std::string &path );
 
-	poly::vector<Mesh> mesh;
+	poly::vector<poly::object<Primitive>> primitives;
 	poly::vector<poly::object<Material>> material;
 
 	poly::vector<CameraConfig> camera;
@@ -24,12 +23,12 @@ struct Scene : emittable
 
 	KOISHI_HOST_DEVICE Interreact intersect( const Ray &r, Allocator &pool ) const
 	{
-		poly::vector<Mesh>::const_iterator pm = nullptr;
+		poly::object<Primitive> const *pm = nullptr;
 		Hit hit;
-		for ( auto it = mesh.begin(); it != mesh.end(); ++it )
+		for ( auto it = primitives.begin(); it != primitives.end(); ++it )
 		{
 			Hit hit1;
-			if ( it->intersect( r, hit1, pool ) && hit1.t < hit.t )
+			if ( ( *it )->intersect( r, hit1, pool ) && hit1.t < hit.t )
 			{
 				hit = hit1, pm = it;
 			}
@@ -38,17 +37,13 @@ struct Scene : emittable
 		Interreact res;
 		if ( hit )
 		{
-			res.mesh = pm;
 			res.isNull = false;
-			res.n = core::interplot( pm->normals[ hit.id ].n0,
-									 pm->normals[ hit.id ].n1,
-									 pm->normals[ hit.id ].n2,
-									 hit.uv );
+			res.n = ( *pm )->normal( hit );
 			res.p = r.o + r.d * hit.t;
 			res.uv = hit.uv;
 			res.u = cross( res.n, float3{ 0, 1, 0 } );
 			res.v = cross( res.n, res.u );
-			material[ pm->matid ]->apply( res, pool );
+			material[ ( *pm )->matid ]->apply( res, pool );
 			// pm->material->apply( res, pool );
 		}
 		return res;
@@ -56,9 +51,9 @@ struct Scene : emittable
 
 	KOISHI_HOST_DEVICE bool intersect( const Seg &s, Allocator &pool ) const
 	{
-		for ( auto &m : mesh )
+		for ( auto &m : primitives )
 		{
-			if ( m.intersect( s, pool ) )
+			if ( m->intersect( s, pool ) )
 			{
 				return true;
 			}

@@ -12,6 +12,7 @@
 #include <core/basic/poly.hpp>
 #include <core/basic/allocator.hpp>
 #include <core/basic/queue.hpp>
+#include "primitive.hpp"
 
 namespace koishi
 {
@@ -48,7 +49,7 @@ struct Normal
 
 }  // namespace attr
 
-struct Mesh : emittable
+struct Mesh : Primitive
 {
 	Mesh( const CompactMesh &other );
 	Mesh( CompactMesh &&other );
@@ -57,10 +58,16 @@ struct Mesh : emittable
 	poly::vector<attr::Face> faces;
 	poly::vector<attr::Normal> normals;
 	BVHTree bvh;
-	uint matid;
 
-	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, Hit &hit, Allocator &pool ) const;
-	KOISHI_HOST_DEVICE bool intersect( const Seg &seg, Allocator &pool ) const;
+	KOISHI_HOST_DEVICE float3 normal( const Hit &hit ) const override
+	{
+		return interplot( normals[ hit.id ].n0,
+						  normals[ hit.id ].n1,
+						  normals[ hit.id ].n2,
+						  hit.uv );
+	}
+	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, Hit &hit, Allocator &pool ) const override;
+	KOISHI_HOST_DEVICE bool intersect( const Seg &seg, Allocator &pool ) const override;
 };
 
 struct PolyMesh

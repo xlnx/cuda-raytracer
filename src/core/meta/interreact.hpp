@@ -1,6 +1,6 @@
 #pragma once
 
-#include "mesh.hpp"
+#include "primitive.hpp"
 #include "bsdf.hpp"
 
 namespace koishi
@@ -12,8 +12,6 @@ struct Interreact
 	float2 uv;
 
 	float3 n, p, u, v;
-
-	const Mesh *mesh;
 
 	BSDF *bsdf = nullptr;
 

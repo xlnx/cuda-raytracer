@@ -32,7 +32,7 @@ struct SceneConfig : serializable<SceneConfig>
 {
 	using TConfig = std::map<std::string, Config>;
 	Property( std::vector<CameraConfig>, camera, {} );
-	Property( std::string, path );
+	Property( std::vector<Config>, assets );
 	Property( TConfig, material );
 };
 

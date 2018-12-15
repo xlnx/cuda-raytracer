@@ -145,9 +145,9 @@ static BVHTree createBVH( std::vector<TriangleInfo> &info )
 Mesh::Mesh( const CompactMesh &other ) :
   faces( other.indices.size() / 3 ),
   normals( other.indices.size() / 3 ),
-  bvh( other.bvh.size() ),
-  matid( other.matid )
+  bvh( other.bvh.size() )
 {
+	matid = other.matid;
 	for ( uint i = 0, j = 0; i != other.indices.size(); i += 3, ++j )
 	{
 		auto i0 = other.indices[ i ];
@@ -173,9 +173,9 @@ Mesh::Mesh( const CompactMesh &other ) :
 Mesh::Mesh( CompactMesh &&other ) :
   faces( other.indices.size() / 3 ),
   normals( other.indices.size() / 3 ),
-  bvh( std::move( other.bvh ) ),
-  matid( other.matid )
+  bvh( std::move( other.bvh ) )
 {
+	matid = other.matid;
 	for ( uint i = 0, j = 0; i != other.indices.size(); i += 3, ++j )
 	{
 		auto i0 = other.indices[ i ];
