@@ -54,6 +54,19 @@ struct Scene : emittable
 		return res;
 	}
 
+	KOISHI_HOST_DEVICE bool intersect( const Seg &s, Allocator &pool ) const
+	{
+		for ( auto &m : mesh )
+		{
+			if ( m.intersect( s, pool ) )
+			{
+				return true;
+			}
+			pool.clear();
+		}
+		return false;
+	}
+
 private:
 	bool valid = false;
 };

@@ -60,6 +60,7 @@ struct Mesh : emittable
 	uint matid;
 
 	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, Hit &hit, Allocator &pool ) const;
+	KOISHI_HOST_DEVICE bool intersect( const Seg &seg, Allocator &pool ) const;
 };
 
 struct PolyMesh

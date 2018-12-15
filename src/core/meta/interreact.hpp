@@ -38,6 +38,17 @@ public:
 		return r;
 	}
 
+	KOISHI_HOST_DEVICE Seg emitSeg( const float3 &p ) const
+	{
+		Seg s;
+		s.d = p - this->p;
+		auto nwo = normalize( s.d );
+		constexpr float eps = 1e-3;
+		auto diff = nwo * eps;
+		s.o = this->p + diff, s.d -= 2 * diff;
+		return s;
+	}
+
 	KOISHI_HOST_DEVICE float3 local( const float3 &w ) const
 	{
 		return float3{ dot( w, u ), dot( w, v ), dot( w, n ) };

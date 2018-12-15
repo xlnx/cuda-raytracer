@@ -50,8 +50,45 @@ struct Ray
 	}
 };
 
-KOISHI_HOST_DEVICE inline float3 interplot( const float3 &v0, const float3 &v1,
-											const float3 &v2, const float2 &uv )
+struct Seg : Ray
+{
+	KOISHI_HOST_DEVICE bool intersect_bbox( const float3 &vmin, const float3 &vmax ) const
+	{
+		auto c = ( vmin + vmax ) * .5f;
+		auto l = vmax - c;
+		auto p0 = o - c, p1 = p0 + d;
+		auto m = ( p0 + p1 ) * .5f;
+		auto w = m - p0;
+		auto W = abs( w );
+		auto x = abs( m ) - W - l;
+		if ( x.x > 0 || x.y > 0 || x.z > 0 )
+		{
+			return false;
+		}
+		else if ( abs( -w.z * m.y + w.y * m.z ) > l.y * W.z + l.z * W.y ||
+				  abs( -w.z * m.x + w.x * m.z ) > l.x * W.z + l.z * W.x ||
+				  abs( -w.y * m.x + w.x * m.y ) > l.x * W.y + l.y * W.x )
+		{
+			return false;
+		}
+		return true;
+	}
+
+	KOISHI_HOST_DEVICE bool intersect_triangle( const float3 &v0, const float3 &d1, const float3 &d2 ) const
+	{
+		Hit hit;
+		auto n = cross( d1, d2 );
+		if ( dot( o - v0, n ) * dot( o + d - v0, n ) > 0 )
+		{
+			return false;
+		}
+		return Ray::intersect_triangle( v0, d1, d2, hit );
+	}
+};
+
+KOISHI_HOST_DEVICE inline float3
+  interplot( const float3 &v0, const float3 &v1,
+			 const float3 &v2, const float2 &uv )
 {
 	return v0 * ( 1 - uv.x - uv.y ) + v1 * uv.x + v2 * uv.y;
 }

@@ -266,6 +266,69 @@ KOISHI_HOST_DEVICE bool Mesh::intersect( const Ray &ray, Hit &hit, Allocator &po
 	return hit.t != INFINITY;
 }
 
+KOISHI_HOST_DEVICE bool Mesh::intersect( const Seg &seg, Allocator &pool ) const
+{
+	Stack<uint> Q( pool );
+
+	Q.emplace( 0 );
+
+	while ( !Q.empty() )
+	{
+		auto i = Q.top();
+		Q.pop();
+
+		while ( auto offset = bvh[ i ].offset )
+		{  // using depth frist search will cost less space than bfs.
+			int left = seg.intersect_bbox(
+			  bvh[ i + 1 ].vmin,
+			  bvh[ i + 1 ].vmax );
+			int right = seg.intersect_bbox(
+			  bvh[ i + offset ].vmin,
+			  bvh[ i + offset ].vmax );
+			if ( !left && !right )  // no intersection on this branch
+			{
+				goto NEXT_BRANCH;
+			}
+			if ( left && right )  // both intersects, trace second and push first
+			{
+				Q.emplace( i + offset );
+			}
+			if ( left )
+			{
+				i++;
+			}
+			else
+			{
+				i += offset;
+			}
+		}
+		// now this node is leaf
+		uint begin, end;
+		begin = bvh[ i ].begin, end = bvh[ i ].end;
+
+#if ( KOISHI_TRIANGLE_WARP == 2 )
+#pragma unroll( 2 )
+#elif ( KOISHI_TRIANGLE_WARP == 4 )
+#pragma unroll( 4 )
+#elif ( KOISHI_TRIANGLE_WARP >= 8 )
+#pragma unroll( 8 )
+#endif
+		for ( uint j = begin; j < end; ++j )
+		{
+			auto &face = faces[ j ];
+			if ( seg.intersect_triangle(
+				   face.o, face.d1, face.d2 ) )
+			{
+				return true;
+			}
+		}
+
+	NEXT_BRANCH:;
+	}
+
+	return false;
+}
+
 void PolyMesh::collectObjects( const aiScene *scene, const aiNode *node, const aiMatrix4x4 &tr )
 {
 	auto trans = tr * node->mTransformation;
