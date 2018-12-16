@@ -11,10 +11,10 @@ struct Scene;
 
 struct Light : emittable
 {
-	KOISHI_HOST_DEVICE virtual float3 sample( const Scene &scene,
-											  const Interreact &res,
-											  const float2 &u, float3 &li,
-											  Allocator &pool ) const = 0;
+	KOISHI_HOST_DEVICE virtual normalized_float3 sample( const Scene &scene,
+														 const Interreact &res,
+														 const float2 &u, float3 &li,
+														 Allocator &pool ) const = 0;
 };
 
 }  // namespace core

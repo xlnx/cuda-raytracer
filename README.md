@@ -16,7 +16,155 @@
 		* CUDA 9.0 (test cuda)
 		* gcc (GCC) 6.3.1 20170216 (Red Hat 6.3.1-3)
 
-*Microfacet BRDF with Beckmann Distribution of different alpha*
+## Progressive Works
+
+- [X] Polymorphism
+> - [X] Spheres
+> - [ ] Other
+- [X] Bidirectional Path Tracer
+> - [X] Point Lights
+> - [ ] Spot Lights
+> - [ ] Area Lights
+> - [ ] Heuristic Light Estimation 
+- [ ] Acceleration
+> - [ ] Hybrid Renderer
+> - [ ] Reduce GPU Divergency
+- [ ] Refactor
+> - [ ] Several Classes 
+> - [ ] DSL
+- [ ] Material
+> - [ ] Mat Sphere
+> - [ ] Mixed Shader(Blender)
+> - [ ] BTDF
+- [ ] Microfacet Distribution
+> - [X] Cosine
+> - [X] Beckmann
+> - [ ] GGX
+> - [ ] Other
+
+## Gallery
+
+*Bidirectional Path Tracing, intel core i7x8 logical cores, 512spp*
+
+```json
+{
+	"assets": [
+		["pointLight", {
+			"position": [2, 0, 3],
+			"emissive": [1, 1, 1]
+		}],
+		["sphere", {
+			"o": [0, 0, 1],
+			"r": 1,
+			"material": "Material"
+		}],
+		["sphere", {
+			"o": [-1e3, 0, 0],
+			"r": 997,
+			"material": "Wall"
+		}],
+		["sphere", {
+			"o": [1e3, 0, 0],
+			"r": 995.9,
+			"material": "Wall"
+		}],
+		["sphere", {
+			"o": [0, -1e3, 0],
+			"r": 998,
+			"material": "LeftWall"
+		}],
+		["sphere", {
+			"o": [0, 1e3, 0],
+			"r": 998,
+			"material": "RightWall"
+		}],
+		["sphere", {
+			"o": [0, 0, -1e3],
+			"r": 1e3,
+			"material": "Wall"
+		}],
+		["sphere", {
+			"o": [0, 0, 1e3],
+			"r": 997,
+			"material": "Wall"
+		}]
+	],
+	"camera": [{
+		"position": [4, 0, 1],
+		"fovx": 45
+	}],
+	"material": {
+		"Wall": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"roughness": 0.2
+			}],
+			"color": [1, 1, 1]
+		}],
+		"LeftWall": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"roughness": 0.45
+			}],
+			"color": [1, 0, 0]
+		}],
+		"RightWall": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"roughness": 0.45
+			}],
+			"color": [0, 1, 0]
+		}],
+		"Material": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"roughness": 0.02
+			}],
+			"color": [1, 1, 1]
+		}]
+	}
+}
+```
+
+![](doc/sphere.png)
+
+*Microfacet BRDF with Beckmann Distribution of different roughness*
+
+```json
+{
+	"assets": [
+		["import", {
+			"path": "./x6.blend"
+		}]
+	],
+	"camera": [],
+	"material": {
+		"Material": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"alpha": 0.5
+			}],
+			"color": [0.608, 0.522, 0.333]
+		}],
+		"luz": ["Luz", {
+			"emissive": [50, 50, 50]
+		}],
+		"cafe": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"alpha": 0.1
+			}],
+			"color": [0.275, 0.25, 0.23]
+		}],
+		"Material.001": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"alpha": 0.6
+			}]
+		}],
+		"porcelana": ["Microfacet", {
+			"distribution": ["Beckmann", {
+				"alpha": 0.3
+			}],
+			"color": [0.545, 0.463, 0.427]
+		}],
+		"DefaultMaterial": ["Lambert"]
+	}
+}
+```
 
 ![](doc/coffe.png)
 
@@ -24,17 +172,13 @@
 
 ![](doc/h.png)
 
-## Previous Version
+## Previous Works
 
 *The ray emitter of this version is somehow buggy, and raytracing process is not completely correct.*
 
-### CPU Single Core 1024spp
+### CPU Single Core Brute-Force 1024spp
 
 ![doc/a.png](doc/a.png)
-
-### CPU Single Core 128spp
-
-![doc/b.png](doc/b.png)
 
 ## Requirements
 
@@ -142,28 +286,5 @@ cmake --build build --target cr
 ### Render
 
 ```bash
-./cr ./cow.json a.png 4
-# cr <scene.json> <out.png> <spp>
+./cr ./spaceship.json -o a.png --resolution=1024x512 -k Radiance -s 64
 ```
-
-## Gallery
-
-### BVH visualization
-
-![doc/bvh_0.jpg](doc/bvh_0.jpg)
-![doc/bvh_0.jpg](doc/bvh_1.jpg)
-![doc/bvh_0.jpg](doc/bvh_2.jpg)
-
-### BBox
-
-CPU intersect bbox:
-
-![doc/cpu_bbox.png](doc/cpu_bbox.png)
-
-CPU intersect triangle:
-
-![doc/cpu_bbox.png](doc/cpu_triangle.png)
-
-### Lambert
-
-![doc/lambert_diffuse.png](doc/lambert_diffuse.png)

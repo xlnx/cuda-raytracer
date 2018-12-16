@@ -42,10 +42,6 @@ struct Sphere : Primitive
 		hit.data = normalize( ray.o + hit.t * ray.d - o );
 		return hit.t >= 0;
 	}
-	KOISHI_HOST_DEVICE bool intersect( const Seg &seg, Allocator &pool ) const override
-	{
-		return false;
-	}
 
 private:
 	float3 o;

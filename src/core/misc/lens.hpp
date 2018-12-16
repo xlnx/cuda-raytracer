@@ -28,8 +28,8 @@ struct Lens : emittable
 protected:
 	uint w, h, spp, pw;
 
-	float3 o, n;
-	normalized_float3 u, v;
+	float3 o;
+	normalized_float3 n, u, v;
 
 	float3 du, dv;
 };

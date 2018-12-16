@@ -8,14 +8,14 @@ namespace ext
 {
 struct Specular : BxDF
 {
-	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const override
+	KOISHI_HOST_DEVICE float3 f( const normalized_float3 &wo, const normalized_float3 &wi ) const override
 	{
 		if ( reflect( wo, normalized_float3( float3{ 0, 0, 1 } ) ) == wi )
 			return float3{ 1.f, 1.f, 1.f };
 		else
 			return float3{ 0, 0, 0 };
 	}
-	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float3 &rn, float3 &f ) const override
+	KOISHI_HOST_DEVICE normalized_float3 sample( const normalized_float3 &wo, const float3 &rn, float3 &f ) const override
 	{
 		f = float3{ 1, 1, 1 };
 		return reflect( wo, normalized_float3( float3{ 0, 0, 1 } ) );

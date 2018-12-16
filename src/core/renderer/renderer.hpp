@@ -4,7 +4,6 @@
 #include <vector>
 #include <fstream>
 #include <vec/vmath.hpp>
-#include <vec/vios.hpp>
 #include <util/image.hpp>
 #include <util/debug.hpp>
 #include <core/basic/ray.hpp>

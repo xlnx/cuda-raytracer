@@ -15,7 +15,11 @@ struct Primitive : emittable
 	KOISHI_HOST_DEVICE virtual bool intersect(
 	  const Ray &ray, Hit &hit, Allocator &pool ) const = 0;
 	KOISHI_HOST_DEVICE virtual bool intersect(
-	  const Seg &seg, Allocator &pool ) const = 0;
+	  const Seg &seg, Allocator &pool ) const
+	{
+		Hit hit;
+		return intersect( seg, hit, pool ) && hit.t <= seg.t;
+	}
 
 public:
 	uint matid;

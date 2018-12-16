@@ -159,8 +159,7 @@ Scene::Scene( const std::string &path )
 			{
 				if ( asset.name == "pointLight" )
 				{
-					lights.emplace_back( poly::make_object<PointLight>(
-					  get<float3>( asset.props, "position" ) ) );
+					lights.emplace_back( poly::make_object<PointLight>( asset ) );
 				}
 				else
 				{

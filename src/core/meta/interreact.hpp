@@ -27,34 +27,34 @@ public:
 		return !isNull;
 	}
 
-	KOISHI_HOST_DEVICE Ray emitRay( const float3 &w ) const
+	KOISHI_HOST_DEVICE Ray emitRay( const normalized_float3 &w ) const
 	{
 		Ray r;
-		auto nwo = normalize( w );
-		constexpr float eps = 1e-3;
-		r.o = p + nwo * eps, r.d = nwo;
+		constexpr float eps = 4e-3;
+		r.o = p + w * eps, r.d = w;
 		return r;
 	}
 
 	KOISHI_HOST_DEVICE Seg emitSeg( const float3 &p ) const
 	{
 		Seg s;
-		s.d = p - this->p;
+		auto d = p - this->p;
+		s.d = normalize( d );
 		auto nwo = normalize( s.d );
-		constexpr float eps = 1e-3;
+		constexpr float eps = 4e-3;
 		auto diff = nwo * eps;
-		s.o = this->p + diff, s.d -= 2 * diff;
+		s.o = this->p + diff, s.t = length( d - 2 * diff );
 		return s;
 	}
 
-	KOISHI_HOST_DEVICE float3 local( const normalized_float3 &w ) const
+	KOISHI_HOST_DEVICE normalized_float3 local( const normalized_float3 &w ) const
 	{
-		return float3{ dot( static_cast<const float3 &>( w ), u ),
-					   dot( static_cast<const float3 &>( w ), v ),
-					   dot( static_cast<const float3 &>( w ), n ) };
+		return normalized_float3( float3{ dot( static_cast<const float3 &>( w ), u ),
+										  dot( static_cast<const float3 &>( w ), v ),
+										  dot( static_cast<const float3 &>( w ), n ) } );
 	}
 
-	KOISHI_HOST_DEVICE normalized_float3 global( const float3 &w ) const
+	KOISHI_HOST_DEVICE normalized_float3 global( const normalized_float3 &w ) const
 	{
 		return normalized_float3( w.x * u + w.y * v + w.z * n );
 	}

@@ -23,7 +23,8 @@ struct Hit
 
 struct Ray
 {
-	float3 o, d;
+	float3 o;
+	normalized_float3 d;
 
 	KOISHI_HOST_DEVICE bool intersect_bbox( const float3 &vmin, const float3 &vmax ) const
 	{
@@ -53,11 +54,13 @@ struct Ray
 
 struct Seg : Ray
 {
+	float t;
+
 	KOISHI_HOST_DEVICE bool intersect_bbox( const float3 &vmin, const float3 &vmax ) const
 	{
 		auto c = ( vmin + vmax ) * .5f;
 		auto l = vmax - c;
-		auto p0 = o - c, p1 = p0 + d;
+		auto p0 = o - c, p1 = p0 + d * t;
 		auto m = ( p0 + p1 ) * .5f;
 		auto w = m - p0;
 		auto W = abs( w );
@@ -79,7 +82,7 @@ struct Seg : Ray
 	{
 		Hit hit;
 		auto n = cross( d1, d2 );
-		if ( dot( o - v0, n ) * dot( o + d - v0, n ) > 0 )
+		if ( dot( o - v0, n ) * dot( o + d * t - v0, n ) > 0 )
 		{
 			return false;
 		}

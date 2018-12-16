@@ -13,12 +13,12 @@ struct LambertDiffuse : BxDF
 	{
 	}
 
-	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const override
+	KOISHI_HOST_DEVICE float3 f( const normalized_float3 &wo, const normalized_float3 &wi ) const override
 	{
 		return hemisphere::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
 	}
 
-	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float3 &u, float3 &f ) const override
+	KOISHI_HOST_DEVICE normalized_float3 sample( const normalized_float3 &wo, const float3 &u, float3 &f ) const override
 	{
 		auto wi = hemisphere::sampleCos( float2{ u.x, u.y } );  // sample lambert
 		f = hemisphere::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
