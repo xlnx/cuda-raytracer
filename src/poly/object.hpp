@@ -119,6 +119,9 @@ private:
 }  // namespace __impl
 
 template <typename T>
+struct ref;
+
+template <typename T>
 struct object final : emittable
 {
 	using value_type = T;
@@ -139,6 +142,9 @@ struct object final : emittable
 	template <typename U>
 	friend struct object;
 
+	template <typename U>
+	friend struct ref;
+
 public:
 	object() = default;
 	KOISHI_HOST_DEVICE object( object &&other ) :
@@ -146,7 +152,8 @@ public:
 	  value( other.value ),
 	  device_value( other.device_value ),
 	  desc( other.desc ),
-	  is_device_ptr( other.is_device_ptr )
+	  is_device_ptr( other.is_device_ptr ),
+	  decay( other.decay )
 	{
 		other.value = nullptr;
 	}
@@ -156,7 +163,8 @@ public:
 	  value( static_cast<T *>( other.value ) ),
 	  device_value( static_cast<T *>( other.device_value ) ),
 	  desc( other.desc ),
-	  is_device_ptr( other.is_device_ptr )
+	  is_device_ptr( other.is_device_ptr ),
+	  decay( other.decay )
 	{
 		other.value = nullptr;
 	}
@@ -167,6 +175,7 @@ public:
 		device_value = other.device_value;
 		desc = other.desc;
 		is_device_ptr = other.is_device_ptr;
+		decay = other.decay;
 		other.value = nullptr;
 		return *this;
 	}
@@ -178,6 +187,7 @@ public:
 		device_value = static_cast<T *>( other.device_value );
 		desc = other.desc;
 		is_device_ptr = other.is_device_ptr;
+		decay = other.decay;
 		other.value = nullptr;
 		return *this;
 	}
@@ -189,7 +199,8 @@ public:
 	  value( other.value ),
 	  device_value( other.device_value ),
 	  desc( other.desc ),
-	  is_device_ptr( other.is_device_ptr )
+	  is_device_ptr( other.is_device_ptr ),
+	  decay( other.decay )
 	{
 		copyBetweenDevice( other );
 	}
@@ -205,6 +216,7 @@ public:
 		device_value = other.device_value;
 		desc = other.desc;
 		is_device_ptr = other.is_device_ptr;
+		decay = other.decay;
 		copyBetweenDevice( other );
 		return *this;
 	}
@@ -223,6 +235,11 @@ private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const object &other )
 	{
+		if ( decay )
+		{
+			decay = false;
+			return;
+		}
 		if ( !__impl::Emittable::isTransferring() )
 		{
 			KTHROW( "invalid use of object( const & )" );
@@ -297,10 +314,11 @@ private:
 	}
 
 private:
-	T *KOISHI_RESTRICT value = nullptr;
-	T *KOISHI_RESTRICT device_value;
+	T *value = nullptr;
+	T *device_value;
 	__impl::type_desc *desc;
 	bool is_device_ptr = false;
+	bool decay = false;
 };
 
 template <typename T, typename... Args>
@@ -347,6 +365,102 @@ KOISHI_HOST_DEVICE object<T> &&dynamic_object_cast( object<U> &&other )
 	other.value = nullptr;
 	return std::move( ptr );
 }
+
+template <typename T>
+struct ref final : emittable
+{
+	using value_type = T;
+	using reference = T &;
+	using const_reference = const T &;
+	using pointer = T *;
+	using const_pointer = const T *;
+
+	ref( object<T> &obj ) :
+	  obj( &obj ),
+	  value( obj.value ),
+	  device_value( obj.device_value )
+	{
+	}
+	ref( ref && ) = default;
+	ref &operator=( ref && ) = default;
+	ref( const ref &other )
+#ifdef KOISHI_USE_CUDA
+	  :
+	  emittable( other ),
+	  obj( other.obj ),
+	  value( other.value ),
+	  device_value( other.device_value ),
+	  is_device_ptr( other.is_device_ptr )
+	{
+		copyBetweenDevice( other );
+	}
+#else
+	{
+		KTHROW( "invalid use of ref( const & )" );
+	}
+#endif
+	ref &operator=( const ref &other )
+#ifdef KOISHI_USE_CUDA
+	{
+		obj = other.obj;
+		value = other.value;
+		device_value = other.device_value;
+		is_device_ptr = other.is_device_ptr;
+		copyBetweenDevice( other );
+		return *this;
+	}
+#else
+	{
+		KTHROW( "invalid use of ref( const & )" );
+	}
+#endif
+
+#ifdef __CUDA_ARCH__
+#define KOISHI_DATA_PTR device_value
+#else
+#define KOISHI_DATA_PTR value
+#endif
+	KOISHI_HOST_DEVICE pointer operator->()
+	{
+		return KOISHI_DATA_PTR;
+	}
+	KOISHI_HOST_DEVICE const_pointer operator->() const
+	{
+		return KOISHI_DATA_PTR;
+	}
+
+	KOISHI_HOST_DEVICE reference operator*()
+	{
+		return *KOISHI_DATA_PTR;
+	}
+	KOISHI_HOST_DEVICE const_reference operator*() const
+	{
+		return *KOISHI_DATA_PTR;
+	}
+#undef KOISHI_DATA_PTR
+
+private:
+#ifdef KOISHI_USE_CUDA
+	void copyBetweenDevice( const ref &other )
+	{
+		is_device_ptr = !is_device_ptr;
+		if ( is_device_ptr != obj.is_device_ptr )
+		{
+			new ( obj ) object<T>( *obj );
+			obj->decay = true;
+		}
+		value = obj->value;
+		device_value = obj->device_value;
+	}
+#endif
+
+private:
+	object<T> *obj;
+
+	T *value = nullptr;
+	T *device_value;
+	bool is_device_ptr = false;
+};
 
 }  // namespace poly
 

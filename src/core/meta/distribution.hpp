@@ -13,6 +13,8 @@ struct SphericalDistribution : emittable
 {
 	SphericalDistribution() = default;
 	SphericalDistribution( const Properties &config ) {}
+
+	KOISHI_HOST_DEVICE virtual float3 f( const float3 &w ) const = 0;
 	KOISHI_HOST_DEVICE virtual normalized_float3 sample( const float3 &u, float &pdf ) const = 0;
 };
 

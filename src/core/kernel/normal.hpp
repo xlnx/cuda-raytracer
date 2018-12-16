@@ -20,6 +20,7 @@ PolyFunction( Normal, Host, Device )(
 		{
 			L = isect.n;
 		}
+		pool.clear();
 
 		return L;
 	} );

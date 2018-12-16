@@ -40,7 +40,6 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 		for ( uint i = 0; i < spp; ++i )
 		{
 			sum += call<Radiance>( lens->sample( x, y, i ), scene, pool, rng );
-			pool.clear();
 		}
 
 		buffer[ index ] = sum * invSpp;

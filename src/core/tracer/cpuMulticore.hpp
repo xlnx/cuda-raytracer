@@ -53,7 +53,6 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 					for ( uint k = 0; k != spp; ++k )
 					{
 						rad += Self::template call<Radiance>( lens->sample( i, j, k ), scene, pool, rng );
-						pool.clear();
 					}
 					image.at( i, j ) = rad / spp;
 				}

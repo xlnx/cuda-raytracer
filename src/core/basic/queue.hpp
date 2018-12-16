@@ -11,11 +11,17 @@ namespace core
 template <typename T>
 struct CyclicQueue
 {
-	KOISHI_HOST_DEVICE CyclicQueue( Allocator &pool, uint alloc_size = 0 )
+	KOISHI_HOST_DEVICE CyclicQueue( Allocator &pool, uint alloc_size = 0 ) :
+	  pool( pool )
 	{
 		if ( !alloc_size ) alloc_size = pool.size() / sizeof( T );
 		front_ptr = back_ptr = base = alloc_uninitialized<T>( pool, alloc_size );
 		finish = base + alloc_size;
+	}
+
+	KOISHI_HOST_DEVICE ~CyclicQueue()
+	{
+		dealloc( pool, base );
 	}
 
 	template <typename... Args>
@@ -44,6 +50,7 @@ struct CyclicQueue
 	KOISHI_HOST_DEVICE bool empty() const { return front_ptr == back_ptr; }
 
 private:
+	Allocator &pool;
 	T *base, *finish, *front_ptr, *back_ptr;
 	bool of = false;
 };
@@ -51,11 +58,17 @@ private:
 template <typename T>
 struct Stack
 {
-	KOISHI_HOST_DEVICE Stack( Allocator &pool, uint alloc_size = 0 )
+	KOISHI_HOST_DEVICE Stack( Allocator &pool, uint alloc_size = 0 ) :
+	  pool( pool )
 	{
 		if ( !alloc_size ) alloc_size = pool.size() / sizeof( T );
 		top_ptr = base = alloc_uninitialized<T>( pool, alloc_size );
 		full_ptr = base + alloc_size;
+	}
+
+	KOISHI_HOST_DEVICE ~Stack()
+	{
+		dealloc( pool, base );
 	}
 
 	template <typename... Args>
@@ -79,6 +92,7 @@ struct Stack
 	KOISHI_HOST_DEVICE bool empty() const { return top_ptr == base; }
 
 private:
+	Allocator &pool;
 	T *base, *top_ptr, *full_ptr;
 };
 

@@ -3,6 +3,7 @@
 #include <string>
 #include <vector>
 #include <core/basic/poly.hpp>
+#include <core/light/light.hpp>
 #include "material.hpp"
 #include "interreact.hpp"
 
@@ -15,6 +16,7 @@ struct Scene : emittable
 	Scene( const std::string &path );
 
 	poly::vector<poly::object<Primitive>> primitives;
+	poly::vector<poly::object<Light>> lights;
 	poly::vector<poly::object<Material>> material;
 
 	poly::vector<CameraConfig> camera;
@@ -32,7 +34,6 @@ struct Scene : emittable
 			{
 				hit = hit1, pm = it;
 			}
-			pool.clear();
 		}
 		Interreact res;
 		if ( hit )
@@ -57,7 +58,6 @@ struct Scene : emittable
 			{
 				return true;
 			}
-			pool.clear();
 		}
 		return false;
 	}

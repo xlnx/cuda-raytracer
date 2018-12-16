@@ -30,7 +30,7 @@ PolyFunction( BruteForce, Host, Device )(
 			// L += beta * 0.5;
 			// emit new light for indirect lighting, according to BSDF
 			{
-				auto wo = isect.local( -ray.d );
+				auto wo = isect.local( normalized_float3( -ray.d ) );
 				auto bxdf = isect.bsdf->sampleBxDF( rng.sample() );
 				float3 f;
 				auto wi = bxdf->sample( wo, rng.sample2(), f );

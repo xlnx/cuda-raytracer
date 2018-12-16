@@ -47,19 +47,16 @@ public:
 		return s;
 	}
 
-	KOISHI_HOST_DEVICE float3 local( const float3 &w ) const
+	KOISHI_HOST_DEVICE float3 local( const normalized_float3 &w ) const
 	{
-		return float3{ dot( w, u ), dot( w, v ), dot( w, n ) };
+		return float3{ dot( static_cast<const float3 &>( w ), u ),
+					   dot( static_cast<const float3 &>( w ), v ),
+					   dot( static_cast<const float3 &>( w ), n ) };
 	}
 
-	KOISHI_HOST_DEVICE float3 global( const float3 &w ) const
+	KOISHI_HOST_DEVICE normalized_float3 global( const float3 &w ) const
 	{
-		return w.x * u + w.y * v + w.z * n;
-	}
-
-	KOISHI_HOST_DEVICE float3 world( const float3 &w ) const
-	{
-		return u * w.x + v * w.y + n * w.z;
+		return normalized_float3( w.x * u + w.y * v + w.z * n );
 	}
 };
 

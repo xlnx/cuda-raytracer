@@ -1,6 +1,7 @@
 #pragma once
 
 #include <type_traits>
+#include <algorithm>
 #include <cstddef>
 #include <algorithm>
 #include <memory>
@@ -19,6 +20,7 @@ struct Allocator
 	KOISHI_HOST_DEVICE virtual ~Allocator() = default;
 
 	KOISHI_HOST_DEVICE virtual char *alloc( std::size_t size ) = 0;
+	KOISHI_HOST_DEVICE virtual void dealloc( char *ptr ) = 0;
 
 	KOISHI_HOST_DEVICE virtual void clear() = 0;
 
@@ -56,6 +58,12 @@ KOISHI_HOST_DEVICE inline T *alloc( Allocator &al, std::size_t count )
 	return ptr;
 }
 
+template <typename T>
+KOISHI_HOST_DEVICE inline void dealloc( Allocator &al, T *ptr )
+{
+	al.dealloc( reinterpret_cast<char *>( ptr ) );
+}
+
 struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
 {
 	PolyStruct( HybridAllocator );
@@ -71,6 +79,10 @@ struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
 		auto ptr = curr;
 		curr += size;
 		return ptr;
+	}
+	KOISHI_HOST_DEVICE void dealloc( char *ptr ) override
+	{
+		curr = std::min( curr, ptr );
 	}
 	KOISHI_HOST_DEVICE void clear() override
 	{

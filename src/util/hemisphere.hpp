@@ -14,9 +14,51 @@ KOISHI_HOST_DEVICE inline bool isSame( const float3 &w0, const float3 &w1 )
 	return w0.z * w1.z > 0.;
 }
 
-KOISHI_HOST_DEVICE inline float h( const float3 &w )
+KOISHI_HOST_DEVICE inline float cosTheta( const float3 &w )
 {
-	return abs( w.z );
+	return w.z;
+}
+
+KOISHI_HOST_DEVICE inline float cos2Theta( const float3 &w )
+{
+	return w.z * w.z;
+}
+
+KOISHI_HOST_DEVICE inline float sin2Theta( const float3 &w )
+{
+	return max( 0.f, 1 - cos2Theta( w ) );
+}
+
+KOISHI_HOST_DEVICE inline float sinTheta( const float3 &w )
+{
+	return sqrt( sin2Theta( w ) );
+}
+
+KOISHI_HOST_DEVICE inline float tan2Theta( const float3 &w )
+{
+	return sin2Theta( w ) / cos2Theta( w );
+}
+
+KOISHI_HOST_DEVICE inline float tanTheta( const float3 &w )
+{
+	return sqrt( tan2Theta( w ) );
+}
+
+KOISHI_HOST_DEVICE inline float sinPhi( const float3 &w )
+{
+	auto sinth = sinTheta( w );
+	return sinth == 0 ? 1 : max( -1.f, min( 1.f, w.y / sinth ) );
+}
+
+KOISHI_HOST_DEVICE inline float cosPhi( const float3 &w )
+{
+	auto sinth = sinTheta( w );
+	return sinth == 0 ? 1 : max( -1.f, min( 1.f, w.x / sinth ) );
+}
+
+KOISHI_HOST_DEVICE inline float tanPhi( const float3 &w )
+{
+	return sinPhi( w ) / cosPhi( w );
 }
 
 KOISHI_HOST_DEVICE inline normalized_float3 fromEular( float sinth, float costh, float phi )

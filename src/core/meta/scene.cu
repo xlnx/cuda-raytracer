@@ -4,6 +4,7 @@
 #include <assimp/Importer.hpp>
 #include <assimp/postprocess.h>
 #include <vec/vmath.hpp>
+#include <core/light/pointLight.hpp>
 #include "scene.hpp"
 #include "mesh.hpp"
 #include "sphere.hpp"
@@ -152,6 +153,19 @@ Scene::Scene( const std::string &path )
 					mats.emplace_back( mat );
 				}
 				primitives.emplace_back( poly::make_object<Sphere>( o, r, matid ) );
+			}
+			else if ( asset.name.find( "light" ) != asset.name.npos ||
+					  asset.name.find( "Light" ) != asset.name.npos )
+			{
+				if ( asset.name == "pointLight" )
+				{
+					lights.emplace_back( poly::make_object<PointLight>(
+					  get<float3>( asset.props, "position" ) ) );
+				}
+				else
+				{
+					KTHROW( "unknown light type: " + asset.name );
+				}
 			}
 			else
 			{

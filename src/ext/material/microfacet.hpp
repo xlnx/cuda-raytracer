@@ -13,6 +13,11 @@ struct MicrofacetReflection : BxDF
 	{
 	}
 
+	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const override
+	{
+		return distribution->f( ( wo + wi ) * .5f );
+	}
+
 	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float3 &u, float3 &f ) const override
 	{
 		float pdf;
@@ -30,6 +35,11 @@ struct MicrofacetTransmission : BxDF
 	KOISHI_HOST_DEVICE MicrofacetTransmission( const poly::object<SphericalDistribution> &distribution ) :
 	  distribution( distribution )
 	{
+	}
+
+	KOISHI_HOST_DEVICE float3 f( const float3 &wo, const float3 &wi ) const override
+	{
+		// return hemisphere::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
 	}
 
 	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float3 &u, float3 &f ) const override

@@ -24,14 +24,31 @@ PolyFunction( Radiance, Host, Device )(
 							   bounce != maxBounce;
 			  ++bounce )
 		{
+			auto wo = isect.local( normalized_float3( -ray.d ) );
+			auto bxdf = isect.bsdf->sampleBxDF( rng.sample() );
 			// evaluate direct lighting
+			if ( scene.lights.size() )
+			{
+				float3 li;
+				uint idx = min( (uint)floor( rng.sample() * scene.lights.size() ),
+								( uint )( scene.lights.size() - 1 ) );
+				float lpdf = 1.f / scene.lights.size();
+				auto wi = scene.lights[ idx ]->sample( scene, isect, rng.sample2(), li, pool );
+				auto bxdf = isect.bsdf->sampleBxDF( rng.sample() );
+				auto f = bxdf->f( wo, wi ) * abs( dot( wi, float3{ 0, 0, 1 } ) );
+				L += beta * li * f / lpdf;
+				// L = bxdf->f( wo, wi );
+				//( wo + wi ) * .5;
+				// float3{ 1, 1, 1 } * abs( dot( wi, float3{ 0, 0, 1 } ) );
+				// bxdf->f( wo, wi );
+			}
+			// pool.clear();
+			// break;
 			L += beta * isect.emissive;
 			// L += beta * isect.global( wi );
 			// L += beta * 0.5;
 			// emit new light for indirect lighting, according to BSDF
 			{
-				auto wo = isect.local( -ray.d );
-				auto bxdf = isect.bsdf->sampleBxDF( rng.sample() );
 				float3 f;
 				auto wi = bxdf->sample( wo, rng.sample2(), f );
 				beta *= f * isect.color * abs( dot( wi, float3{ 0, 0, 1 } ) );

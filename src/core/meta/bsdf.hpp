@@ -13,6 +13,7 @@ struct BxDF
 {
 	KOISHI_HOST_DEVICE virtual ~BxDF() = default;
 
+	KOISHI_HOST_DEVICE virtual float3 f( const float3 &wo, const float3 &wi ) const = 0;
 	KOISHI_HOST_DEVICE virtual float3 sample( const float3 &wo, const float3 &rn, float3 &f ) const = 0;
 	KOISHI_HOST_DEVICE float3 sample( const float3 &wo, const float2 &rn, float3 &f ) const
 	{
