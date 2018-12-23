@@ -13,7 +13,6 @@ namespace koishi
 {
 namespace core
 {
-
 struct SamplerGenerator;
 
 struct Sampler
@@ -23,7 +22,7 @@ struct Sampler
 	KOISHI_HOST_DEVICE float sample()
 	{
 #ifdef __CUDA_ARCH__
-		return nums[ id += det ];
+		return nums->operator[]( id += det );
 #else
 		static unsigned long long seed = ( ( (long long int)time( nullptr ) ) << 16 ) | ::rand();
 
@@ -51,9 +50,11 @@ struct Sampler
 		return float4{ sample(), sample(), sample(), sample() };
 	}
 
+	KOISHI_HOST Sampler() = default;
+
 private:
-	KOISHI_HOST_DEVICE Sampler( const poly::vector<float> &nums ):
-	  nums( nums )
+	KOISHI_HOST_DEVICE Sampler( const poly::vector<float> &nums ) :
+	  nums( &nums )
 	{
 #ifdef __CUDA_ARCH__
 		using ull = unsigned long long;
@@ -63,14 +64,14 @@ private:
 		ull gd_x = gridDim.x;
 		ull gd_xy = gd_x * gridDim.y;
 		ull gd_xyz = gd_xy * gridDim.z;
-		ull th_idx = threadIdx.x + 
-		             threadIdx.y * bd_x +
-		             threadIdx.z * bd_xy;
-		ull bl_idx = blockIdx.x + 
-		             blockIdx.y * gd_x +
-		             blockIdx.z * gd_xy;
-		ull idx = th_idx + 
-		          bl_idx * bd_xyz;
+		ull th_idx = threadIdx.x +
+					 threadIdx.y * bd_x +
+					 threadIdx.z * bd_xy;
+		ull bl_idx = blockIdx.x +
+					 blockIdx.y * gd_x +
+					 blockIdx.z * gd_xy;
+		ull idx = th_idx +
+				  bl_idx * bd_xyz;
 
 		constexpr auto m = 0x100000000LL;
 		constexpr auto c = 0xB16;
@@ -78,20 +79,20 @@ private:
 		auto seed = ( a * idx + c ) & 0xFFFFFFFFFFFFLL;
 		unsigned int x = seed >> 8;
 		float r = (float)x / (float)m;
-		id = uint(nums.size() * r) % nums.size();
+		id = uint( nums->size() * r ) % nums->size();
 		seed = ( a * seed + c ) & 0xFFFFFFFFFFFFLL;
 		x = seed >> 8;
 		r = (float)x / (float)m;
-		det = uint(nums.size() * r) % ( nums.size() / 4 ) + 1u;
+		det = uint( nums->size() * r ) % ( nums->size() / 4 ) + 1u;
 #endif
 	}
 
 private:
 	uint16_t id = 0, det = 1;
-	const poly::vector<float> &nums;
+	const poly::vector<float> *nums = nullptr;
 };
 
-struct SamplerGenerator: emittable
+struct SamplerGenerator : emittable
 {
 #ifdef KOISHI_USE_CUDA
 	SamplerGenerator() :

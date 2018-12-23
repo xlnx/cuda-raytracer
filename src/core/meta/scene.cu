@@ -5,6 +5,7 @@
 #include <assimp/postprocess.h>
 #include <vec/vmath.hpp>
 #include <core/light/pointLight.hpp>
+#include <core/light/areaLight.hpp>
 #include "scene.hpp"
 #include "mesh.hpp"
 #include "sphere.hpp"
@@ -205,9 +206,15 @@ Scene::Scene( const std::string &path )
 		{
 			if ( material[ m->matid ].template is<ext::LuzMaterial>() )
 			{
-				KLOG( mats[ m->matid ], "is luz" );
+				lights.emplace_back( poly::make_object<AreaLight>( material[ m->matid ], m ) );
+				if ( auto *p = dynamic_cast<Mesh *>( &*m ) )
+				{
+					p->generateSamples();
+				}
+				KLOG( mats[ m->matid ], "is area light" );
 			}
 		}
+		KLOG( lights.size() );
 	}
 
 	valid = true;

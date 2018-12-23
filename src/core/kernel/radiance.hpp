@@ -16,7 +16,7 @@ PolyFunction( Radiance, Host, Device )(
   ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
 	->float3 {
 		auto ray = r;
-		Interreact isect;
+		SurfaceInterreact isect;
 		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
 		constexpr auto maxBounce =					 //1;
 		  1024;
@@ -36,14 +36,10 @@ PolyFunction( Radiance, Host, Device )(
 								( uint )( scene.lights.size() - 1 ) );
 				float lpdf = 1.f / scene.lights.size();
 				auto wi = scene.lights[ idx ]->sample( scene, isect, rng.sample2(), li, pool );
-				auto bxdf = isect.bsdf->sampleBxDF( rng.sample() );
 				auto f = isect.color * bxdf->f( wo, wi ) * abs( dot( wi, float3{ 0, 0, 1 } ) );
 				L += beta * li * f / lpdf;
-				// auto seg = isect.emitSeg( float3{ 2, 0, 3 } );
-				// L = scene.intersect( seg, pool ) ? float3{ 0, 0, 0 } : float3{ 1, 1, 1 };
-				// KLOG( seg.o, seg.d );
 			}
-			L += beta * isect.emissive;
+			// L += beta * isect.emissive;
 			// emit new light for indirect lighting, according to BSDF
 			{
 				float3 f;

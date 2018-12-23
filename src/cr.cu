@@ -1,6 +1,7 @@
 #include <cstdio>
 #include <core/kernel/radiance.hpp>
 #include <core/kernel/normal.hpp>
+#include <core/kernel/custom.hpp>
 #include <core/kernel/bruteForce.hpp>
 #include <core/tracer/cpuMulticore.hpp>
 #include <core/tracer/cudaSingleGPU.hpp>
@@ -50,7 +51,7 @@ int main( int argc, char **argv )
 #endif
 						>,
 			  types<
-				Radiance, Normal, BruteForce
+				Radiance, Normal, BruteForce, Custom
 			  >,
 			  types<
 				HybridAllocator

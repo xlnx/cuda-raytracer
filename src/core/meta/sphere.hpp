@@ -9,14 +9,24 @@ namespace core
 struct Sphere : Primitive
 {
 	Sphere( float3 o, float r, uint matid ) :
-	  o( o ), r2( r * r )
+	  o( o ),
+	  r2( r * r )
 	{
 		this->matid = matid;
 	}
 
-	KOISHI_HOST_DEVICE float3 normal( const Hit &hit ) const override
+	KOISHI_HOST_DEVICE normalized_float3 normal( const Hit &hit ) const override
 	{
-		return hit.data;
+		return normalized_float3( hit.data );
+	}
+	KOISHI_HOST_DEVICE Interreact sample( const float2 &u, float &pdf ) const override
+	{
+		Interreact isect;
+		auto w = H::fromEular( u.x * PI, u.y * PI * 2 );
+		isect.p = o + sqrt( r2 ) * w;
+		isect.n = w;
+		pdf = 1. / ( 4 * PI * r2 );
+		return isect;
 	}
 	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, Hit &hit, Allocator &pool ) const override
 	{

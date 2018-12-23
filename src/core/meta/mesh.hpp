@@ -12,6 +12,7 @@
 #include <core/basic/poly.hpp>
 #include <core/basic/allocator.hpp>
 #include <core/basic/queue.hpp>
+#include <core/misc/sampler.hpp>
 #include "primitive.hpp"
 
 namespace koishi
@@ -59,12 +60,45 @@ struct Mesh : Primitive
 	poly::vector<attr::Normal> normals;
 	BVHTree bvh;
 
-	KOISHI_HOST_DEVICE float3 normal( const Hit &hit ) const override
+	poly::vector<Interreact> samples;
+	float pdf = 1;
+
+	void generateSamples()
 	{
-		return interplot( normals[ hit.id ].n0,
-						  normals[ hit.id ].n1,
-						  normals[ hit.id ].n2,
-						  hit.uv );
+		if ( !samples.size() )
+		{
+			Sampler sampler;
+			samples.resize( 1024 );
+			for ( int i = 0; i != 1024; ++i )
+			{
+				auto idx = min( (uint)floor( sampler.sample() * faces.size() ),
+								( uint )( faces.size() - 1 ) );
+				auto uv = sampler.sample2();
+				uv = float2{ min( uv.x, uv.y ), max( uv.x, uv.y ) };
+				samples[ i ].p = faces[ idx ].o + faces[ idx ].d1 * uv.x + faces[ idx ].d2 * uv.y;
+				samples[ i ].n = normalize( interplot( normals[ idx ].n0, normals[ idx ].n1, normals[ idx ].n2, uv ) );
+			}
+			float s = 0;
+			for ( auto &e : faces )
+			{
+				s += length( cross( e.d1, e.d2 ) ) * .5;
+			}
+			pdf = 1.f / s;
+		}
+	}
+	KOISHI_HOST_DEVICE normalized_float3 normal( const Hit &hit ) const override
+	{
+		return normalize( interplot( normals[ hit.id ].n0,
+									 normals[ hit.id ].n1,
+									 normals[ hit.id ].n2,
+									 hit.uv ) );
+	}
+	KOISHI_HOST_DEVICE Interreact sample( const float2 &u, float &pdf ) const override
+	{
+		auto idx = min( (uint)floor( u.x * 1024 ),
+						( uint )( 1024 - 1 ) );
+		pdf = this->pdf;
+		return samples[ idx ];
 	}
 	KOISHI_HOST_DEVICE bool intersect( const Ray &ray, Hit &hit, Allocator &pool ) const override;
 	KOISHI_HOST_DEVICE bool intersect( const Seg &seg, Allocator &pool ) const override;

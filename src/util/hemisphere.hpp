@@ -9,7 +9,7 @@ constexpr float PI = M_PI;
 
 using solid = normalized_float3;
 
-namespace hemisphere
+namespace H
 {
 KOISHI_HOST_DEVICE inline bool isSame( const solid &w0, const solid &w1 )
 {
@@ -94,6 +94,6 @@ KOISHI_HOST_DEVICE inline solid sampleCos( const float2 &rn )
 	return solid( float3{ r * cos( phi ), r * sin( phi ), sqrt( max( 0., 1. - r * r ) ) } );
 }
 
-}  // namespace hemisphere
+}  // namespace H
 
 }  // namespace koishi

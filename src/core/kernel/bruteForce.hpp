@@ -16,7 +16,7 @@ PolyFunction( BruteForce, Host, Device )(
   ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
 	->float3 {
 		auto ray = r;
-		Interreact isect;
+		SurfaceInterreact isect;
 		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
 		constexpr auto maxBounce = 8;
 

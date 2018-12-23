@@ -22,7 +22,7 @@ struct MicrofacetReflection : BxDF
 	{
 		float pdf;
 		auto wi = reflect( wo, distribution->sample( u, pdf ) );
-		f = hemisphere::isSame( wo, wi ) ? float3{ 1, 1, 1 } : float3{ 0, 0, 0 };
+		f = H::isSame( wo, wi ) ? float3{ 1, 1, 1 } : float3{ 0, 0, 0 };
 		return wi;
 	}
 
@@ -39,7 +39,7 @@ struct MicrofacetTransmission : BxDF
 
 	KOISHI_HOST_DEVICE float3 f( const solid &wo, const solid &wi ) const override
 	{
-		// return hemisphere::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
+		// return H::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
 	}
 
 	KOISHI_HOST_DEVICE solid sample( const solid &wo, const float3 &u, float3 &f ) const override
@@ -47,7 +47,7 @@ struct MicrofacetTransmission : BxDF
 		float pdf;
 		auto wh = distribution->sample( u, pdf );
 		auto wi = refract( wo, wh, 0.7 );
-		// f = hemisphere::isSame( wo, wi ) ? float3{ 1, 1, 1 } : float3{ 0, 0, 0 };
+		// f = H::isSame( wo, wi ) ? float3{ 1, 1, 1 } : float3{ 0, 0, 0 };
 		return solid( wi );
 	}
 
@@ -63,7 +63,7 @@ struct MicrofacetMaterial : Material
 	{
 	}
 
-	KOISHI_HOST_DEVICE virtual void apply( Interreact &res, Allocator &pool ) const
+	KOISHI_HOST_DEVICE virtual void apply( SurfaceInterreact &res, Allocator &pool ) const
 	{
 		res.bsdf = create<BSDF>( pool );
 		res.bsdf->add<MicrofacetReflection>( pool, distribution );

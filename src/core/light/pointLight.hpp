@@ -16,9 +16,9 @@ struct PointLight : Light
 	}
 
 	KOISHI_HOST_DEVICE solid sample( const Scene &scene,
-												 const Interreact &res,
-												 const float2 &u, float3 &li,
-												 Allocator &pool ) const override
+									 const Interreact &res,
+									 const float2 &u, float3 &li,
+									 Allocator &pool ) const override
 	{
 		auto seg = res.emitSeg( p );
 		li = scene.intersect( seg, pool ) ? float3{ 0, 0, 0 } : emissive;

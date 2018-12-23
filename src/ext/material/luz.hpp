@@ -14,7 +14,7 @@ struct LuzMaterial : Material
 	{
 	}
 
-	KOISHI_HOST_DEVICE void apply( Interreact &res, Allocator &pool ) const override
+	KOISHI_HOST_DEVICE void apply( SurfaceInterreact &res, Allocator &pool ) const override
 	{
 		res.bsdf = create<BSDF>( pool );
 		res.bsdf->add<Specular>( pool );
@@ -29,7 +29,7 @@ struct LuzMaterial : Material
 		os << json.dump();
 	}
 
-private:
+public:
 	float3 emissive;
 };
 

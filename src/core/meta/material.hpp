@@ -19,7 +19,7 @@ struct Material : emittable
 	Material() = default;
 	Material( const Properties &config ) {}
 
-	KOISHI_HOST_DEVICE virtual void apply( Interreact &res, Allocator &pool ) const = 0;
+	KOISHI_HOST_DEVICE virtual void apply( SurfaceInterreact &res, Allocator &pool ) const = 0;
 	virtual void print( std::ostream &os ) const { os << "{}"; }
 };
 

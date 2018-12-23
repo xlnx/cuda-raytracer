@@ -377,13 +377,13 @@ KOISHI_HOST_DEVICE object<T> &&dynamic_object_cast( object<U> &&other )
 template <typename T>
 struct ref final : emittable
 {
-	using value_type = T;
-	using reference = T &;
+	using value_type = const T;
+	using reference = const T &;
 	using const_reference = const T &;
-	using pointer = T *;
+	using pointer = const T *;
 	using const_pointer = const T *;
 
-	ref( object<T> &obj ) :
+	ref( const object<T> &obj ) :
 	  obj( &obj ),
 	  value( obj.value ),
 	  device_value( obj.device_value )
@@ -428,19 +428,12 @@ struct ref final : emittable
 #else
 #define KOISHI_DATA_PTR value
 #endif
-	KOISHI_HOST_DEVICE pointer operator->()
-	{
-		return KOISHI_DATA_PTR;
-	}
+
 	KOISHI_HOST_DEVICE const_pointer operator->() const
 	{
 		return KOISHI_DATA_PTR;
 	}
 
-	KOISHI_HOST_DEVICE reference operator*()
-	{
-		return *KOISHI_DATA_PTR;
-	}
 	KOISHI_HOST_DEVICE const_reference operator*() const
 	{
 		return *KOISHI_DATA_PTR;
@@ -463,10 +456,10 @@ private:
 #endif
 
 private:
-	object<T> *obj;
+	const object<T> *obj;
 
-	T *value = nullptr;
-	T *device_value;
+	const T *value = nullptr;
+	const T *device_value;
 	bool is_device_ptr = false;
 };
 

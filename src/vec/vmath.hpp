@@ -163,24 +163,24 @@ KOISHI_COMPWISE_OP( >>, KOISHI_VEC_INT, KOISHI_VEC_UINT )
 #undef KOISHI_COMPWISE_OP
 #define KOISHI_COMPWISE_OP( op, ... )                                                                                                                                                    \
 	template <typename T, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec1<T>::value>::type>                            \
-	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                                                       \
 	{                                                                                                                                                                                    \
-		return T(typename unnormalized_type<T>::type{ op a.x });                                                                                                                                                               \
+		return T( typename unnormalized_type<T>::type{ op a.x } );                                                                                                                       \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec2<T>::value>::type>                   \
-	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                                                       \
 	{                                                                                                                                                                                    \
-		return T(typename unnormalized_type<T>::type{ op a.x, op a.y });                                                                                                                                                       \
+		return T( typename unnormalized_type<T>::type{ op a.x, op a.y } );                                                                                                               \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type>          \
-	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                                                       \
 	{                                                                                                                                                                                    \
-		return T(typename unnormalized_type<T>::type{ op a.x, op a.y, op a.z });                                                                                                                                               \
+		return T( typename unnormalized_type<T>::type{ op a.x, op a.y, op a.z } );                                                                                                       \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec4<T>::value>::type> \
-	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                                                       \
 	{                                                                                                                                                                                    \
-		return T(typename unnormalized_type<T>::type{ op a.x, op a.y, op a.z, op a.w });                                                                                                                                       \
+		return T( typename unnormalized_type<T>::type{ op a.x, op a.y, op a.z, op a.w } );                                                                                               \
 	}
 
 KOISHI_COMPWISE_OP( +, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE, KOISHI_VEC_INT, KOISHI_VEC_UINT )
@@ -479,7 +479,7 @@ KOISHI_COMPWISE_OP( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 #undef KOISHI_COMPWISE_OP
 #define KOISHI_COMPWISE_OP( ... )                                                                                                                                               \
 	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type> \
-	KOISHI_HOST_DEVICE T cross( const T &a, const T &b )                                                                                                                        \
+	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type cross( const T &a, const T &b )                                                                                      \
 	{                                                                                                                                                                           \
 		return { a.y * b.z - b.y * a.z, a.z * b.x - b.z * a.x, a.x * b.y - b.x * a.y };                                                                                         \
 	}                                                                                                                                                                           \
@@ -610,6 +610,31 @@ KOISHI_COMPWISE_OP( __func::rsqrt, rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::abs, abs, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::floor, floor, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::ceil, ceil, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
+
+#undef KOISHI_COMPWISE_OP
+#define KOISHI_COMPWISE_OP( sqrt, ... )                                                                                                                                                  \
+	template <typename T, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec1<T>::value>::type>                            \
+	KOISHI_HOST_DEVICE typename koishi::trait::com<T>::type squaredLength( const T &a )                                                                                                  \
+	{                                                                                                                                                                                    \
+		return ( a.x * a.x );                                                                                                                                                            \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec2<T>::value>::type>                   \
+	KOISHI_HOST_DEVICE typename koishi::trait::com<T>::type squaredLength( const T &a )                                                                                                  \
+	{                                                                                                                                                                                    \
+		return ( a.x * a.x + a.y * a.y );                                                                                                                                                \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type>          \
+	KOISHI_HOST_DEVICE typename koishi::trait::com<T>::type squaredLength( const T &a )                                                                                                  \
+	{                                                                                                                                                                                    \
+		return ( a.x * a.x + a.y * a.y + a.z * a.z );                                                                                                                                    \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec4<T>::value>::type> \
+	KOISHI_HOST_DEVICE typename koishi::trait::com<T>::type squaredLength( const T &a )                                                                                                  \
+	{                                                                                                                                                                                    \
+		return ( a.x * a.x + a.y * a.y + a.z * a.z + a.w * a.w );                                                                                                                        \
+	}
+
+KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::sqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 
 #undef KOISHI_COMPWISE_OP
 #define KOISHI_COMPWISE_OP( sqrt, ... )                                                                                                                                                  \

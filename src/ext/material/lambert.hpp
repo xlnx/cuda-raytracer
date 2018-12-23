@@ -15,13 +15,13 @@ struct LambertDiffuse : BxDF
 
 	KOISHI_HOST_DEVICE float3 f( const solid &wo, const solid &wi ) const override
 	{
-		return hemisphere::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
+		return H::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
 	}
 
 	KOISHI_HOST_DEVICE solid sample( const solid &wo, const float3 &u, float3 &f ) const override
 	{
-		auto wi = hemisphere::sampleCos( float2{ u.x, u.y } );  // sample lambert
-		f = hemisphere::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
+		auto wi = H::sampleCos( float2{ u.x, u.y } );  // sample lambert
+		f = H::isSame( wo, wi ) ? R : float3{ 0, 0, 0 };
 		return wi;
 	}
 
@@ -36,7 +36,7 @@ struct LambertMaterial : Material
 	{
 	}
 
-	KOISHI_HOST_DEVICE void apply( Interreact &res, Allocator &pool ) const override
+	KOISHI_HOST_DEVICE void apply( SurfaceInterreact &res, Allocator &pool ) const override
 	{
 		res.bsdf = create<BSDF>( pool );
 		res.bsdf->add<LambertDiffuse>( pool, R );

@@ -27,7 +27,7 @@ struct SpecularMaterial : Material
 	SpecularMaterial( const Properties &props )
 	{
 	}
-	KOISHI_HOST_DEVICE void apply( Interreact &res, Allocator &pool ) const
+	KOISHI_HOST_DEVICE void apply( SurfaceInterreact &res, Allocator &pool ) const
 	{
 		res.bsdf = create<BSDF>( pool );
 		res.bsdf->add<Specular>( pool );

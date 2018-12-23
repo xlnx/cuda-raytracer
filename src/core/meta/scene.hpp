@@ -23,7 +23,7 @@ struct Scene : emittable
 
 	operator bool() const { return valid; }
 
-	KOISHI_HOST_DEVICE Interreact intersect( const Ray &r, Allocator &pool ) const
+	KOISHI_HOST_DEVICE SurfaceInterreact intersect( const Ray &r, Allocator &pool ) const
 	{
 		poly::object<Primitive> const *pm = nullptr;
 		Hit hit;
@@ -35,15 +35,14 @@ struct Scene : emittable
 				hit = hit1, pm = it;
 			}
 		}
-		Interreact res;
+		SurfaceInterreact res;
 		if ( hit )
 		{
 			res.isNull = false;
 			res.n = ( *pm )->normal( hit );
 			res.p = r.o + r.d * hit.t;
-			res.uv = hit.uv;
-			res.u = cross( res.n, float3{ 0, 1, 0 } );
-			res.v = cross( res.n, res.u );
+			res.u = normalize( cross( res.n, float3{ 0, 1, 0 } ) );
+			res.v = normalize( cross( res.n, res.u ) );
 			material[ ( *pm )->matid ]->apply( res, pool );
 			// pm->material->apply( res, pool );
 		}
