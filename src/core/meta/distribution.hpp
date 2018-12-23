@@ -14,8 +14,8 @@ struct SphericalDistribution : emittable
 	SphericalDistribution() = default;
 	SphericalDistribution( const Properties &config ) {}
 
-	KOISHI_HOST_DEVICE virtual float3 f( const normalized_float3 &w ) const = 0;
-	KOISHI_HOST_DEVICE virtual normalized_float3 sample( const float3 &u, float &pdf ) const = 0;
+	KOISHI_HOST_DEVICE virtual float3 f( const solid &w ) const = 0;
+	KOISHI_HOST_DEVICE virtual solid sample( const float3 &u, float &pdf ) const = 0;
 };
 
 struct IsotropicSphericalDistribution : SphericalDistribution
@@ -25,7 +25,7 @@ struct IsotropicSphericalDistribution : SphericalDistribution
 	  SphericalDistribution( config )
 	{
 	}
-	KOISHI_HOST_DEVICE normalized_float3 sample( const float2 &u, float &pdf ) const
+	KOISHI_HOST_DEVICE solid sample( const float2 &u, float &pdf ) const
 	{
 		return SphericalDistribution::sample( float3{ u.x, u.y, 0.f }, pdf );
 	}

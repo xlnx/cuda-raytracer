@@ -287,6 +287,17 @@ public:
 #else
 #define KOISHI_DATA_PTR value
 #endif
+	KOISHI_HOST_DEVICE operator bool() const
+	{
+		return KOISHI_DATA_PTR;
+	}
+
+	template <typename U>
+	KOISHI_HOST_DEVICE bool is() const
+	{
+		return dynamic_cast<const U *>( KOISHI_DATA_PTR );
+	}
+
 	KOISHI_HOST_DEVICE pointer operator->()
 	{
 		return KOISHI_DATA_PTR;
@@ -356,10 +367,7 @@ KOISHI_HOST_DEVICE object<T> &&dynamic_object_cast( object<U> &&other )
 										 alignof( object<T> )>::type buffer;
 	static object<T> &ptr = reinterpret_cast<object<T> &>( buffer );
 	new ( &ptr ) object<T>;
-	if ( !( ptr.value = dynamic_cast<T *>( other.value ) ) )
-	{
-		KTHROW( "dynamic object cast failed" );
-	}
+	ptr.value = dynamic_cast<T *>( other.value );
 	ptr.desc = other.desc;
 	ptr.is_device_ptr = other.is_device_ptr;
 	other.value = nullptr;

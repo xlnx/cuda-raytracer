@@ -11,6 +11,7 @@ namespace koishi
 {
 struct CameraConfig : serializable<CameraConfig>, emittable
 {
+	Property( std::string, lens, "pinhole" );
 	Property( float, fovx, 90 );
 	Property( float, aspect, 0 );
 	Property( float3, position, { 1, 0, 0 } );

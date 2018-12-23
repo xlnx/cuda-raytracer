@@ -50,11 +50,19 @@ struct Renderer : RendererBase
 			util::Image<3> image( w, h );
 			KLOG( "Target resolution:", w, "x", h );
 
-			poly::object<Lens> lens = poly::make_object<
-			  PinholeLens
-			  //   OrthographicLens
-			  //
-			  >( camera, w, h, spp );
+			poly::object<Lens> lens;
+			if ( camera.lens == "pinhole" )
+			{
+				lens = poly::make_object<PinholeLens>( camera, w, h, spp );
+			}
+			else if ( camera.lens == "orthographic" )
+			{
+				lens = poly::make_object<OrthographicLens>( camera, w, h, spp );
+			}
+			else
+			{
+				KTHROW( "invalid lens type: " + camera.lens );
+			}
 			SamplerGenerator rng_gen;
 
 			KLOG( "Start intergrating" );

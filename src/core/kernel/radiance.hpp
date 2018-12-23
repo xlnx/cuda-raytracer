@@ -26,7 +26,7 @@ PolyFunction( Radiance, Host, Device )(
 							   bounce != maxBounce;
 			  ++bounce )
 		{
-			auto wo = isect.local( normalized_float3( -ray.d ) );
+			auto wo = isect.local( -ray.d );
 			auto bxdf = isect.bsdf->sampleBxDF( rng.sample() );
 			// evaluate direct lighting
 			if ( scene.lights.size() )
@@ -43,7 +43,7 @@ PolyFunction( Radiance, Host, Device )(
 				// L = scene.intersect( seg, pool ) ? float3{ 0, 0, 0 } : float3{ 1, 1, 1 };
 				// KLOG( seg.o, seg.d );
 			}
-			// L += beta * isect.emissive;
+			L += beta * isect.emissive;
 			// emit new light for indirect lighting, according to BSDF
 			{
 				float3 f;

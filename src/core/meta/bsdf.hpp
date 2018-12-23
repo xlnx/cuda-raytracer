@@ -13,9 +13,9 @@ struct BxDF
 {
 	KOISHI_HOST_DEVICE virtual ~BxDF() = default;
 
-	KOISHI_HOST_DEVICE virtual float3 f( const normalized_float3 &wo, const normalized_float3 &wi ) const = 0;
-	KOISHI_HOST_DEVICE virtual normalized_float3 sample( const normalized_float3 &wo, const float3 &rn, float3 &f ) const = 0;
-	KOISHI_HOST_DEVICE normalized_float3 sample( const normalized_float3 &wo, const float2 &rn, float3 &f ) const
+	KOISHI_HOST_DEVICE virtual float3 f( const solid &wo, const solid &wi ) const = 0;
+	KOISHI_HOST_DEVICE virtual solid sample( const solid &wo, const float3 &rn, float3 &f ) const = 0;
+	KOISHI_HOST_DEVICE solid sample( const solid &wo, const float2 &rn, float3 &f ) const
 	{
 		return sample( wo, float3{ rn.x, rn.y, 0.f }, f );
 	}

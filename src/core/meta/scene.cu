@@ -9,6 +9,8 @@
 #include "mesh.hpp"
 #include "sphere.hpp"
 
+#include <ext/material/luz.hpp>
+
 namespace koishi
 {
 namespace core
@@ -71,6 +73,7 @@ Scene::Scene( const std::string &path )
 							cc.position = { position.x, position.y, position.z };
 							cc.zNear = conf->mClipPlaneNear;
 							cc.zFar = conf->mClipPlaneFar;
+							cc.lens = get<std::string>( asset.props, "camera.lens", "pinhole" );
 							camera.emplace_back( cc );
 						}
 					}
@@ -195,6 +198,18 @@ Scene::Scene( const std::string &path )
 			valid = false;
 		}
 	}
+
+	if ( valid )
+	{
+		for ( auto &m : primitives )
+		{
+			if ( material[ m->matid ].template is<ext::LuzMaterial>() )
+			{
+				KLOG( mats[ m->matid ], "is luz" );
+			}
+		}
+	}
+
 	valid = true;
 }
 

@@ -163,29 +163,28 @@ KOISHI_COMPWISE_OP( >>, KOISHI_VEC_INT, KOISHI_VEC_UINT )
 #undef KOISHI_COMPWISE_OP
 #define KOISHI_COMPWISE_OP( op, ... )                                                                                                                                                    \
 	template <typename T, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec1<T>::value>::type>                            \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
 	{                                                                                                                                                                                    \
-		return { op a.x };                                                                                                                                                               \
+		return T(typename unnormalized_type<T>::type{ op a.x });                                                                                                                                                               \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec2<T>::value>::type>                   \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
 	{                                                                                                                                                                                    \
-		return { op a.x, op a.y };                                                                                                                                                       \
+		return T(typename unnormalized_type<T>::type{ op a.x, op a.y });                                                                                                                                                       \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type>          \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
 	{                                                                                                                                                                                    \
-		return { op a.x, op a.y, op a.z };                                                                                                                                               \
+		return T(typename unnormalized_type<T>::type{ op a.x, op a.y, op a.z });                                                                                                                                               \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec4<T>::value>::type> \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type operator op( const T &a )                                                                                                     \
+	KOISHI_HOST_DEVICE T operator op( const T &a )                                                                                                     \
 	{                                                                                                                                                                                    \
-		return { op a.x, op a.y, op a.z, op a.w };                                                                                                                                       \
+		return T(typename unnormalized_type<T>::type{ op a.x, op a.y, op a.z, op a.w });                                                                                                                                       \
 	}
 
 KOISHI_COMPWISE_OP( +, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE, KOISHI_VEC_INT, KOISHI_VEC_UINT )
 KOISHI_COMPWISE_OP( -, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE, KOISHI_VEC_INT, KOISHI_VEC_UINT )
-KOISHI_COMPWISE_OP( ~, KOISHI_VEC_INT, KOISHI_VEC_UINT )
 
 #undef KOISHI_COMPWISE_OP
 #define KOISHI_COMPWISE_OP( op, ... )                                                                                                                                                    \

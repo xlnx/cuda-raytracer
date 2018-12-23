@@ -12,11 +12,11 @@ struct CosDistribution : IsotropicSphericalDistribution
 	{
 	}
 
-	KOISHI_HOST_DEVICE float3 f( const normalized_float3 &w ) const override
+	KOISHI_HOST_DEVICE float3 f( const solid &w ) const override
 	{
 		return abs( hemisphere::cosTheta( w ) ) / invPI * float3{ 1, 1, 1 };
 	}
-	KOISHI_HOST_DEVICE normalized_float3 sample( const float3 &u, float &pdf ) const override
+	KOISHI_HOST_DEVICE solid sample( const float3 &u, float &pdf ) const override
 	{
 		auto w = hemisphere::sampleCos( float2{ u.x, u.y } );
 		pdf = abs( hemisphere::cosTheta( w ) ) / invPI;

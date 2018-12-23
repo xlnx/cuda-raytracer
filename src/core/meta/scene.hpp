@@ -63,7 +63,7 @@ struct Scene : emittable
 	}
 
 private:
-	bool valid = false;
+	bool valid = true;
 };
 
 }  // namespace core

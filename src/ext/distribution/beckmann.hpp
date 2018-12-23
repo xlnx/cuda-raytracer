@@ -8,19 +8,21 @@ namespace ext
 {
 struct BeckmannDistribution : IsotropicSphericalDistribution
 {
-	KOISHI_HOST_DEVICE BeckmannDistribution( const Properties &props ) :
-	  alpha2( get( props, "roughness", .5f ) * get( props, "roughness", .5f ) )
+	BeckmannDistribution( const Properties &props )
 	{
+		auto roughness = get( props, "roughness", .5f );
+		roughness = roughness * roughness;
+		alpha2 = roughness;
 	}
 
-	KOISHI_HOST_DEVICE float3 f( const normalized_float3 &w ) const override
+	KOISHI_HOST_DEVICE float3 f( const solid &w ) const override
 	{
 		auto tg2th = hemisphere::tan2Theta( w );
 		auto cos4th = hemisphere::cos2Theta( w ) * hemisphere::cos2Theta( w );
 		return float3{ 1, 1, 1 } * exp( -tg2th / alpha2 ) / ( PI * alpha2 * cos4th ) * abs( hemisphere::cosTheta( w ) );
 	}
 
-	KOISHI_HOST_DEVICE normalized_float3 sample( const float3 &u, float &pdf ) const override
+	KOISHI_HOST_DEVICE solid sample( const float3 &u, float &pdf ) const override
 	{
 		auto logu = log( u.x );
 		auto tg2th = -alpha2 * logu;

@@ -27,7 +27,7 @@ public:
 		return !isNull;
 	}
 
-	KOISHI_HOST_DEVICE Ray emitRay( const normalized_float3 &w ) const
+	KOISHI_HOST_DEVICE Ray emitRay( const solid &w ) const
 	{
 		Ray r;
 		constexpr float eps = 4e-3;
@@ -47,14 +47,14 @@ public:
 		return s;
 	}
 
-	KOISHI_HOST_DEVICE normalized_float3 local( const normalized_float3 &w ) const
+	KOISHI_HOST_DEVICE solid local( const normalized_float3 &w ) const
 	{
-		return normalized_float3( float3{ dot( static_cast<const float3 &>( w ), u ),
+		return solid( float3{ dot( static_cast<const float3 &>( w ), u ),
 										  dot( static_cast<const float3 &>( w ), v ),
 										  dot( static_cast<const float3 &>( w ), n ) } );
 	}
 
-	KOISHI_HOST_DEVICE normalized_float3 global( const normalized_float3 &w ) const
+	KOISHI_HOST_DEVICE normalized_float3 global( const solid &w ) const
 	{
 		return normalized_float3( w.x * u + w.y * v + w.z * n );
 	}

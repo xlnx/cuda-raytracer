@@ -256,7 +256,7 @@ inline T get( const nlohmann::json &json, const std::string &key, const T &val )
 		auto sub = key.substr( start, next );
 		if ( j->find( sub ) != j->end() )
 		{
-			j = &json.at( sub );
+			j = &j->at( sub );
 		}
 		else
 		{
@@ -276,7 +276,7 @@ inline T get( const nlohmann::json &json, const std::string &key )
 	{
 		next = key.find_first_of( '.', start );
 		auto sub = key.substr( start, next );
-		j = &json.at( sub );
+		j = &j->at( sub );
 		start = next + 1;
 	} while ( next != key.npos );
 	return *j;
