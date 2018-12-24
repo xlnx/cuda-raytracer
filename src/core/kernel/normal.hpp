@@ -15,10 +15,11 @@ PolyFunction( Normal, Host, Device )(
   ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
 	->float3 {
 		float3 L = { 0, 0, 0 };
+		Input input;
 
-		if ( auto isect = scene.intersect( r, pool ) )
+		if ( scene.intersect( r, input, pool ) )
 		{
-			L = isect.n;
+			L = input.n;
 		}
 		pool.clear();
 

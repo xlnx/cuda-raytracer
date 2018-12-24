@@ -24,13 +24,14 @@ struct Specular : BxDF
 
 struct SpecularMaterial : Material
 {
-	SpecularMaterial( const Properties &props )
+	SpecularMaterial( const Properties &props ) :
+	  Material( props )
 	{
 	}
-	KOISHI_HOST_DEVICE void apply( SurfaceInterreact &res, Allocator &pool ) const
+	KOISHI_HOST_DEVICE void apply( Input &input, Allocator &pool ) const
 	{
-		res.bsdf = create<BSDF>( pool );
-		res.bsdf->add<Specular>( pool );
+		Material::apply( input, pool );
+		input.bxdf = create<Specular>( pool );
 	}
 	void print( std::ostream &os ) const
 	{

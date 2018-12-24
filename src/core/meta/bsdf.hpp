@@ -21,26 +21,6 @@ struct BxDF
 	}
 };
 
-struct BSDF final
-{
-	template <typename T, typename... Args, typename = typename std::enable_if<std::is_base_of<BxDF, T>::value>::type>
-	KOISHI_HOST_DEVICE void add( Allocator &pool, Args &&... args )
-	{
-		bxdfs[ numBxdfs++ ] = create<T>( pool, std::forward<Args>( args )... );
-	}
-
-	KOISHI_HOST_DEVICE BxDF *sampleBxDF( float rn )
-	{
-		int comp = min( (int)floor( rn * numBxdfs ), (int)numBxdfs - 1 );
-		return bxdfs[ comp ];
-	}
-
-public:
-	static constexpr uint maxBxdfs = 6;
-	BxDF *bxdfs[ maxBxdfs ];
-	uint numBxdfs = 0;
-};
-
 }  // namespace core
 
 }  // namespace koishi

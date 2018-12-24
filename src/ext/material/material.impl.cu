@@ -1,3 +1,4 @@
+#include <ext/util.hpp>
 #include "lambert.hpp"
 #include "specular.hpp"
 #include "microfacet.hpp"

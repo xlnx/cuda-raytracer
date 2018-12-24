@@ -60,7 +60,7 @@ struct Mesh : Primitive
 	poly::vector<attr::Normal> normals;
 	BVHTree bvh;
 
-	poly::vector<Interreact> samples;
+	poly::vector<LocalInput> samples;
 	float pdf = 1;
 
 	void generateSamples()
@@ -93,7 +93,7 @@ struct Mesh : Primitive
 									 normals[ hit.id ].n2,
 									 hit.uv ) );
 	}
-	KOISHI_HOST_DEVICE Interreact sample( const float2 &u, float &pdf ) const override
+	KOISHI_HOST_DEVICE LocalInput sample( const float2 &u, float &pdf ) const override
 	{
 		auto idx = min( (uint)floor( u.x * 1024 ),
 						( uint )( 1024 - 1 ) );

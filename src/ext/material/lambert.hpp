@@ -40,11 +40,10 @@ struct LambertMaterial : Material
 	{
 	}
 
-	KOISHI_HOST_DEVICE void apply( SurfaceInterreact &res, Allocator &pool ) const override
+	KOISHI_HOST_DEVICE void apply( Input &input, Allocator &pool ) const override
 	{
-		Material::apply( res, pool );
-		res.bsdf = create<BSDF>( pool );
-		res.bsdf->add<LambertDiffuse>( pool, R );
+		Material::apply( input, pool );
+		input.bxdf = create<LambertDiffuse>( pool, R );
 	}
 
 	void print( std::ostream &os ) const override

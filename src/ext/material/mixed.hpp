@@ -1,5 +1,6 @@
 #pragma once
 
+#include <core/meta/scala.hpp>
 #include <ext/util.hpp>
 
 namespace koishi
@@ -9,7 +10,7 @@ namespace ext
 struct MixedMaterial : Material
 {
 	MixedMaterial( const Properties &props ) :
-	  fac( get( props, "fac", .5f ) ),
+	  fac( Factory<Scala<float>>::create( get<Config>( props, "fac" ) ) ),
 	  materials{ Factory<Material>::create(
 				   get<std::vector<Config>>( props, "materials" )[ 0 ] ),
 				 Factory<Material>::create(
@@ -17,17 +18,13 @@ struct MixedMaterial : Material
 	{
 	}
 
-	KOISHI_HOST_DEVICE void apply( SurfaceInterreact &res, Allocator &pool ) const override
+	KOISHI_HOST_DEVICE void apply( Input &input, Allocator &pool ) const override
 	{
-		Sampler sampler;
-		if ( sampler.sample() < fac )
-		{
-			materials[ 0 ]->apply( res, pool );
-		}
-		else
-		{
-			materials[ 1 ]->apply( res, pool );
-		}
+		materials[ input.sampler->sample() <
+					   fac->compute( input, pool )
+					 ? 1
+					 : 0 ]
+		  ->apply( input, pool );
 	}
 
 	void print( std::ostream &os ) const override
@@ -39,7 +36,7 @@ struct MixedMaterial : Material
 	}
 
 private:
-	float fac;
+	poly::object<Scala<float>> fac;
 	poly::object<Material> materials[ 2 ];
 };
 

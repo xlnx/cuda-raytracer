@@ -62,11 +62,10 @@ struct MicrofacetMaterial : Material
 	{
 	}
 
-	KOISHI_HOST_DEVICE void apply( SurfaceInterreact &res, Allocator &pool ) const override
+	KOISHI_HOST_DEVICE void apply( Input &input, Allocator &pool ) const override
 	{
-		Material::apply( res, pool );
-		res.bsdf = create<BSDF>( pool );
-		res.bsdf->add<MicrofacetReflection>( pool, distribution );
+		Material::apply( input, pool );
+		input.bxdf = create<MicrofacetReflection>( pool, distribution );
 	}
 
 	void print( std::ostream &os ) const override

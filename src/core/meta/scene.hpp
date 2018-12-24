@@ -5,7 +5,7 @@
 #include <core/basic/poly.hpp>
 #include <core/light/light.hpp>
 #include "material.hpp"
-#include "interreact.hpp"
+#include "input.hpp"
 
 namespace koishi
 {
@@ -23,7 +23,7 @@ struct Scene : emittable
 
 	operator bool() const { return valid; }
 
-	KOISHI_HOST_DEVICE SurfaceInterreact intersect( const Ray &r, Allocator &pool ) const
+	KOISHI_HOST_DEVICE bool intersect( const Ray &r, Input &input, Allocator &pool ) const
 	{
 		poly::object<Primitive> const *pm = nullptr;
 		Hit hit;
@@ -35,18 +35,16 @@ struct Scene : emittable
 				hit = hit1, pm = it;
 			}
 		}
-		SurfaceInterreact res;
-		if ( hit )
-		{
-			res.isNull = false;
-			res.n = ( *pm )->normal( hit );
-			res.p = r.o + r.d * hit.t;
-			res.u = normalize( cross( res.n, float3{ 0, 1, 0 } ) );
-			res.v = normalize( cross( res.n, res.u ) );
-			material[ ( *pm )->matid ]->apply( res, pool );
-			// pm->material->apply( res, pool );
-		}
-		return res;
+		if ( !hit ) return false;
+		input.n = ( *pm )->normal( hit );
+		input.p = r.o + r.d * hit.t;
+		input.u = normalize( cross( input.n, float3{ 0, 1, 0 } ) );
+		input.v = normalize( cross( input.n, input.u ) );
+		input.matid = ( *pm )->matid;
+		input.wo = input.local( -r.d );
+		input.color = input.emissive = float3{ 0, 0, 0 };
+		material[ input.matid ]->apply( input, pool );
+		return true;
 	}
 
 	KOISHI_HOST_DEVICE bool intersect( const Seg &s, Allocator &pool ) const

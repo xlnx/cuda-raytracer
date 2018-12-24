@@ -17,7 +17,7 @@ struct PointLight : Light
 	}
 
 	KOISHI_HOST_DEVICE solid sample( const Scene &scene,
-									 const Interreact &res,
+									 const LocalInput &res,
 									 const float2 &u, float3 &li,
 									 Allocator &pool ) const override
 	{

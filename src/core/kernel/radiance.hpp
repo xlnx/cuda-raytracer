@@ -16,18 +16,17 @@ PolyFunction( Radiance, Host, Device )(
   ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
 	->float3 {
 		auto ray = r;
-		SurfaceInterreact isect;
+		Input input;
+		input.sampler = &rng;
 		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
 		constexpr auto maxBounce =					 //1;
 		  1024;
 		// 1024;
 
-		for ( auto bounce = 0; ( isect = scene.intersect( ray, pool ) ) &&
+		for ( auto bounce = 0; scene.intersect( ray, input, pool ) &&
 							   bounce != maxBounce;
 			  ++bounce )
 		{
-			auto wo = isect.local( -ray.d );
-			auto bxdf = isect.bsdf->sampleBxDF( rng.sample() );
 			// evaluate direct lighting
 			if ( scene.lights.size() )
 			{
@@ -35,17 +34,17 @@ PolyFunction( Radiance, Host, Device )(
 				uint idx = min( (uint)floor( rng.sample() * scene.lights.size() ),
 								( uint )( scene.lights.size() - 1 ) );
 				float lpdf = 1.f / scene.lights.size();
-				auto wi = scene.lights[ idx ]->sample( scene, isect, rng.sample2(), li, pool );
-				auto f = isect.color * bxdf->f( wo, wi );
+				auto wi = scene.lights[ idx ]->sample( scene, input, rng.sample2(), li, pool );
+				auto f = input.color * input.bxdf->f( input.wo, wi );
 				L += beta * f * li * abs( dot( wi, float3{ 0, 0, 1 } ) ) / lpdf;
 			}
-			L += beta * isect.emissive;
+			L += beta * input.emissive;
 			// emit new light for indirect lighting, according to BSDF
 			{
 				float3 f;
-				auto wi = bxdf->sample( wo, rng.sample2(), f );
-				beta *= f * isect.color * abs( dot( wi, float3{ 0, 0, 1 } ) );
-				ray = isect.emitRay( isect.global( wi ) );
+				auto wi = input.bxdf->sample( input.wo, rng.sample2(), f );
+				beta *= f * input.color * abs( dot( wi, float3{ 0, 0, 1 } ) );
+				ray = input.emitRay( input.global( wi ) );
 			}
 			pool.clear();
 

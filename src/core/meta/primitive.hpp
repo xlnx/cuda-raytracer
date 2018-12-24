@@ -3,7 +3,7 @@
 #include <core/basic/poly.hpp>
 #include <core/basic/ray.hpp>
 #include <core/basic/allocator.hpp>
-#include <core/meta/interreact.hpp>
+#include <core/meta/input.hpp>
 #include <util/hemisphere.hpp>
 
 namespace koishi
@@ -23,16 +23,16 @@ struct Primitive : emittable
 		return intersect( seg, hit, pool ) && hit.t <= seg.t;
 	}
 
-	KOISHI_HOST_DEVICE virtual Interreact sample(
+	KOISHI_HOST_DEVICE virtual LocalInput sample(
 	  const float2 &u, float &pdf ) const = 0;
-	KOISHI_HOST_DEVICE virtual Interreact sample(
+	KOISHI_HOST_DEVICE virtual LocalInput sample(
 	  const float3 &p, const float2 &u, float &pdf ) const
 	{
-		Interreact isect = sample( u, pdf );
-		auto wi = p - isect.p;
+		LocalInput input = sample( u, pdf );
+		auto wi = p - input.p;
 		auto d2 = squaredLength( wi );
-		pdf *= d2 / abs( dot( isect.n, normalize( wi ) ) );
-		return isect;
+		pdf *= d2 / abs( dot( input.n, normalize( wi ) ) );
+		return input;
 	}
 
 public:

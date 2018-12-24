@@ -6,9 +6,7 @@
 #include <core/basic/factory.hpp>
 #include <util/config.hpp>
 #include "mesh.hpp"
-#include "interreact.hpp"
-
-#define MAX_MATERIALS 256
+#include "input.hpp"
 
 namespace koishi
 {
@@ -22,9 +20,9 @@ struct Material : emittable
 	{
 	}
 
-	KOISHI_HOST_DEVICE virtual void apply( SurfaceInterreact &res, Allocator &pool ) const
+	KOISHI_HOST_DEVICE virtual void apply( Input &input, Allocator &pool ) const
 	{
-		res.color = color;
+		input.color = color;
 	}
 	virtual void print( std::ostream &os ) const { os << "{}"; }
 
