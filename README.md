@@ -24,7 +24,7 @@
 - [X] Bidirectional Path Tracer
 > - [X] Point Lights
 > - [ ] Spot Lights
-> - [ ] Area Lights
+> - [X] Area Lights
 > - [ ] Heuristic Light Estimation 
 - [ ] Acceleration
 > - [ ] Hybrid Renderer
@@ -33,7 +33,7 @@
 > - [ ] Several Classes 
 > - [ ] DSL
 - [ ] Material
-> - [ ] Mat Sphere
+> - [X] Mat Sphere
 > - [ ] Mixed Shader(Blender)
 > - [ ] BTDF
 - [ ] Microfacet Distribution
@@ -44,7 +44,7 @@
 
 ## Gallery
 
-*Bidirectional Path Tracing, intel core i7x8 logical cores, 512spp*
+*Bidirectional Path Tracing, intel core i7x8 logical cores, 1024spp*
 
 ```json
 {
