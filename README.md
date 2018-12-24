@@ -34,7 +34,7 @@
 > - [ ] DSL
 - [ ] Material
 > - [X] Mat Sphere
-> - [ ] Mixed Shader(Blender)
+> - [X] Mixed Shader(Blender)
 > - [ ] BTDF
 - [ ] Microfacet Distribution
 > - [X] Cosine
@@ -44,85 +44,17 @@
 
 ## Gallery
 
-*Bidirectional Path Tracing, intel core i7x8 logical cores, 1024spp*
-
-```json
-{
-	"assets": [
-		["pointLight", {
-			"position": [2, 0, 3],
-			"emissive": [1, 1, 1]
-		}],
-		["sphere", {
-			"o": [0, 0, 1],
-			"r": 1,
-			"material": "Material"
-		}],
-		["sphere", {
-			"o": [-1e3, 0, 0],
-			"r": 997,
-			"material": "Wall"
-		}],
-		["sphere", {
-			"o": [1e3, 0, 0],
-			"r": 995.9,
-			"material": "Wall"
-		}],
-		["sphere", {
-			"o": [0, -1e3, 0],
-			"r": 998,
-			"material": "LeftWall"
-		}],
-		["sphere", {
-			"o": [0, 1e3, 0],
-			"r": 998,
-			"material": "RightWall"
-		}],
-		["sphere", {
-			"o": [0, 0, -1e3],
-			"r": 1e3,
-			"material": "Wall"
-		}],
-		["sphere", {
-			"o": [0, 0, 1e3],
-			"r": 997,
-			"material": "Wall"
-		}]
-	],
-	"camera": [{
-		"position": [4, 0, 1],
-		"fovx": 45
-	}],
-	"material": {
-		"Wall": ["Microfacet", {
-			"distribution": ["Beckmann", {
-				"roughness": 0.2
-			}],
-			"color": [1, 1, 1]
-		}],
-		"LeftWall": ["Microfacet", {
-			"distribution": ["Beckmann", {
-				"roughness": 0.45
-			}],
-			"color": [1, 0, 0]
-		}],
-		"RightWall": ["Microfacet", {
-			"distribution": ["Beckmann", {
-				"roughness": 0.45
-			}],
-			"color": [0, 1, 0]
-		}],
-		"Material": ["Microfacet", {
-			"distribution": ["Beckmann", {
-				"roughness": 0.02
-			}],
-			"color": [1, 1, 1]
-		}]
-	}
-}
-```
+*Bidirectional Path Tracing, beckmann microfacet brdf, 1024spp*
 
 ![](doc/sphere.png)
+
+*lambert, 512spp*
+
+![](doc/lambert_512.png)
+
+*area light demo, 32spp*
+
+![](doc/area.png)
 
 *Microfacet BRDF with Beckmann Distribution of different roughness*
 
