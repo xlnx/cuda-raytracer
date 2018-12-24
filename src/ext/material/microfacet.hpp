@@ -15,13 +15,12 @@ struct MicrofacetReflection : BxDF
 
 	KOISHI_HOST_DEVICE float3 f( const solid &wo, const solid &wi ) const override
 	{
-		return distribution->f( normalize( ( wo + wi ) * .5f ) );
+		return distribution->f( normalize( wo + wi ) );
 	}
 
 	KOISHI_HOST_DEVICE solid sample( const solid &wo, const float3 &u, float3 &f ) const override
 	{
-		float pdf;
-		auto wi = reflect( wo, distribution->sample( u, pdf ) );
+		auto wi = reflect( wo, distribution->sample( u ) );
 		f = H::isSame( wo, wi ) ? float3{ 1, 1, 1 } : float3{ 0, 0, 0 };
 		return wi;
 	}
@@ -58,16 +57,16 @@ private:
 struct MicrofacetMaterial : Material
 {
 	MicrofacetMaterial( const Properties &props ) :
-	  distribution( Factory<SphericalDistribution>::create( get<Config>( props, "distribution" ) ) ),
-	  color( get( props, "color", float3{ .5f, .5f, .5f } ) )
+	  Material( props ),
+	  distribution( Factory<SphericalDistribution>::create( get<Config>( props, "distribution" ) ) )
 	{
 	}
 
 	KOISHI_HOST_DEVICE virtual void apply( SurfaceInterreact &res, Allocator &pool ) const
 	{
+		Material::apply( res, pool );
 		res.bsdf = create<BSDF>( pool );
 		res.bsdf->add<MicrofacetReflection>( pool, distribution );
-		res.color = color;
 	}
 
 	void print( std::ostream &os ) const
@@ -80,7 +79,6 @@ struct MicrofacetMaterial : Material
 
 private:
 	poly::object<SphericalDistribution> distribution;
-	float3 color;
 };
 
 }  // namespace ext

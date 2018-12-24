@@ -16,6 +16,11 @@ struct SphericalDistribution : emittable
 
 	KOISHI_HOST_DEVICE virtual float3 f( const solid &w ) const = 0;
 	KOISHI_HOST_DEVICE virtual solid sample( const float3 &u, float &pdf ) const = 0;
+	KOISHI_HOST_DEVICE solid sample( const float3 &u ) const
+	{
+		float pdf;
+		return sample( u, pdf );
+	}
 };
 
 struct IsotropicSphericalDistribution : SphericalDistribution

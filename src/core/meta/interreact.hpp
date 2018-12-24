@@ -42,14 +42,14 @@ public:
 
 	KOISHI_HOST_DEVICE solid local( const normalized_float3 &w ) const
 	{
-		return solid( float3{ dot( static_cast<const float3 &>( w ), u ),
-							  dot( static_cast<const float3 &>( w ), v ),
-							  dot( static_cast<const float3 &>( w ), n ) } );
+		return normalize( float3{ dot( static_cast<const float3 &>( w ), u ),
+								  dot( static_cast<const float3 &>( w ), v ),
+								  dot( static_cast<const float3 &>( w ), n ) } );
 	}
 
 	KOISHI_HOST_DEVICE normalized_float3 global( const solid &w ) const
 	{
-		return normalized_float3( w.x * u + w.y * v + w.z * n );
+		return normalize( w.x * u + w.y * v + w.z * n );
 	}
 };
 

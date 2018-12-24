@@ -10,7 +10,7 @@ namespace ext
 struct LuzMaterial : Material
 {
 	LuzMaterial( const Properties &props ) :
-	  emissive( get( props, "emissive", float3{ 1, 1, 1 } ) )
+	  emissive( get( props, "color", float3{ 1, 1, 1 } ) * get( props, "strength", 2.f ) )
 	{
 	}
 

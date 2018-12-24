@@ -11,7 +11,8 @@ struct PointLight : Light
 {
 	PointLight( const Config &config ) :
 	  p( get<float3>( config.props, "position" ) ),
-	  emissive( get<float3>( config.props, "emissive", float3{ 1, 1, 1 } ) )
+	  emissive( get<float3>( config.props, "color", float3{ 1, 1, 1 } ) *
+				get<float>( config.props, "strength", 2.f ) )
 	{
 	}
 
