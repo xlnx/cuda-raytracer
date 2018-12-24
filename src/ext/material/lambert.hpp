@@ -47,7 +47,7 @@ struct LambertMaterial : Material
 		res.bsdf->add<LambertDiffuse>( pool, R );
 	}
 
-	void print( std::ostream &os ) const
+	void print( std::ostream &os ) const override
 	{
 		nlohmann::json json = {
 			{ "LambertMaterial", { { "R", R } } }

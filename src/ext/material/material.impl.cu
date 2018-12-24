@@ -1,6 +1,7 @@
 #include "lambert.hpp"
 #include "specular.hpp"
 #include "microfacet.hpp"
+#include "mixed.hpp"
 #include "luz.hpp"
 
 namespace koishi
@@ -11,6 +12,7 @@ static volatile int material_impl[] = {
 	Factory<Material>::reg<LambertMaterial>( "Lambert" ),
 	Factory<Material>::reg<SpecularMaterial>( "Specular" ),
 	Factory<Material>::reg<MicrofacetMaterial>( "Microfacet" ),
+	Factory<Material>::reg<MixedMaterial>( "Mixed" ),
 	Factory<Material>::reg<LuzMaterial>( "Luz" )
 };
 

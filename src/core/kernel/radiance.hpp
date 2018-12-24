@@ -37,7 +37,7 @@ PolyFunction( Radiance, Host, Device )(
 				float lpdf = 1.f / scene.lights.size();
 				auto wi = scene.lights[ idx ]->sample( scene, isect, rng.sample2(), li, pool );
 				auto f = isect.color * bxdf->f( wo, wi );
-				L += beta * f * li / lpdf;
+				L += beta * f * li * abs( dot( wi, float3{ 0, 0, 1 } ) ) / lpdf;
 			}
 			L += beta * isect.emissive;
 			// emit new light for indirect lighting, according to BSDF
