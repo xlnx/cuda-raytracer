@@ -31,12 +31,10 @@ struct Glossy : Shader
 		}
 	}
 
-	void print( std::ostream &os ) const override
+	void writeNode( json &j ) const override
 	{
-		nlohmann::json json = {
-			{ "Glossy", {} }
-		};
-		os << json.dump();
+		j[ "Glossy" ][ "color" ] = color;
+		distribution->writeNode( j[ "Glossy" ][ "distribution" ] );
 	}
 
 private:

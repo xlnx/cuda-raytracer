@@ -1,6 +1,7 @@
 #pragma once
 
 #include <ext/util.hpp>
+#include "lambert.hpp"
 
 namespace koishi
 {
@@ -12,6 +13,7 @@ struct Emission : Shader
 	  Shader( props ),
 	  color( get( props, "color", float3{ 1, 1, 1 } ) ),
 	  strength( get( props, "strength", 2.f ) ),
+	  lambert( Factory<Shader>::create( "Lambert" ) ),
 	  emission( color * strength )
 	{
 	}
@@ -20,15 +22,19 @@ struct Emission : Shader
 	  Varyings &varyings, Sampler &sampler, Allocator &pool, uint target ) const override
 	{
 		varyings.emission = emission;
+		lambert->execute( varyings, sampler, pool, target );
 	}
 
-	void print( std::ostream &os ) const override
+	void writeNode( json &j ) const override
 	{
+		j[ "Emission" ][ "color" ] = color;
+		j[ "Emission" ][ "strength" ] = strength;
 	}
 
 private:
 	float3 color;
 	float strength;
+	poly::object<Shader> lambert;
 
 public:
 	const float3 emission;

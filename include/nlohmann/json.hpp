@@ -8266,6 +8266,7 @@ class basic_json
         return result;
     }
 
+  public:
     /*!
     @brief internal implementation of the serialization function
 

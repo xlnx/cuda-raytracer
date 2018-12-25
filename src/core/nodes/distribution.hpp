@@ -1,12 +1,12 @@
 #pragma once
 
-#include <core/basic/basic.hpp>
+#include "node.hpp"
 
 namespace koishi
 {
 namespace core
 {
-struct SphericalDistribution : emittable
+struct SphericalDistribution : Node
 {
 	SphericalDistribution() = default;
 	SphericalDistribution( const Properties &config ) {}

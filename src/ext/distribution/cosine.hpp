@@ -24,6 +24,11 @@ struct CosDistribution : IsotropicSphericalDistribution
 		pdf = invPI;
 		return w;
 	}
+
+	void writeNode( json &j ) const override
+	{
+		j = "Cosine";
+	}
 };
 
 }  // namespace ext

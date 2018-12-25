@@ -190,7 +190,9 @@ Scene::Scene( const std::string &path )
 		{
 			auto &shaderName = config.shaders[ shaderNames[ i ] ];
 			shaders[ i ] = std::move( Factory<Shader>::create( shaderName ) );
-			shaders[ i ]->print( std::cout );
+			json j;
+			shaders[ i ]->writeNode( j );
+			j.dump( std::cout, true, 2 );
 			std::cout << std::endl;
 		}
 		else
@@ -215,7 +217,7 @@ Scene::Scene( const std::string &path )
 				KLOG( shaderNames[ m->shaderId ], "is area light" );
 			}
 		}
-		KLOG( lights.size() );
+		KLOG( lights.size(), "lights in scene" );
 	}
 
 	valid = true;

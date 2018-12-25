@@ -19,12 +19,9 @@ struct Constant : Scala<T>
 		return value;
 	}
 
-	void print( std::ostream &os ) const override
+	void writeNode( json &j ) const override
 	{
-		nlohmann::json json = {
-			{ "Constant", { { "value", value } } }
-		};
-		os << json.dump();
+		j = value;
 	}
 
 private:

@@ -1,14 +1,14 @@
 #pragma once
 
-#include <core/basic/basic.hpp>
 #include <core/misc/sampler.hpp>
+#include "node.hpp"
 #include "target.hpp"
 
 namespace koishi
 {
 namespace core
 {
-struct Shader : emittable
+struct Shader : Node
 {
 	Shader() = default;
 	Shader( const Properties &props )
@@ -17,11 +17,6 @@ struct Shader : emittable
 
 	KOISHI_HOST_DEVICE virtual void execute(
 	  Varyings &varyings, Sampler &sampler, Allocator &pool, uint target = 0 ) const = 0;
-
-	virtual void print( std::ostream &os ) const
-	{
-		os << "{}";
-	}
 };
 
 }  // namespace core

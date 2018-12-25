@@ -36,12 +36,9 @@ struct Fresnel : Scala<float>
 		float rperp = ( ior * cosior - 1 ) / ( ior * cosior + 1 );
 		return .5f * ( rparl * rparl + rperp * rperp );
 	}
-	void print( std::ostream &os ) const override
+	void writeNode( json &j ) const override
 	{
-		nlohmann::json json = {
-			{ "Fresnel", {} }
-		};
-		os << json.dump();
+		j[ "Fresnel" ] = ior;
 	}
 
 private:

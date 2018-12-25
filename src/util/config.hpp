@@ -21,7 +21,7 @@ struct CameraConfig : serializable<CameraConfig>, emittable
 	Property( float, zFar, 1e5 );
 };
 
-using Properties = std::map<std::string, nlohmann::json>;
+using Properties = std::map<std::string, json>;
 
 struct Config : serializable<Config, as_array>, emittable
 {

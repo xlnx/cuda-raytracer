@@ -36,6 +36,11 @@ struct BeckmannDistribution : IsotropicSphericalDistribution
 		return w;
 	}
 
+	void writeNode( nlohmann::json &j ) const override
+	{
+		j[ "Beckmann" ] = sqrt( alpha2 );
+	}
+
 private:
 	float alpha2;
 };

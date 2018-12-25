@@ -26,12 +26,11 @@ struct Mixed : Shader
 		  ->execute( varyings, sampler, pool, target );
 	}
 
-	void print( std::ostream &os ) const override
+	void writeNode( json &j ) const override
 	{
-		nlohmann::json json = {
-			{ "Mixed", { { "shaders", {} } } }
-		};
-		os << json.dump();
+		fac->writeNode( j[ "Mixed" ][ "fac" ] );
+		shaders[ 0 ]->writeNode( j[ "Mixed" ][ "shaders" ][ 0 ] );
+		shaders[ 1 ]->writeNode( j[ "Mixed" ][ "shaders" ][ 1 ] );
 	}
 
 private:

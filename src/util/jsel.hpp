@@ -10,6 +10,8 @@
 
 namespace koishi
 {
+using namespace nlohmann;
+
 namespace jsel
 {
 struct as_object

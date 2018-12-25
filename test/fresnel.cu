@@ -9,7 +9,7 @@ TEST( test_fresnel, )
 {
 	Config conf;
 	conf.name = "Fresnel";
-	conf.props[ "ior" ] = nlohmann::json( 1.f / 1.435 );
+	conf.props[ "ior" ] = json( 1.f / 1.435 );
 	char buf[ 1024 ];
 	HybridAllocator al( buf, 1024 );
 	Varyings varyings;

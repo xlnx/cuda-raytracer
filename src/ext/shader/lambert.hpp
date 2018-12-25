@@ -9,6 +9,13 @@ namespace ext
 {
 struct Lambert : Shader
 {
+	Lambert() :
+	  Shader(),
+	  R{ 1, 1, 1 },
+	  distribution( Factory<SphericalDistribution>::create( "Cosine" ) )
+	{
+	}
+
 	Lambert( const Properties &props ) :
 	  Shader( props ),
 	  R( get( props, "R", float3{ 1, 1, 1 } ) ),
@@ -32,12 +39,9 @@ struct Lambert : Shader
 		}
 	}
 
-	void print( std::ostream &os ) const override
+	void writeNode( json &j ) const override
 	{
-		nlohmann::json json = {
-			{ "LambertDiffuse", { { "R", R } } }
-		};
-		os << json.dump();
+		j[ "Lambert" ][ "R" ] = R;
 	}
 
 private:
