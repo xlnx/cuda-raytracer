@@ -11,7 +11,7 @@ struct LocalVaryings
 	normalized_float3 u, v, n;
 	float3 p;
 
-	normalized_float3 wo;
+	solid wo;
 
 	uint shaderId;
 
@@ -51,8 +51,8 @@ public:
 
 struct Varyings : LocalVaryings
 {
-	solid wo, wi;
-	float3 f;
+	solid wi = solid( float3{ 0, 0, 0 } );
+	float3 f{ 0, 0, 0 };
 
 	float3 emission{ 0, 0, 0 };
 };

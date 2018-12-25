@@ -11,6 +11,7 @@ namespace core
 struct AreaLight : Light
 {
 	AreaLight( const float3 &emission, const poly::object<Primitive> &obj ) :
+	  emission( emission ),
 	  obj( obj )
 	{
 	}
@@ -30,8 +31,8 @@ struct AreaLight : Light
 	}
 
 private:
+	const float3 emission;
 	poly::ref<Primitive> obj;
-	float3 emission;
 };
 
 }  // namespace core

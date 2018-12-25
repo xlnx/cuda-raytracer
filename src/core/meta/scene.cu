@@ -193,7 +193,7 @@ Scene::Scene( const std::string &path )
 			json j;
 			shaders[ i ]->writeNode( j );
 			j.dump( std::cout, true, 2 );
-			std::cout << std::endl;
+			KLOG( " =", i );
 		}
 		else
 		{

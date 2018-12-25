@@ -79,6 +79,7 @@ struct Mesh : Primitive
 				s += length( cross( e.d1, e.d2 ) ) * .5;
 			}
 			pdf = 1.f / s;
+			KLOG( "using pdf =", pdf );
 		}
 	}
 	KOISHI_HOST_DEVICE normalized_float3 normal( const Hit &hit ) const override
