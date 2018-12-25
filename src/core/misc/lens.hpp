@@ -4,8 +4,7 @@
 #include <vec/vmath.hpp>
 #include <util/config.hpp>
 #include <util/debug.hpp>
-#include <core/basic/ray.hpp>
-#include <core/basic/poly.hpp>
+#include <core/basic/basic.hpp>
 
 namespace koishi
 {
@@ -14,12 +13,16 @@ namespace core
 struct Lens : emittable
 {
 	Lens( const CameraConfig &camera, uint w, uint h, uint spp ) :
-	  w( w ), h( h ), spp( spp ), pw( ceil( sqrt( spp ) ) ),
+	  w( w ),
+	  h( h ),
+	  spp( spp ),
+	  pw( ceil( sqrt( spp ) ) ),
 	  o( camera.position ),
 	  n( normalize( camera.target ) * float( w ) / ( 2 * tan( radians( camera.fovx * .5 ) ) ) ),
 	  u( normalize( cross( n, camera.upaxis ) ) ),
 	  v( normalize( cross( n, reinterpret_cast<const float3 &>( u ) ) ) ),
-	  du( u / float( pw ) ), dv( v / float( pw ) )
+	  du( u / float( pw ) ),
+	  dv( v / float( pw ) )
 	{
 	}
 

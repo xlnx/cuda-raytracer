@@ -13,9 +13,9 @@ struct Fresnel : Scala<float>
 	{
 	}
 
-	KOISHI_HOST_DEVICE float compute( const Input &input, Allocator &pool ) const override
+	KOISHI_HOST_DEVICE float compute( const Varyings &varyings, Allocator &pool ) const override
 	{
-		float cosi = H::cosTheta( input.wo );
+		float cosi = H::cosTheta( varyings.wo );
 		float ior = this->ior;
 		if ( cosi <= 0.f )
 		{

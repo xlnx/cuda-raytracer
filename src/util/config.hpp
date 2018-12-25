@@ -34,7 +34,7 @@ struct SceneConfig : serializable<SceneConfig>
 	using TConfig = std::map<std::string, Config>;
 	Property( std::vector<CameraConfig>, camera, {} );
 	Property( std::vector<Config>, assets );
-	Property( TConfig, material );
+	Property( TConfig, shaders );
 };
 
 }  // namespace koishi

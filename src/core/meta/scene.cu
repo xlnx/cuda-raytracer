@@ -6,11 +6,11 @@
 #include <vec/vmath.hpp>
 #include <core/light/pointLight.hpp>
 #include <core/light/areaLight.hpp>
+#include <core/primitive/mesh.hpp>
+#include <core/primitive/sphere.hpp>
 #include "scene.hpp"
-#include "mesh.hpp"
-#include "sphere.hpp"
 
-#include <ext/material/luz.hpp>
+#include <ext/shader/emission.hpp>
 
 namespace koishi
 {
@@ -23,7 +23,7 @@ Scene::Scene( const std::string &path )
 	// {
 	SceneConfig config;
 	std::ifstream( path ) >> config;
-	std::vector<std::string> mats;
+	std::vector<std::string> shaderNames;
 
 	{
 		KINFO( scene, "Loading scene from config '" + path + "'" );
@@ -53,7 +53,7 @@ Scene::Scene( const std::string &path )
 					{
 						primitives.emplace_back( poly::make_object<Mesh>( std::move( m ) ) );
 					}
-					mats = std::move( poly.material );
+					shaderNames = std::move( poly.shaders );
 					if ( scene->HasCameras() )
 					{
 						for ( auto i = 0u; i != scene->mNumCameras; ++i )
@@ -120,7 +120,7 @@ Scene::Scene( const std::string &path )
 									{ 0, 2, 3 }
 								};
 								// MeshConfig def;
-								// def.emissive = float3{ 100, 100, 100 };
+								// def.emission = float3{ 100, 100, 100 };
 								for ( auto &m : core::PolyMesh(
 												  std::move( vertices ),
 												  std::move( normals ),
@@ -141,22 +141,22 @@ Scene::Scene( const std::string &path )
 			{
 				auto o = get<float3>( asset.props, "o" );
 				auto r = get<float>( asset.props, "r" );
-				auto mat = get<std::string>( asset.props, "material" );
-				uint matid = -1u;
-				for ( uint i = 0; i != mats.size(); ++i )
+				auto shaderName = get<std::string>( asset.props, "shader" );
+				uint shaderId = -1u;
+				for ( uint i = 0; i != shaderNames.size(); ++i )
 				{
-					if ( mats[ i ] == mat )
+					if ( shaderNames[ i ] == shaderName )
 					{
-						matid = i;
+						shaderId = i;
 						break;
 					}
 				}
-				if ( !~matid )
+				if ( !~shaderId )
 				{
-					matid = mats.size();
-					mats.emplace_back( mat );
+					shaderId = shaderNames.size();
+					shaderNames.emplace_back( shaderName );
 				}
-				primitives.emplace_back( poly::make_object<Sphere>( o, r, matid ) );
+				primitives.emplace_back( poly::make_object<Sphere>( o, r, shaderId ) );
 			}
 			else if ( asset.name.find( "light" ) != asset.name.npos ||
 					  asset.name.find( "Light" ) != asset.name.npos )
@@ -182,20 +182,20 @@ Scene::Scene( const std::string &path )
 		camera.emplace_back( std::move( cc ) );
 	}
 
-	material.resize( mats.size() );
-	for ( uint i = 0; i != mats.size(); ++i )
+	shaders.resize( shaderNames.size() );
+	for ( uint i = 0; i != shaderNames.size(); ++i )
 	{
-		KLOG( "Looking for material: ", mats[ i ] );
-		if ( config.material.find( mats[ i ] ) != config.material.end() )
+		KLOG( "Looking for shaders: ", shaderNames[ i ] );
+		if ( config.shaders.find( shaderNames[ i ] ) != config.shaders.end() )
 		{
-			auto &mat = config.material[ mats[ i ] ];
-			material[ i ] = std::move( Factory<Material>::create( mat ) );
-			material[ i ]->print( std::cout );
+			auto &shaderName = config.shaders[ shaderNames[ i ] ];
+			shaders[ i ] = std::move( Factory<Shader>::create( shaderName ) );
+			shaders[ i ]->print( std::cout );
 			std::cout << std::endl;
 		}
 		else
 		{
-			KLOG( "Configuration for material {", mats[ i ], "} not found." );
+			KLOG( "Configuration for shaders {", shaderNames[ i ], "} not found." );
 			valid = false;
 		}
 	}
@@ -204,14 +204,15 @@ Scene::Scene( const std::string &path )
 	{
 		for ( auto &m : primitives )
 		{
-			if ( material[ m->matid ].template is<ext::LuzMaterial>() )
+			if ( shaders[ m->shaderId ].template is<ext::Emission>() )
 			{
-				lights.emplace_back( poly::make_object<AreaLight>( material[ m->matid ], m ) );
+				auto &em = static_cast<const ext::Emission &>( *shaders[ m->shaderId ] );
+				lights.emplace_back( poly::make_object<AreaLight>( em.emission, m ) );
 				if ( auto *p = dynamic_cast<Mesh *>( &*m ) )
 				{
 					p->generateSamples();
 				}
-				KLOG( mats[ m->matid ], "is area light" );
+				KLOG( shaderNames[ m->shaderId ], "is area light" );
 			}
 		}
 		KLOG( lights.size() );

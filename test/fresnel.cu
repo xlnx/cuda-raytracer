@@ -12,12 +12,12 @@ TEST( test_fresnel, )
 	conf.props[ "ior" ] = nlohmann::json( 1.f / 1.435 );
 	char buf[ 1024 ];
 	HybridAllocator al( buf, 1024 );
-	Input input;
-	input.n = normalized_float3( float3{ 0, 0, 1 } );
-	input.u = normalized_float3( float3{ 1, 0, 0 } );
-	input.v = normalized_float3( float3{ 0, 1, 0 } );
-	input.wo = normalize( float3{ 0, 0, 1 } );
+	Varyings varyings;
+	varyings.n = normalized_float3( float3{ 0, 0, 1 } );
+	varyings.u = normalized_float3( float3{ 1, 0, 0 } );
+	varyings.v = normalized_float3( float3{ 0, 1, 0 } );
+	varyings.wo = normalize( float3{ 0, 0, 1 } );
 	auto fresnel = Factory<Scala<float>>::create( conf );
-	auto fr = fresnel->compute( input, al );
+	auto fr = fresnel->compute( varyings, al );
 	EXPECT_EQ( fr, 0 );
 }

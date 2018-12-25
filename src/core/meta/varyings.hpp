@@ -1,23 +1,19 @@
 #pragma once
 
-#include <core/basic/ray.hpp>
-#include <core/misc/sampler.hpp>
-#include "bsdf.hpp"
+#include <core/basic/basic.hpp>
 
 namespace koishi
 {
 namespace core
 {
-struct LocalInput
+struct LocalVaryings
 {
 	normalized_float3 u, v, n;
 	float3 p;
 
 	normalized_float3 wo;
 
-	uint matid;
-
-	Sampler *sampler;
+	uint shaderId;
 
 public:
 	KOISHI_HOST_DEVICE Ray emitRay( const solid &w ) const
@@ -53,13 +49,12 @@ public:
 	}
 };
 
-struct Input : LocalInput
+struct Varyings : LocalVaryings
 {
-	BxDF *bxdf;
+	solid wo, wi;
+	float3 f;
 
-	float3 color{ 0, 0, 0 };
-
-	float3 emissive{ 0, 0, 0 };
+	float3 emission{ 0, 0, 0 };
 };
 
 }  // namespace core

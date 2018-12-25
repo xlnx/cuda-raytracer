@@ -1,11 +1,7 @@
 #pragma once
 
-#include <vec/vec.hpp>
-#include <core/basic/ray.hpp>
-#include <core/basic/poly.hpp>
-#include <core/basic/allocator.hpp>
+#include <core/basic/basic.hpp>
 #include <core/misc/sampler.hpp>
-#include <core/meta/mesh.hpp>
 #include <core/meta/scene.hpp>
 
 namespace koishi
@@ -16,17 +12,18 @@ PolyFunction( Radiance, Host, Device )(
   ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
 	->float3 {
 		auto ray = r;
-		Input input;
-		input.sampler = &rng;
+		Varyings varyings;
 		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
 		constexpr auto maxBounce =					 //1;
 		  1024;
 		// 1024;
 
-		for ( auto bounce = 0; scene.intersect( ray, input, pool ) &&
+		for ( auto bounce = 0; scene.intersect( ray, varyings, pool ) &&
 							   bounce != maxBounce;
 			  ++bounce )
 		{
+			auto &shader = scene.shaders[ varyings.shaderId ];
+
 			// evaluate direct lighting
 			if ( scene.lights.size() )
 			{
@@ -34,17 +31,16 @@ PolyFunction( Radiance, Host, Device )(
 				uint idx = min( (uint)floor( rng.sample() * scene.lights.size() ),
 								( uint )( scene.lights.size() - 1 ) );
 				float lpdf = 1.f / scene.lights.size();
-				auto wi = scene.lights[ idx ]->sample( scene, input, rng.sample2(), li, pool );
-				auto f = input.color * input.bxdf->f( input.wo, wi );
-				L += beta * f * li * abs( dot( wi, float3{ 0, 0, 1 } ) ) / lpdf;
+				varyings.wi = scene.lights[ idx ]->sample( scene, varyings, rng.sample2(), li, pool );
+				shader->execute( varyings, rng, pool, compute_f_by_wi_wo );
+				L += beta * varyings.f * li * abs( dot( varyings.wi, float3{ 0, 0, 1 } ) ) / lpdf;
 			}
-			L += beta * input.emissive;
+			L += beta * varyings.emission;
 			// emit new light for indirect lighting, according to BSDF
 			{
-				float3 f;
-				auto wi = input.bxdf->sample( input.wo, rng.sample2(), f );
-				beta *= f * input.color * abs( dot( wi, float3{ 0, 0, 1 } ) );
-				ray = input.emitRay( input.global( wi ) );
+				shader->execute( varyings, rng, pool, sample_wi_f_by_wo );
+				beta *= varyings.f * abs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
+				ray = varyings.emitRay( varyings.global( varyings.wi ) );
 			}
 			pool.clear();
 

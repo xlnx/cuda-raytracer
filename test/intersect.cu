@@ -1,5 +1,5 @@
+#include <core/basic/basic.hpp>
 #include <gtest/gtest.h>
-#include <core/basic/ray.hpp>
 
 using namespace koishi;
 using namespace core;

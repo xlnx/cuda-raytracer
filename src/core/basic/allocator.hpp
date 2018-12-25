@@ -8,7 +8,7 @@
 #include <vector>
 #include <util/debug.hpp>
 #include <vec/vmath.hpp>
-#include "poly.hpp"
+#include "function.hpp"
 
 namespace koishi
 {
@@ -69,7 +69,9 @@ struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
 	PolyStruct( HybridAllocator );
 
 	KOISHI_HOST_DEVICE HybridAllocator( char *block, uint block_size ) :
-	  base( block ), finish( block + block_size ), curr( block )
+	  base( block ),
+	  finish( block + block_size ),
+	  curr( block )
 	{
 	}
 

@@ -14,7 +14,7 @@ struct Constant : Scala<T>
 	{
 	}
 
-	KOISHI_HOST_DEVICE T compute( const Input &, Allocator & ) const override
+	KOISHI_HOST_DEVICE T compute( const Varyings &, Allocator & ) const override
 	{
 		return value;
 	}

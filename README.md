@@ -74,7 +74,7 @@
 			"color": [0.608, 0.522, 0.333]
 		}],
 		"luz": ["Luz", {
-			"emissive": [50, 50, 50]
+			"emission": [50, 50, 50]
 		}],
 		"cafe": ["Microfacet", {
 			"distribution": ["Beckmann", {

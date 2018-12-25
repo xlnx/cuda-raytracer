@@ -1,4 +1,4 @@
-#include <core/basic/poly.hpp>
+#include <core/basic/basic.hpp>
 #include <gtest/gtest.h>
 
 using namespace koishi;

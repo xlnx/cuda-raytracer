@@ -1,4 +1,4 @@
-#include <core/basic/poly.hpp>
+#include <core/basic/basic.hpp>
 #include <gtest/gtest.h>
 
 using namespace koishi;
@@ -8,10 +8,10 @@ struct A : emittable
 {
 	A() { n++; }
 	A( const A & ) { n++; }
-	KOISHI_HOST_DEVICE A( A &&other ):
+	KOISHI_HOST_DEVICE A( A &&other ) :
 	  emittable( std::move( other ) )
-	{ 
-		printf("move A\n");
+	{
+		printf( "move A\n" );
 #ifndef __CUDA_ARCH__
 		n++;
 #endif
@@ -19,7 +19,7 @@ struct A : emittable
 	KOISHI_HOST_DEVICE A &operator=( A && ) = default;
 	A &operator=( const A & ) = default;
 	~A() { n--; }
-	
+
 	KOISHI_HOST_DEVICE virtual int f() const
 	{
 		return 1;
@@ -33,10 +33,10 @@ struct B : A
 {
 	B() { n++; }
 	B( const B & ) { n++; }
-	KOISHI_HOST_DEVICE B( B &&other ):
+	KOISHI_HOST_DEVICE B( B &&other ) :
 	  A( std::move( other ) )
-	{ 
-		printf("move B\n");
+	{
+		printf( "move B\n" );
 #ifndef __CUDA_ARCH__
 		n++;
 #endif
@@ -141,10 +141,9 @@ TEST( test_poly_object, object_sealed_3 )
 }
 
 #ifdef KOISHI_USE_CUDA
-__global__ void g( 
-	const poly::object<A> &a,
-	poly::vector<int> &b
-)
+__global__ void g(
+  const poly::object<A> &a,
+  poly::vector<int> &b )
 {
 	b[ 0 ] = a->x;
 	b[ 1 ] = a->f();
@@ -161,4 +160,3 @@ TEST( test_poly_object, object_polymorphism )
 	EXPECT_EQ( b[ 1 ], 2 );
 #endif
 }
-

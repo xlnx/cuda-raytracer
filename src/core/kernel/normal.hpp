@@ -1,9 +1,6 @@
 #pragma once
 
-#include <vec/vec.hpp>
-#include <core/basic/ray.hpp>
-#include <core/basic/poly.hpp>
-#include <core/basic/allocator.hpp>
+#include <core/basic/basic.hpp>
 #include <core/misc/sampler.hpp>
 #include <core/meta/scene.hpp>
 
@@ -15,11 +12,11 @@ PolyFunction( Normal, Host, Device )(
   ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
 	->float3 {
 		float3 L = { 0, 0, 0 };
-		Input input;
+		Varyings varyings;
 
-		if ( scene.intersect( r, input, pool ) )
+		if ( scene.intersect( r, varyings, pool ) )
 		{
-			L = input.n;
+			L = varyings.n;
 		}
 		pool.clear();
 

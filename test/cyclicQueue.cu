@@ -1,6 +1,4 @@
-#include <core/basic/allocator.hpp>
-#include <core/basic/queue.hpp>
-#include <util/debug.hpp>
+#include <core/basic/basic.hpp>
 #include <gtest/gtest.h>
 
 using namespace koishi;

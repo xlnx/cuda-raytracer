@@ -4,7 +4,6 @@
 #include <string>
 #include <functional>
 #include <util/config.hpp>
-#include "poly.hpp"
 
 namespace koishi
 {
@@ -21,6 +20,15 @@ struct Factory
 			KTHROW( "no such type:", conf.name );
 		}
 		return ctors()[ conf.name ]( conf.props );
+	}
+
+	static poly::object<U> create( const std::string &name )
+	{
+		if ( !ctors().count( name ) )
+		{
+			KTHROW( "no such type:", name );
+		}
+		return ctors()[ name ]( Properties() );
 	}
 
 	template <typename T, typename = typename std::enable_if<std::is_base_of<U, T>::value>::type>

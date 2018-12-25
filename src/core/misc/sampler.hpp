@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <ctime>
 #include <vec/vmath.hpp>
-#include <core/basic/poly.hpp>
+#include <core/basic/basic.hpp>
 #ifdef KOISHI_USE_CUDA
 #include <cuda.h>
 #include <curand.h>

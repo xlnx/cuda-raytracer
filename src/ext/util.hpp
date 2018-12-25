@@ -1,11 +1,9 @@
 #pragma once
 
-#include <vec/vmath.hpp>
-#include <core/basic/allocator.hpp>
-#include <core/meta/distribution.hpp>
-#include <core/meta/material.hpp>
-#include <core/meta/scala.hpp>
-#include <core/meta/bsdf.hpp>
+#include <core/basic/basic.hpp>
+#include <core/nodes/distribution.hpp>
+#include <core/nodes/scala.hpp>
+#include <core/nodes/shader.hpp>
 
 namespace koishi
 {

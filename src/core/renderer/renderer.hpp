@@ -3,13 +3,8 @@
 #include <string>
 #include <vector>
 #include <fstream>
-#include <vec/vmath.hpp>
 #include <util/image.hpp>
-#include <util/debug.hpp>
-#include <core/basic/ray.hpp>
-#include <core/basic/poly.hpp>
-#include <core/basic/allocator.hpp>
-#include <core/meta/mesh.hpp>
+#include <core/basic/basic.hpp>
 #include <core/meta/scene.hpp>
 #include <core/misc/lens.hpp>
 #include <core/misc/sampler.hpp>
@@ -32,7 +27,8 @@ template <typename Tracer>
 struct Renderer : RendererBase
 {
 	Renderer( uint w, uint h ) :
-	  w( w ), h( h )
+	  w( w ),
+	  h( h )
 	{
 	}
 

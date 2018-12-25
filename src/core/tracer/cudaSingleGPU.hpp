@@ -1,11 +1,7 @@
 #pragma once
 
-#include <vec/vec.hpp>
-#include <util/debug.hpp>
 #include <util/image.hpp>
-#include <core/basic/ray.hpp>
-#include <core/basic/poly.hpp>
-#include <core/basic/allocator.hpp>
+#include <core/basic/basic.hpp>
 #include <core/misc/lens.hpp>
 #include <core/misc/sampler.hpp>
 #include <core/meta/scene.hpp>
