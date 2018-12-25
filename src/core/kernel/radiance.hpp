@@ -14,7 +14,7 @@ PolyFunction( Radiance, Host, Device )(
 		auto ray = r;
 		Varyings varyings;
 		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
-		constexpr auto maxBounce = 4;				 //1;
+		constexpr auto maxBounce = 1;
 		1024;
 		// 1024;
 
