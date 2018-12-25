@@ -22,8 +22,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 
 		static constexpr uint MaxThreads =
 #ifndef DEBUG
-		  1u;
-	//-1u;
+		  -1u;
 #else
 		  1u;
 #endif
