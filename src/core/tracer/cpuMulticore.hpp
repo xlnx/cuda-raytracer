@@ -27,14 +27,15 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 		  1u;
 #endif
 
-		auto ncores = std::thread::hardware_concurrency();
-		if ( MaxThreads < ncores ) ncores = MaxThreads;
-		std::cout << "using " << ncores << " threads:" << std::endl;
+		auto nthreads = std::thread::hardware_concurrency() - 1;
+		if ( MaxThreads < nthreads ) nthreads = MaxThreads;
+		KLOG( "Using", nthreads, "threads:" );
 		std::vector<std::thread> ts;
 		KINFO( tracer, "Tracing start" );
 		util::tick();
 		auto rng = rng_gen.create();
-		auto tracer_thread = [ncores, spp, h, w, &scene, &image, &lens, &rng]( uint id ) {
+		std::vector<std::pair<int, int>> status( nthreads );
+		auto tracer_thread = [nthreads, spp, h, w, &scene, &image, &lens, &rng, &status]( uint id ) {
 			static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
 			static constexpr uint block_size = 480 * b;
 
@@ -42,7 +43,10 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 
 			Alloc pool( block, block_size );
 
-			for ( uint j = id; j < h; j += ncores )
+			status[ id ].second = ( h - id ) / nthreads * w;
+			status[ id ].first = 0;
+
+			for ( uint j = id; j < h; j += nthreads )
 			{
 				for ( uint i = 0; i != w; ++i )
 				{
@@ -52,19 +56,60 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 						rad += Self::template call<Radiance>( lens->sample( i, j, k ), scene, pool, rng );
 					}
 					image.at( i, j ) = rad / spp;
+					status[ id ].first++;
 				}
 			}
 		};
-		for ( auto id = 0u; id != ncores - 1; ++id )
+		for ( auto id = 0u; id != nthreads; ++id )
 		{
 			ts.emplace_back( tracer_thread, id );
 		}
-		tracer_thread( ncores - 1 );
+
+		static constexpr int nsteps = 64;
+		uint total = 0, step = 0;
+		for ( auto id = 0u; id != nthreads; ++id )
+		{
+			total += status[ id ].second;
+			KLOG( "- Thread", id, "issuing", status[ id ].second, "samples" );
+		}
+		KLOG( total, "samples in total" );
+		std::cout << "[ ";
+		for ( int i = 0; i != nsteps; ++i )
+		{
+			std::cout << "-";
+		}
+		std::cout << " ]" << std::endl
+				  << "[ ";
+		while ( true )
+		{
+			bool finished = true;
+			uint rendered = 0;
+			for ( auto i = 0u; i != nthreads; ++i )
+			{
+				if ( status[ i ].first < status[ i ].second )
+				{
+					finished = false;
+				}
+				rendered += status[ i ].first;
+			}
+			int new_step = rendered * nsteps / total;
+			if ( new_step > step )
+			{
+				for ( auto i = step; i != new_step; ++i )
+				{
+					std::cout << "~";
+				}
+				step = new_step;
+			}
+			if ( finished ) break;
+		}
+		std::cout << " ]" << std::endl;
 
 		for ( auto &th : ts )
 		{
 			th.join();
 		}
+
 		KINFO( tracer, "Tracer joint in", util::tick(), "seconds" );
 	} );
 
