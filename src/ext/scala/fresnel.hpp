@@ -17,12 +17,8 @@ struct Fresnel : Scala<float>
 	KOISHI_HOST_DEVICE float compute( const Varyings &varyings, Allocator &pool ) const override
 	{
 		float cosi = H::cosTheta( varyings.wo );
-		float e = this->ior;
-		if ( cosi > 0.f )
-		{
-			cosi = -cosi;
-			e = 1.f / e;
-		}
+		float e = cosi > 0.f ? 1.f / this->ior : this->ior;
+		cosi = abs( cosi );
 		float sini = sqrt( max( 0.f, 1 - cosi * cosi ) );
 		float sinr = e * sini;
 		if ( sinr >= 1.f )

@@ -21,10 +21,9 @@ struct Mixed : Shader
 	KOISHI_HOST_DEVICE void execute(
 	  Varyings &varyings, Sampler &sampler, Allocator &pool, uint target ) const override
 	{
-		shaders[ sampler.sample() < fac->compute( varyings, pool )
-				   ? 1
-				   : 0 ]
-		  ->execute( varyings, sampler, pool, target );
+		auto f = fac->compute( varyings, pool );
+		shaders[ sampler.sample() < f ? 1 : 0 ]->execute(
+		  varyings, sampler, pool, target );
 	}
 
 	void writeNode( json &j ) const override

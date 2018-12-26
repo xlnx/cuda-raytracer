@@ -524,44 +524,48 @@ KOISHI_COMPWISE_OP( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 #undef KOISHI_COMPWISE_OP
 #define KOISHI_COMPWISE_OP( ... )                                                                                                                                                        \
 	template <typename T, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec1<T>::value>::type>                            \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type refract( const T &I, const typename normalized_type<T>::type &N, float eta )                                                  \
+	KOISHI_HOST_DEVICE bool refract( const T &I, typename normalized_type<T>::type &R, const typename normalized_type<T>::type &N, float eta )                                           \
 	{                                                                                                                                                                                    \
 		float costh = dot( static_cast<const T &>( N ), I );                                                                                                                             \
 		float sinth2 = __func::max( 0., 1. - costh * costh );                                                                                                                            \
 		float sinphi2 = sinth2 * eta * eta;                                                                                                                                              \
-		if ( sinphi2 >= 1. ) return reflect( I, N );                                                                                                                                     \
+		if ( sinphi2 >= 1. ) return false;                                                                                                                                               \
 		float cosphi = sqrt( 1 - sinphi2 );                                                                                                                                              \
-		return eta * -I + ( eta * costh - cosphi ) * N;                                                                                                                                  \
+		R = normalize( eta * -I + ( eta * costh - cosphi ) * N );                                                                                                                        \
+		return true;                                                                                                                                                                     \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec2<T>::value>::type>                   \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type refract( const T &I, const typename normalized_type<T>::type &N, float eta )                                                  \
+	KOISHI_HOST_DEVICE bool refract( const T &I, typename normalized_type<T>::type &R, const typename normalized_type<T>::type &N, float eta )                                           \
 	{                                                                                                                                                                                    \
 		float costh = dot( static_cast<const T &>( N ), I );                                                                                                                             \
 		float sinth2 = __func::max( 0., 1. - costh * costh );                                                                                                                            \
 		float sinphi2 = sinth2 * eta * eta;                                                                                                                                              \
-		if ( sinphi2 >= 1. ) return reflect( I, N );                                                                                                                                     \
+		if ( sinphi2 >= 1. ) return false;                                                                                                                                               \
 		float cosphi = sqrt( 1 - sinphi2 );                                                                                                                                              \
-		return eta * -I + ( eta * costh - cosphi ) * N;                                                                                                                                  \
+		R = normalize( eta * -I + ( eta * costh - cosphi ) * N );                                                                                                                        \
+		return true;                                                                                                                                                                     \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type>          \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type refract( const T &I, const typename normalized_type<T>::type &N, float eta )                                                  \
+	KOISHI_HOST_DEVICE bool refract( const T &I, typename normalized_type<T>::type &R, const typename normalized_type<T>::type &N, float eta )                                           \
 	{                                                                                                                                                                                    \
 		float costh = dot( static_cast<const T &>( N ), I );                                                                                                                             \
 		float sinth2 = __func::max( 0., 1. - costh * costh );                                                                                                                            \
 		float sinphi2 = sinth2 * eta * eta;                                                                                                                                              \
-		if ( sinphi2 >= 1. ) return reflect( I, N );                                                                                                                                     \
+		if ( sinphi2 >= 1. ) return false;                                                                                                                                               \
 		float cosphi = sqrt( 1 - sinphi2 );                                                                                                                                              \
-		return eta * -I + ( eta * costh - cosphi ) * N;                                                                                                                                  \
+		R = normalize( eta * -I + ( eta * costh - cosphi ) * N );                                                                                                                        \
+		return true;                                                                                                                                                                     \
 	}                                                                                                                                                                                    \
 	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec4<T>::value>::type> \
-	KOISHI_HOST_DEVICE typename unnormalized_type<T>::type refract( const T &I, const typename normalized_type<T>::type &N, float eta )                                                  \
+	KOISHI_HOST_DEVICE bool refract( const T &I, typename normalized_type<T>::type &R, const typename normalized_type<T>::type &N, float eta )                                           \
 	{                                                                                                                                                                                    \
 		float costh = dot( static_cast<const T &>( N ), I );                                                                                                                             \
 		float sinth2 = __func::max( 0., 1. - costh * costh );                                                                                                                            \
 		float sinphi2 = sinth2 * eta * eta;                                                                                                                                              \
-		if ( sinphi2 >= 1. ) return reflect( I, N );                                                                                                                                     \
+		if ( sinphi2 >= 1. ) return false;                                                                                                                                               \
 		float cosphi = sqrt( 1 - sinphi2 );                                                                                                                                              \
-		return eta * -I + ( eta * costh - cosphi ) * N;                                                                                                                                  \
+		R = normalize( eta * -I + ( eta * costh - cosphi ) * N );                                                                                                                        \
+		return true;                                                                                                                                                                     \
 	}
 
 KOISHI_COMPWISE_OP( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )

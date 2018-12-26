@@ -23,11 +23,19 @@ struct Refraction : Shader
 		switch ( target )
 		{
 		case sample_wi_f_by_wo:
-			varyings.wi = normalize( refract( varyings.wo, distribution->sample( sampler.sample3() ), ior ) );
-			varyings.f = H::isSame( varyings.wo, varyings.wi ) ? color : float3{ 0, 0, 0 };
-			break;
+		{
+			auto h = distribution->sample( sampler.sample3() );
+			auto e = varyings.wo.z > 0 ? 1.f / ior : ior;
+			if ( varyings.wo.z < 0 ) h = -h;
+			if ( refract( varyings.wo, varyings.wi, h, e ) )
+				varyings.f = color;
+			else
+				varyings.f = float3{ 0, 0, 0 };
+		}
+		break;
 		case compute_f_by_wi_wo:
-			varyings.f = color * distribution->f( normalize( varyings.wo + varyings.wi ) );
+			varyings.f = float3{ 0, 0, 0 };
+			// varyings.f = color * distribution->f( normalize( varyings.wo + varyings.wi * ior ) );
 			break;
 		}
 	}
