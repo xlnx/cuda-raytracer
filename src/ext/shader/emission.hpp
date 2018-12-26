@@ -13,7 +13,8 @@ struct Emission : Shader
 	  Shader( props ),
 	  color( get( props, "color", float3{ 1, 1, 1 } ) ),
 	  strength( get( props, "strength", 2.f ) ),
-	  lambert( Factory<Shader>::create( "Lambert" ) ),
+	  lambert( Factory<Shader>::create( Config(
+		"Lambert", {} ) ) ),
 	  emission( color * strength )
 	{
 	}

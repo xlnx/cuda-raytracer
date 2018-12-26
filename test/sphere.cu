@@ -1,5 +1,5 @@
+#include <core/primitive/sphere.hpp>
 #include <gtest/gtest.h>
-#include <core/meta/sphere.hpp>
 
 using namespace koishi;
 using namespace core;

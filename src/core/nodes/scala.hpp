@@ -10,8 +10,8 @@ namespace core
 template <typename T>
 struct Scala : Node
 {
-	Scala() = default;
-	Scala( const Properties &props )
+	Scala( const Properties &props ) :
+	  Node( props )
 	{
 	}
 

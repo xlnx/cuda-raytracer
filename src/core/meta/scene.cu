@@ -185,7 +185,7 @@ Scene::Scene( const std::string &path )
 	shaders.resize( shaderNames.size() );
 	for ( uint i = 0; i != shaderNames.size(); ++i )
 	{
-		KLOG( "Looking for shaders: ", shaderNames[ i ] );
+		KLOG( "Looking for shader:", shaderNames[ i ] );
 		if ( config.shaders.find( shaderNames[ i ] ) != config.shaders.end() )
 		{
 			auto &shaderName = config.shaders[ shaderNames[ i ] ];
@@ -197,7 +197,7 @@ Scene::Scene( const std::string &path )
 		}
 		else
 		{
-			KLOG( "Configuration for shaders {", shaderNames[ i ], "} not found." );
+			KLOG( "Configuration for shader {", shaderNames[ i ], "} not found." );
 			valid = false;
 		}
 	}

@@ -10,6 +10,7 @@ template <typename T>
 struct Constant : Scala<T>
 {
 	Constant( const Properties &props ) :
+	  Scala<T>( props ),
 	  value( get<T>( props, "value" ) )
 	{
 	}

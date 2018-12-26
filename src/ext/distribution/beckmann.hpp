@@ -8,7 +8,8 @@ namespace ext
 {
 struct BeckmannDistribution : IsotropicSphericalDistribution
 {
-	BeckmannDistribution( const Properties &props )
+	BeckmannDistribution( const Properties &props ) :
+	  IsotropicSphericalDistribution( props )
 	{
 		auto roughness = get( props, "roughness", .5f );
 		roughness = roughness * roughness;

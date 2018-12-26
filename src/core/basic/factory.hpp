@@ -22,15 +22,6 @@ struct Factory
 		return ctors()[ conf.name ]( conf.props );
 	}
 
-	static poly::object<U> create( const std::string &name )
-	{
-		if ( !ctors().count( name ) )
-		{
-			KTHROW( "no such type:", name );
-		}
-		return ctors()[ name ]( Properties() );
-	}
-
 	template <typename T, typename = typename std::enable_if<std::is_base_of<U, T>::value>::type>
 	static int reg( const std::string &name )
 	{

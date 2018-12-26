@@ -9,6 +9,7 @@ namespace ext
 struct Mixed : Shader
 {
 	Mixed( const Properties &props ) :
+	  Shader( props ),
 	  fac( Factory<Scala<float>>::create( get<Config>( props, "fac" ) ) ),
 	  shaders{ Factory<Shader>::create(
 				 get<std::vector<Config>>( props, "shaders" )[ 0 ] ),

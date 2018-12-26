@@ -27,6 +27,13 @@ struct Config : serializable<Config, as_array>, emittable
 {
 	Property( std::string, name );
 	Property( Properties, props, {} );
+
+	Config() = default;
+	Config( const std::string &name, const Properties &props ) :
+	  name( name ),
+	  props( props )
+	{
+	}
 };
 
 struct SceneConfig : serializable<SceneConfig>

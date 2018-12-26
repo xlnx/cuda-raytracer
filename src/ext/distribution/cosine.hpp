@@ -8,9 +8,8 @@ namespace ext
 {
 struct CosDistribution : IsotropicSphericalDistribution
 {
-	CosDistribution() = default;
-
-	CosDistribution( const Properties &props )
+	CosDistribution( const Properties &props ) :
+	  IsotropicSphericalDistribution( props )
 	{
 	}
 

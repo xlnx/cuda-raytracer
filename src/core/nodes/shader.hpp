@@ -10,8 +10,8 @@ namespace core
 {
 struct Shader : Node
 {
-	Shader() = default;
-	Shader( const Properties &props )
+	Shader( const Properties &props ) :
+	  Node( props )
 	{
 	}
 

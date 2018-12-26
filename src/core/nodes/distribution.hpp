@@ -8,8 +8,10 @@ namespace core
 {
 struct SphericalDistribution : Node
 {
-	SphericalDistribution() = default;
-	SphericalDistribution( const Properties &config ) {}
+	SphericalDistribution( const Properties &props ) :
+	  Node( props )
+	{
+	}
 
 	KOISHI_HOST_DEVICE virtual float3 f( const solid &w ) const = 0;
 	KOISHI_HOST_DEVICE virtual solid sample( const float3 &u, float &pdf ) const = 0;
@@ -22,9 +24,8 @@ struct SphericalDistribution : Node
 
 struct IsotropicSphericalDistribution : SphericalDistribution
 {
-	IsotropicSphericalDistribution() = default;
-	IsotropicSphericalDistribution( const Properties &config ) :
-	  SphericalDistribution( config )
+	IsotropicSphericalDistribution( const Properties &props ) :
+	  SphericalDistribution( props )
 	{
 	}
 	KOISHI_HOST_DEVICE solid sample( const float2 &u, float &pdf ) const

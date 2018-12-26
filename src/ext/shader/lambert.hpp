@@ -9,17 +9,11 @@ namespace ext
 {
 struct Lambert : Shader
 {
-	Lambert() :
-	  Shader(),
-	  R{ 1, 1, 1 },
-	  distribution( Factory<SphericalDistribution>::create( "Cosine" ) )
-	{
-	}
-
 	Lambert( const Properties &props ) :
 	  Shader( props ),
 	  R( get( props, "R", float3{ 1, 1, 1 } ) ),
-	  distribution( Factory<SphericalDistribution>::create( "Cosine" ) )
+	  distribution( Factory<SphericalDistribution>::create( Config(
+		"Cosine", {} ) ) )
 	{
 	}
 

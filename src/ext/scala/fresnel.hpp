@@ -9,31 +9,30 @@ namespace ext
 struct Fresnel : Scala<float>
 {
 	Fresnel( const Properties &props ) :
-	  ior( 1.f / get<float>( props, "ior" ) )
+	  Scala( props ),
+	  ior( get<float>( props, "ior" ) )
 	{
 	}
 
 	KOISHI_HOST_DEVICE float compute( const Varyings &varyings, Allocator &pool ) const override
 	{
 		float cosi = H::cosTheta( varyings.wo );
-		float ior = this->ior;
-		if ( cosi <= 0.f )
+		float e = this->ior;
+		if ( cosi > 0.f )
 		{
 			cosi = -cosi;
-			ior = 1.f / ior;
+			e = 1.f / e;
 		}
-		// KLOG( cosi );
-		// KLOG( ior );
 		float sini = sqrt( max( 0.f, 1 - cosi * cosi ) );
-		float sinr = ior * sini;
+		float sinr = e * sini;
 		if ( sinr >= 1.f )
 		{
 			return 1;
 		}
 		float cosr = sqrt( max( 0.f, 1 - sinr * sinr ) );
 		float cosior = cosi / cosr;
-		float rparl = ( cosior - ior ) / ( cosior + ior );
-		float rperp = ( ior * cosior - 1 ) / ( ior * cosior + 1 );
+		float rparl = ( cosior - e ) / ( cosior + e );
+		float rperp = ( e * cosior - 1 ) / ( e * cosior + 1 );
 		return .5f * ( rparl * rparl + rperp * rperp );
 	}
 	void writeNode( json &j ) const override
