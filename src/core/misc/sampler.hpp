@@ -79,11 +79,11 @@ private:
 		auto seed = ( a * idx + c ) & 0xFFFFFFFFFFFFLL;
 		unsigned int x = seed >> 8;
 		float r = (float)x / (float)m;
-		id = uint( nums->size() * r ) % nums->size();
+		this->id = uint( this->nums->size() * r ) % this->nums->size();
 		seed = ( a * seed + c ) & 0xFFFFFFFFFFFFLL;
 		x = seed >> 8;
 		r = (float)x / (float)m;
-		det = uint( nums->size() * r ) % ( nums->size() / 4 ) + 1u;
+		this->det = uint( this->nums->size() * r ) % ( this->nums->size() / 4 ) + 1u;
 #endif
 	}
 

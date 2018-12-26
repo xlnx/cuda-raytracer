@@ -6,13 +6,14 @@ namespace koishi
 {
 namespace ext
 {
-struct Glossy : Shader
+struct Refraction : Shader
 {
-	Glossy( const Properties &props ) :
+	Refraction( const Properties &props ) :
 	  Shader( props ),
 	  distribution( Factory<SphericalDistribution>::create(
 		get<Config>( props, "distribution" ) ) ),
-	  color( get( props, "color", float3{ 1, 1, 1 } ) )
+	  color( get( props, "color", float3{ 1, 1, 1 } ) ),
+	  ior( get<float>( props, "ior" ) )
 	{
 	}
 
@@ -22,7 +23,7 @@ struct Glossy : Shader
 		switch ( target )
 		{
 		case sample_wi_f_by_wo:
-			varyings.wi = reflect( varyings.wo, distribution->sample( sampler.sample3() ) );
+			varyings.wi = normalize( refract( varyings.wo, distribution->sample( sampler.sample3() ), ior ) );
 			varyings.f = H::isSame( varyings.wo, varyings.wi ) ? color : float3{ 0, 0, 0 };
 			break;
 		case compute_f_by_wi_wo:
@@ -33,13 +34,14 @@ struct Glossy : Shader
 
 	void writeNode( json &j ) const override
 	{
-		j[ "Glossy" ][ "color" ] = color;
-		distribution->writeNode( j[ "Glossy" ][ "distribution" ] );
+		j[ "Refraction" ][ "color" ] = color;
+		distribution->writeNode( j[ "Refraction" ][ "distribution" ] );
 	}
 
 private:
 	poly::object<SphericalDistribution> distribution;
 	float3 color;
+	float ior;
 };
 
 }  // namespace ext

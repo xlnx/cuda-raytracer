@@ -21,9 +21,6 @@ object<T> &&make_object( Args &&... args );
 template <typename T, typename U>
 KOISHI_HOST_DEVICE object<T> &&static_object_cast( object<U> &&other );
 
-template <typename T, typename U>
-KOISHI_HOST_DEVICE object<T> &&dynamic_object_cast( object<U> &&other );
-
 namespace __impl
 {
 using cc_erased_t = void ( * )( Emittable *, Emittable * );
@@ -135,9 +132,6 @@ struct object final : emittable
 
 	template <typename V, typename U>
 	friend KOISHI_HOST_DEVICE object<V> &&static_object_cast( object<U> &&other );
-
-	template <typename V, typename U>
-	friend KOISHI_HOST_DEVICE object<V> &&dynamic_object_cast( object<U> &&other );
 
 	template <typename U>
 	friend struct object;
@@ -293,7 +287,7 @@ public:
 	}
 
 	template <typename U>
-	KOISHI_HOST_DEVICE bool is() const
+	KOISHI_HOST bool is() const
 	{
 		return dynamic_cast<const U *>( KOISHI_DATA_PTR );
 	}
@@ -354,20 +348,6 @@ KOISHI_HOST_DEVICE object<T> &&static_object_cast( object<U> &&other )
 	static object<T> &ptr = reinterpret_cast<object<T> &>( buffer );
 	new ( &ptr ) object<T>;
 	ptr.value = static_cast<T *>( other.value );
-	ptr.desc = other.desc;
-	ptr.is_device_ptr = other.is_device_ptr;
-	other.value = nullptr;
-	return std::move( ptr );
-}
-
-template <typename T, typename U>
-KOISHI_HOST_DEVICE object<T> &&dynamic_object_cast( object<U> &&other )
-{
-	static typename std::aligned_storage<sizeof( object<T> ),
-										 alignof( object<T> )>::type buffer;
-	static object<T> &ptr = reinterpret_cast<object<T> &>( buffer );
-	new ( &ptr ) object<T>;
-	ptr.value = dynamic_cast<T *>( other.value );
 	ptr.desc = other.desc;
 	ptr.is_device_ptr = other.is_device_ptr;
 	other.value = nullptr;
@@ -444,14 +424,14 @@ private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const ref &other )
 	{
-		is_device_ptr = !is_device_ptr;
-		if ( is_device_ptr != obj.is_device_ptr )
+		this->is_device_ptr = !this->is_device_ptr;
+		if ( this->is_device_ptr != obj.is_device_ptr )
 		{
 			new ( obj ) object<T>( *obj );
 			obj->decay = true;
 		}
 		value = obj->value;
-		device_value = obj->device_value;
+		this->device_value = obj->device_value;
 	}
 #endif
 
