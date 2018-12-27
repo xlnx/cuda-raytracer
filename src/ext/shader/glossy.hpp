@@ -17,7 +17,7 @@ struct Glossy : Shader
 	}
 
 	KOISHI_HOST_DEVICE void execute(
-	  Varyings &varyings, Sampler &sampler, Allocator &pool, uint target ) const override
+	  Varyings &varyings, Sampler &sampler, Allocator &pool, ShaderTarget target ) const override
 	{
 		switch ( target )
 		{

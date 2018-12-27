@@ -694,6 +694,31 @@ KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUB
 KOISHI_COMPWISE_OP( __func::rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 #endif
 
+#undef KOISHI_COMPWISE_OP
+#define KOISHI_COMPWISE_OP( ... )                                                                                                                                                        \
+	template <typename T, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec1<T>::value>::type>                            \
+	KOISHI_HOST_DEVICE bool hasNaN( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return a.x != a.x;                                                                                                                                                               \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec2<T>::value>::type>                   \
+	KOISHI_HOST_DEVICE bool hasNaN( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return a.x != a.x || a.y != a.y;                                                                                                                                                 \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type>          \
+	KOISHI_HOST_DEVICE bool hasNaN( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return a.x != a.x || a.y != a.y || a.z != a.z;                                                                                                                                   \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec4<T>::value>::type> \
+	KOISHI_HOST_DEVICE bool hasNaN( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return a.x != a.x || a.y != a.y || a.z != a.z || a.w != a.w;                                                                                                                     \
+	}
+
+KOISHI_COMPWISE_OP( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
+
 #undef KOISHI_MATH_NAMESP
 
 #undef KOISHI_COMPWISE_OP

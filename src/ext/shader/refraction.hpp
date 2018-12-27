@@ -18,7 +18,7 @@ struct Refraction : Shader
 	}
 
 	KOISHI_HOST_DEVICE void execute(
-	  Varyings &varyings, Sampler &sampler, Allocator &pool, uint target ) const override
+	  Varyings &varyings, Sampler &sampler, Allocator &pool, ShaderTarget target ) const override
 	{
 		switch ( target )
 		{
@@ -28,7 +28,7 @@ struct Refraction : Shader
 			auto e = varyings.wo.z > 0 ? 1.f / ior : ior;
 			if ( varyings.wo.z < 0 ) h = -h;
 			if ( refract( varyings.wo, varyings.wi, h, e ) )
-				varyings.f = color;
+				varyings.f = color / ( e < 1.f ? e * e : 1.f );
 			else
 				varyings.f = float3{ 0, 0, 0 };
 		}
@@ -43,6 +43,7 @@ struct Refraction : Shader
 	void writeNode( json &j ) const override
 	{
 		j[ "Refraction" ][ "color" ] = color;
+		j[ "Refraction" ][ "ior" ] = ior;
 		distribution->writeNode( j[ "Refraction" ][ "distribution" ] );
 	}
 

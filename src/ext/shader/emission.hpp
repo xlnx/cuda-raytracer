@@ -20,7 +20,7 @@ struct Emission : Shader
 	}
 
 	KOISHI_HOST_DEVICE void execute(
-	  Varyings &varyings, Sampler &sampler, Allocator &pool, uint target ) const override
+	  Varyings &varyings, Sampler &sampler, Allocator &pool, ShaderTarget target ) const override
 	{
 		varyings.emission = emission;
 		lambert->execute( varyings, sampler, pool, target );

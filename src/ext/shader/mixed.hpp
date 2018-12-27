@@ -19,7 +19,7 @@ struct Mixed : Shader
 	}
 
 	KOISHI_HOST_DEVICE void execute(
-	  Varyings &varyings, Sampler &sampler, Allocator &pool, uint target ) const override
+	  Varyings &varyings, Sampler &sampler, Allocator &pool, ShaderTarget target ) const override
 	{
 		auto f = fac->compute( varyings, pool );
 		shaders[ sampler.sample() < f ? 1 : 0 ]->execute(

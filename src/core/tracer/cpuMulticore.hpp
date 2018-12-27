@@ -60,12 +60,18 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 			{
 				for ( uint i = 0; i != w; ++i )
 				{
+					uint valid = 0;
 					float3 rad = { 0, 0, 0 };
 					for ( uint k = 0; k != spp; ++k )
 					{
-						rad += Self::template call<Radiance>( lens->sample( i, j, k ), scene, pool, rng );
+						auto r = Self::template call<Radiance>( lens->sample( i, j, k ), scene, pool, rng );
+						if ( !hasNaN( r ) )
+						{
+							valid++;
+							rad += r;
+						}
 					}
-					image.at( i, j ) = rad / spp;
+					image.at( i, j ) = rad / valid;
 					status[ id ].first++;
 				}
 			}
