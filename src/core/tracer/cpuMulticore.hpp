@@ -2,7 +2,6 @@
 
 #include <vector>
 #include <thread>
-#include <mutex>
 #include <atomic>
 #include <iostream>
 #include <util/image.hpp>
@@ -36,10 +35,12 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 		KINFO( tracer, "Tracing start" );
 		util::tick();
 		auto rng = rng_gen.create();
+
 		std::vector<std::pair<int, int>> status( nthreads );
 		std::atomic<int> g_nthreads( nthreads );
-		auto tracer_thread = [nthreads, spp, h, w, &scene,
-							  &image, &lens, &rng, &status, &g_nthreads]( uint id ) {
+
+		auto tracer_thread = [nthreads, spp, h, w, &scene, &image, &lens,
+							  &rng, &status, &g_nthreads]( uint id ) {
 			static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
 			static constexpr uint block_size = 480 * b;
 
@@ -47,17 +48,13 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 
 			Alloc pool( block, block_size );
 
+			status[ id ].second = 0;
+			status[ id ].first = 0;
+			for ( uint j = id; j < h; j += nthreads )
 			{
-				static std::mutex m;
-				std::lock_guard<std::mutex> _( m );
-				status[ id ].second = 0;
-				status[ id ].first = 0;
-				for ( uint j = id; j < h; j += nthreads )
-				{
-					status[ id ].second += w;
-				}
-				g_nthreads--;
+				status[ id ].second += w;
 			}
+			g_nthreads--;
 
 			for ( uint j = id; j < h; j += nthreads )
 			{
