@@ -12,6 +12,7 @@ struct Lambert : Shader
 	Lambert( const Properties &props ) :
 	  Shader( props ),
 	  R( get( props, "R", float3{ 1, 1, 1 } ) ),
+	  color( get( props, "color", float3{ 1, 1, 1 } ) ),
 	  distribution( Factory<SphericalDistribution>::create( Config(
 		"Cosine", {} ) ) )
 	{
@@ -25,10 +26,10 @@ struct Lambert : Shader
 		case sample_wi_f_by_wo:
 			float pdf;
 			varyings.wi = distribution->sample( sampler.sample3(), pdf );
-			varyings.f = R * distribution->f( varyings.wi ) / pdf;
+			varyings.f = color * R * distribution->f( varyings.wi ) / pdf;
 			break;
 		case compute_f_by_wi_wo:
-			varyings.f = R * distribution->f( varyings.wi );
+			varyings.f = color * R * distribution->f( varyings.wi );
 			break;
 		}
 	}
@@ -36,10 +37,11 @@ struct Lambert : Shader
 	void writeNode( json &j ) const override
 	{
 		j[ "Lambert" ][ "R" ] = R;
+		j[ "Lambert" ][ "color" ] = color;
 	}
 
 private:
-	float3 R;
+	float3 R, color;
 	poly::object<SphericalDistribution> distribution;
 };
 
