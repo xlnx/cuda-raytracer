@@ -1,5 +1,6 @@
 #pragma once
 
+#include <mutex>
 #include <cstdio>
 #include <iostream>
 #include <sstream>
@@ -191,6 +192,16 @@ inline double tick()
 #define KREPIDID( TIMES, X, Y, Z ) \
 	K_REPIDID( TIMES, KWRAP X, KWRAP Y, KWRAP Z )
 
+namespace __impl
+{
+inline std::recursive_mutex &get_mutex()
+{
+	static std::recursive_mutex m;
+	return m;
+}
+
+}  // namespace __impl
+
 inline void print( std::ostream &os )
 {
 }
@@ -198,6 +209,7 @@ inline void print( std::ostream &os )
 template <typename X, typename... Args>
 void print( std::ostream &os, const X &x, Args &&... args )
 {
+	std::lock_guard<std::recursive_mutex> _( __impl::get_mutex() );
 	os << x << " ";
 	print( os, std::forward<Args>( args )... );
 }
@@ -205,6 +217,7 @@ void print( std::ostream &os, const X &x, Args &&... args )
 template <typename... Args>
 void println( Args &&... args )
 {
+	std::lock_guard<std::recursive_mutex> _( __impl::get_mutex() );
 	print( std::cout, std::forward<Args>( args )... );
 	std::cout << std::endl
 			  << std::flush;

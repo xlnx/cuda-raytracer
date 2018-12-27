@@ -37,8 +37,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 		util::tick();
 		auto rng = rng_gen.create();
 		std::vector<std::pair<int, int>> status( nthreads );
-		std::atomic<int> g_nthreads;
-		g_nthreads.store( nthreads );
+		std::atomic<int> g_nthreads( nthreads );
 		auto tracer_thread = [nthreads, spp, h, w, &scene,
 							  &image, &lens, &rng, &status, &g_nthreads]( uint id ) {
 			static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
@@ -48,17 +47,16 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 
 			Alloc pool( block, block_size );
 
-			static std::mutex mutex;
-
 			{
-				std::lock_guard<std::mutex> _( mutex );
+				static std::mutex m;
+				std::lock_guard<std::mutex> _( m );
 				status[ id ].second = 0;
 				status[ id ].first = 0;
 				for ( uint j = id; j < h; j += nthreads )
 				{
 					status[ id ].second += w;
 				}
-				g_nthreads.fetch_sub( 1 );
+				g_nthreads--;
 			}
 
 			for ( uint j = id; j < h; j += nthreads )
