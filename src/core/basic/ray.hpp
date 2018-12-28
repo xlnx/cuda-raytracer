@@ -63,15 +63,15 @@ struct Seg : Ray
 		auto p0 = o - c, p1 = p0 + d * t;
 		auto m = ( p0 + p1 ) * .5f;
 		auto w = m - p0;
-		auto W = abs( w );
-		auto x = abs( m ) - W - l;
+		auto W = fabs( w );
+		auto x = fabs( m ) - W - l;
 		if ( x.x > 0 || x.y > 0 || x.z > 0 )
 		{
 			return false;
 		}
-		else if ( abs( -w.z * m.y + w.y * m.z ) > l.y * W.z + l.z * W.y ||
-				  abs( -w.z * m.x + w.x * m.z ) > l.x * W.z + l.z * W.x ||
-				  abs( -w.y * m.x + w.x * m.y ) > l.x * W.y + l.y * W.x )
+		else if ( fabs( -w.z * m.y + w.y * m.z ) > l.y * W.z + l.z * W.y ||
+				  fabs( -w.z * m.x + w.x * m.z ) > l.x * W.z + l.z * W.x ||
+				  fabs( -w.y * m.x + w.x * m.y ) > l.x * W.y + l.y * W.x )
 		{
 			return false;
 		}

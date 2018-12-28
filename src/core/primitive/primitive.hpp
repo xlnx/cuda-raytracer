@@ -28,7 +28,7 @@ struct Primitive : emittable
 		LocalVaryings varyings = sample( u, pdf );
 		auto wi = p - varyings.p;
 		auto d2 = squaredLength( wi );
-		pdf *= d2 / abs( dot( varyings.n, normalize( wi ) ) );
+		pdf *= d2 / fabs( dot( varyings.n, normalize( wi ) ) );
 		return varyings;
 	}
 

@@ -27,7 +27,7 @@ struct types
 	using type = types<Args...>;
 };
 
-template <template <typename> typename... Args>
+template <template <typename> class... Args>
 struct templates
 {
 	using type = templates<Args...>;
@@ -36,7 +36,7 @@ struct templates
 template <typename... X>
 struct ApplyEnum;
 
-template <template <typename> typename T, typename X, typename... Args>
+template <template <typename> class T, typename X, typename... Args>
 struct ApplyEnum<T<X>, Args...>
 {
 	static void apply()
@@ -53,10 +53,10 @@ struct ApplyEnum<>
 	static void apply() {}
 };
 
-template <template <typename> typename T, typename L>
+template <template <typename> class T, typename L>
 struct Enum;
 
-template <template <typename> typename T, typename... Args>
+template <template <typename> class T, typename... Args>
 struct Enum<T, types<Args...>> : types<T<Args>...>
 {
 	static void apply()
@@ -139,20 +139,20 @@ struct PermuteSeq : DoPermuteSeq<types<types<>>, Args...>
 
 // clang-format off
 #define KOISHI_DEF_TEMPLATE( N )                                                                                                                                                    \
-	template <template <KREP( N, (typename) )> typename... Args>                                                                                                                    \
+	template <template <KREP( N, (typename) )> class... Args>                                                                                                                    \
 	struct templates##N                                                                                                                                                             \
 	{                                                                                                                                                                               \
 		using type = templates##N<Args...>;                                                                                                                                         \
 	};                                                                                                                                                                              \
-	template <template <KREP( N, (typename) )> typename T, typename U>                                                                                                              \
+	template <template <KREP( N, (typename) )> class T, typename U>                                                                                                              \
 	struct Instance##N;                                                                                                                                                             \
-	template <template <KREP( N, (typename) )> typename T, typename ...Args>                                                                                                        \
+	template <template <KREP( N, (typename) )> class T, typename ...Args>                                                                                                        \
 	struct Instance##N<T, types<Args...>> : types<T<Args...>>                                                                                                                       \
 	{                                                                                                                                                                               \
 	};                                                                                                                                                                              \
 	template <typename... Args>                                                                                                                                                     \
 	struct DoApplyEnum##N;                                                                                                                                                          \
-	template <template <KREP( N, (typename) )> typename T, typename... Args, typename... Rest>                                                                                      \
+	template <template <KREP( N, (typename) )> class T, typename... Args, typename... Rest>                                                                                      \
 	struct DoApplyEnum##N<T<Args...>, Rest...>                                                                                                                                      \
 	{                                                                                                                                                                               \
 		static void apply()                                                                                                                                                         \
@@ -177,7 +177,7 @@ struct PermuteSeq : DoPermuteSeq<types<types<>>, Args...>
 			DoApplyEnum##N<Args...>::apply();                                                                                                                                       \
 		}                                                                                                                                                                           \
 	};                                                                                                                                                                              \
-	template <template <KREP( N, (typename) )> typename T, typename... Args>                                                                                                        \
+	template <template <KREP( N, (typename) )> class T, typename... Args>                                                                                                        \
 	struct Enum##N : Concat<typename Instance##N<T, Args>::type...>                                                                                                                 \
 	{                                                                                                                                                                               \
 		static void apply()                                                                                                                                                         \
@@ -203,7 +203,7 @@ struct PermuteSeq : DoPermuteSeq<types<types<>>, Args...>
 	};                                                                                                                                                                              \
 	template <typename T, typename U>                                                                                                                                               \
 	struct DoPermutation##N;                                                                                                                                                          \
-	template <template <KREP( N, (typename) )> typename... Templates, typename ...Args>                                                                                             \
+	template <template <KREP( N, (typename) )> class... Templates, typename ...Args>                                                                                             \
 	struct DoPermutation##N<templates##N<Templates...>, types<Args...>>:                                                                                                              \
 		Concat<typename Enum##N<Templates, Args...>::type...>                                                                                                                       \
 	{                                                                                                                                                                               \
@@ -214,12 +214,12 @@ struct PermuteSeq : DoPermuteSeq<types<types<>>, Args...>
 	};                                                                                                                                                                              \
 	template <typename T, KREPID( N, (typename U), () )>                                                                                                                            \
 	struct Permutation##N;                                                                                                                                                          \
-	template <template <KREP( N, (typename) )> typename... Templates, KREPID( N, (typename... Args), () )>                                                                          \
+	template <template <KREP( N, (typename) )> class... Templates, KREPID( N, (typename... Args), () )>                                                                          \
 	struct Permutation##N<templates##N<Templates...>, KREPID( N, (types<Args), (...>) )>:                                                                                           \
 		DoPermutation##N<templates##N<Templates...>, typename PermuteSeq<KREPID(N, (types<Args), (...>) )>::type>                                                                     \
 	{                                                                                                                                                                               \
 	};                                                                                                                                                                              \
-	template <template <KREP( N, (typename) )> typename... Templates, KREPID( N, (typename... Args), () )>                                                                          \
+	template <template <KREP( N, (typename) )> class... Templates, KREPID( N, (typename... Args), () )>                                                                          \
 	struct DoRecursedPermutation<templates##N<Templates...>,                                                                                                                        \
 								   KREPID( N, (types<Args), (...>) )> : Permutation##N<templates##N<Templates...>,                                                                  \
 																								KREPID( N, (typename DoRecursedPermutation<Args), (...>::type ) )>                  \

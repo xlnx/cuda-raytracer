@@ -18,13 +18,10 @@ struct Fresnel : Scala<float>
 	{
 		float cosi = H::cosTheta( varyings.wo );
 		float e = cosi > 0.f ? 1.f / this->ior : this->ior;
-		cosi = abs( cosi );
+		cosi = fabs( cosi );
 		float sini = sqrt( max( 0.f, 1 - cosi * cosi ) );
 		float sinr = e * sini;
-		if ( sinr >= 1.f )
-		{
-			return 1;
-		}
+		if ( sinr >= 1.f ) return 1;
 		float cosr = sqrt( max( 0.f, 1 - sinr * sinr ) );
 		float cosior = cosi / cosr;
 		float rparl = ( cosior - e ) / ( cosior + e );

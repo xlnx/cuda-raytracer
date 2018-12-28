@@ -26,7 +26,7 @@ PolyFunction( Custom, Host, Device )(
 			// 				( uint )( scene.lights.size() - 1 ) );
 			varyings.wi = scene.lights[ idx ]->sample( scene, varyings, rng.sample2(), li, pool );
 			shader->execute( varyings, rng, pool, compute_f_by_wi_wo );
-			auto ndl = abs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
+			auto ndl = fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
 			auto f = varyings.f * ndl;
 
 			// L = float3{f0.x, f0.y * ndl, ndl};
@@ -34,7 +34,7 @@ PolyFunction( Custom, Host, Device )(
 			// L = float3{ f.x, li.y * f.y, li.z };
 			//   normalize( varyings.wo + wi );
 			// varyings.bxdf->f( varyings.wo, wi );
-			// float3{ 1, 1, 1 } * abs( dot( wi, float3{ 0, 0, 1 } ) );
+			// float3{ 1, 1, 1 } * fabs( dot( wi, float3{ 0, 0, 1 } ) );
 			// li;
 			// L = li;
 		}

@@ -20,7 +20,7 @@ struct BeckmannDistribution : IsotropicSphericalDistribution
 	{
 		auto tg2th = H::tan2Theta( w );
 		auto cos4th = H::cos2Theta( w ) * H::cos2Theta( w );
-		return float3{ 1, 1, 1 } * exp( -tg2th / alpha2 ) / ( PI * alpha2 * cos4th ) * abs( H::cosTheta( w ) );
+		return float3{ 1, 1, 1 } * exp( -tg2th / alpha2 ) / ( PI * alpha2 * cos4th ) * fabs( H::cosTheta( w ) );
 	}
 
 	KOISHI_HOST_DEVICE solid sample( const float3 &u, float &pdf ) const override
@@ -33,7 +33,7 @@ struct BeckmannDistribution : IsotropicSphericalDistribution
 		auto sinth = sqrt( max( 0.f, 1.f - costh * costh ) );
 		auto w = H::fromEular( sinth, costh, phi );
 		pdf = exp( -tg2th / alpha2 ) / ( PI * alpha2 ) *
-			  invcos2th * invcos2th * abs( H::cosTheta( w ) );
+			  invcos2th * invcos2th * fabs( H::cosTheta( w ) );
 		return w;
 	}
 

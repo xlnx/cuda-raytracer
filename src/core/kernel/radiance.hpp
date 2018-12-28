@@ -33,13 +33,13 @@ PolyFunction( Radiance, Host, Device )(
 				float lpdf = 1.f / scene.lights.size();
 				varyings.wi = scene.lights[ idx ]->sample( scene, varyings, rng.sample2(), li, pool );
 				shader->execute( varyings, rng, pool, compute_f_by_wi_wo );
-				L += beta * varyings.f * li * abs( dot( varyings.wi, float3{ 0, 0, 1 } ) ) / lpdf;
+				L += beta * varyings.f * li * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) ) / lpdf;
 			}
 			L += beta * varyings.emission;
 			// emit new light for indirect lighting, according to BSDF
 			{
 				shader->execute( varyings, rng, pool, sample_wi_f_by_wo );
-				beta *= varyings.f * abs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
+				beta *= varyings.f * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
 				ray = varyings.emitRay( varyings.global( varyings.wi ) );
 			}
 			pool.clear();

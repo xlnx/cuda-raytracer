@@ -65,7 +65,7 @@ PolyFunction( CPUMultiCoreTracer, Require<Host, Radiance, HybridAllocator> )(
 					for ( uint k = 0; k != spp; ++k )
 					{
 						auto r = Self::template call<Radiance>( lens->sample( i, j, k ), scene, pool, rng );
-						if ( !hasNaN( r ) )
+						if ( !hasnan( r ) )
 						{
 							valid++;
 							rad += r;

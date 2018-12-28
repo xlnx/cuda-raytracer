@@ -29,7 +29,7 @@ PolyFunction( BruteForce, Host, Device )(
 			// emit new light for indirect lighting, according to BSDF
 			{
 				shader->execute( varyings, rng, pool, sample_wi_f_by_wo );
-				beta *= varyings.f * abs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
+				beta *= varyings.f * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
 				ray = varyings.emitRay( varyings.global( varyings.wi ) );
 			}
 			pool.clear();
