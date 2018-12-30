@@ -51,17 +51,13 @@ struct Renderer : RendererBase
 			KLOG( "Target resolution:", w, "x", h );
 
 			poly::object<Lens> lens;
-			if ( camera.lens == "pinhole" )
+			switch ( camera.lens )
 			{
+			case 0:
 				lens = poly::make_object<PinholeLens>( camera, w, h, spp );
-			}
-			else if ( camera.lens == "orthographic" )
-			{
+				break;
+			case 1:
 				lens = poly::make_object<OrthographicLens>( camera, w, h, spp );
-			}
-			else
-			{
-				KTHROW( "invalid lens type: " + camera.lens );
 			}
 			SamplerGenerator rng_gen;
 

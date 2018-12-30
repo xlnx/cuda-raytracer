@@ -116,6 +116,54 @@ protected:
 		}
 		return U();
 	}
+	template <typename U, typename X>
+	static U init_metadata( const std::string &name, U T::*offset, const X &default_value,
+							const std::pair<std::function<U( const X & )>,
+											std::function<X( const U & )>> &conv )
+	{
+		if ( get_state() == 1 )  // if this object is the first instance of this class
+		{
+			get_components().emplace_back(
+			  [=]( nlohmann::json &j, const T &t ) {
+				  j[ name ] = conv.second( t.*offset );
+			  },
+			  [=]( const nlohmann::json &j, T &t ) {
+				  if ( j.find( name ) != j.end() )
+				  {
+					  t.*offset = conv.first( j.at( name ).get<X>() );
+				  }
+				  else
+				  {
+					  t.*offset = conv.first( default_value );
+				  }
+			  } );
+		}
+		return conv.first( default_value );
+	}
+	template <typename U, typename X>
+	static U init_metadata( const std::string &name, U T::*offset,
+							const std::pair<std::function<U( const X & )>,
+											std::function<X( const U & )>> &conv )
+	{
+		if ( get_state() == 1 )  // if this object is the first instance of this class
+		{
+			get_components().emplace_back(
+			  [=]( nlohmann::json &j, const T &t ) {
+				  j[ name ] = conv.second( t.*offset );
+			  },
+			  [=]( const nlohmann::json &j, T &t ) {
+				  if ( j.find( name ) != j.end() )
+				  {
+					  t.*offset = conv.first( j.at( name ).get<X>() );
+				  }
+				  else
+				  {
+					  KTHROW( "No such key named \"" + name + "\"." );
+				  }
+			  } );
+		}
+		return U();
+	}
 
 private:
 	static std::vector<std::pair<

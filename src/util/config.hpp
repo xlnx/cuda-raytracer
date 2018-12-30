@@ -11,7 +11,20 @@ namespace koishi
 {
 struct CameraConfig : serializable<CameraConfig>, emittable
 {
-	Property( std::string, lens, "pinhole" );
+	Property( uint, lens, std::string( "pinhole" ),
+			  { []( const std::string &value ) -> uint {
+				   if ( value == "pinhole" ) return 0;
+				   if ( value == "orthographic" ) return 1;
+				   KTHROW( "unknown lens type: " + value );
+			   },
+				[]( const uint &value ) -> std::string {
+					switch ( value )
+					{
+					case 0: return "pinhole";
+					case 1: return "orthographic";
+					default: KTHROW( "unknown lens type" );
+					}
+				} } );
 	Property( float, fovx, 90 );
 	Property( float, aspect, 0 );
 	Property( float3, position, { 1, 0, 0 } );

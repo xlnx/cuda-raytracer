@@ -34,6 +34,7 @@ Scene::Scene( SceneConfig &config )
 			imported = true;
 			util::tick();
 			auto path = get<std::string>( asset.props, "path" );
+			auto cconf = get<CameraConfig>( asset.props, "camera" );
 			auto diff = primitives.size();
 			Assimp::Importer importer;
 			auto scene = importer.ReadFile( path, aiProcess_Triangulate |
@@ -69,7 +70,7 @@ Scene::Scene( SceneConfig &config )
 						cc.position = { position.x, position.y, position.z };
 						cc.zNear = conf->mClipPlaneNear;
 						cc.zFar = conf->mClipPlaneFar;
-						cc.lens = get<std::string>( asset.props, "camera.lens", "pinhole" );
+						cc.lens = cconf.lens;
 						camera.emplace_back( cc );
 					}
 				}
