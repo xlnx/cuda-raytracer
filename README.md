@@ -52,7 +52,7 @@
 
 ![](doc/lambert_512.png)
 
-*area light demo, 32spp*
+*area light demo, 4096spp*
 
 ![](doc/area.png)
 
