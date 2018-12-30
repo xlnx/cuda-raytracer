@@ -8,7 +8,7 @@ option( DEBUG_LEVEL "debug level" 0 )
 
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-parentheses -Wno-comment -Wvirtual-move-assign -Wno-stringop-overflow -Wno-unknown-warning-option -Wno-unused-command-line-argument -Wno-switch -Wno-narrowing -lpthread")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -pg -DDEBUG -g")
-set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
+set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -Ofast -funroll-loops -fno-math-errno -funsafe-math-optimizations")
 
 include_directories(
 	${CMAKE_SOURCE_DIR}/include 
