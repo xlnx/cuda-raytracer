@@ -12,13 +12,13 @@ namespace koishi
 namespace ext
 {
 static volatile int bxdf_impl[] = {
-//	Factory<Shader>::reg<Emission>( "Emission" ),
-//	Factory<Shader>::reg<Lambert>( "Lambert" ),
-//	Factory<Shader>::reg<Glossy>( "GlossyBSDF" ),
-//	Factory<Shader>::reg<Refraction>( "RefractionBSDF" ),
-//	Factory<Shader>::reg<Mixed>( "Mixed" ),
-//	Factory<Shader>::reg<Transparent>( "Transparent" ),
-//	Factory<Shader>::reg<Glass>( "GlassBSDF" )
+	Factory<Shader>::reg<Emission>( "Emission" ),
+	Factory<Shader>::reg<Lambert>( "Lambert" ),
+	Factory<Shader>::reg<Glossy>( "GlossyBSDF" ),
+	Factory<Shader>::reg<Refraction>( "RefractionBSDF" ),
+	Factory<Shader>::reg<Mixed>( "Mixed" ),
+	Factory<Shader>::reg<Transparent>( "Transparent" ),
+	Factory<Shader>::reg<Glass>( "GlassBSDF" )
 };
 
 }  // namespace ext

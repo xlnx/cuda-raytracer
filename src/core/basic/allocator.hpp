@@ -64,7 +64,7 @@ KOISHI_HOST_DEVICE inline void dealloc( Allocator &al, T *ptr )
 	al.dealloc( reinterpret_cast<char *>( ptr ) );
 }
 
-struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
+struct HybridAllocator : Allocator, Require<Device>, Require<Host>
 {
 	PolyStruct( HybridAllocator );
 
@@ -84,7 +84,7 @@ struct HybridAllocator : core::Allocator, Require<Device>, Require<Host>
 	}
 	KOISHI_HOST_DEVICE void dealloc( char *ptr ) override
 	{
-		curr = std::min( curr, ptr );
+		if ( ptr < curr ) curr = ptr;
 	}
 	KOISHI_HOST_DEVICE void clear() override
 	{

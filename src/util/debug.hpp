@@ -67,7 +67,7 @@ inline double tick()
 #define K_STR( x ) #x
 #define KTHROW( ... ) K_THROW( __VA_ARGS__ )
 #define K_THROW( ... )                                                             \
-	{                                                                              \
+	do {                                                                              \
 		std::ostringstream os;                                                     \
 		koishi::util::print( os, __FILE__ ":" KSTR( __LINE__ ) ":", __VA_ARGS__ ); \
 		throw std::logic_error( os.str() );                                        \

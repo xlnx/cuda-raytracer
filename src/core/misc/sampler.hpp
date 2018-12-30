@@ -22,7 +22,7 @@ struct Sampler
 	KOISHI_HOST_DEVICE float sample()
 	{
 #ifdef __CUDA_ARCH__
-		return nums->operator[]( id += det );
+		return this->nums->operator[]( id += det );
 #else
 		static unsigned long long seed = ( ( (long long int)time( nullptr ) ) << 16 ) | ::rand();
 
@@ -53,11 +53,11 @@ struct Sampler
 	KOISHI_HOST Sampler() = default;
 
 private:
-	KOISHI_HOST_DEVICE Sampler( const poly::vector<float> &nums ) :
-	  nums( &nums )
+	using ull = unsigned long long;
+	KOISHI_HOST_DEVICE Sampler( const poly::vector<float> &nums )
 	{
+		this->nums = &nums;
 #ifdef __CUDA_ARCH__
-		using ull = unsigned long long;
 		ull bd_x = blockDim.x;
 		ull bd_xy = bd_x * blockDim.y;
 		ull bd_xyz = bd_xy * blockDim.z;
@@ -73,9 +73,9 @@ private:
 		ull idx = th_idx +
 				  bl_idx * bd_xyz;
 
-		constexpr auto m = 0x100000000LL;
-		constexpr auto c = 0xB16;
-		constexpr auto a = 0x5DEECE66DLL;
+		auto m = 0x100000000LL;
+		auto c = 0xB16;
+		auto a = 0x5DEECE66DLL;
 		auto seed = ( a * idx + c ) & 0xFFFFFFFFFFFFLL;
 		unsigned int x = seed >> 8;
 		float r = (float)x / (float)m;
@@ -89,7 +89,7 @@ private:
 
 private:
 	uint16_t id = 0, det = 1;
-	const poly::vector<float> *nums = nullptr;
+	const poly::vector<float> *nums;
 };
 
 struct SamplerGenerator : emittable

@@ -11,10 +11,10 @@ struct Mixed : Shader
 	Mixed( const Properties &props ) :
 	  Shader( props ),
 	  fac( Factory<Scala<float>>::create( get<Config>( props, "fac" ) ) ),
-	  shaders{ Factory<Shader>::create(
-				 get<std::vector<Config>>( props, "shaders" )[ 0 ] ),
-			   Factory<Shader>::create(
-				 get<std::vector<Config>>( props, "shaders" )[ 1 ] ) }
+	  shader_a( Factory<Shader>::create(
+				 get<std::vector<Config>>( props, "shaders" )[ 0 ] ) ),
+	  shader_b( Factory<Shader>::create(
+				 get<std::vector<Config>>( props, "shaders" )[ 1 ] ) )
 	{
 	}
 
@@ -22,20 +22,20 @@ struct Mixed : Shader
 	  Varyings &varyings, Sampler &sampler, Allocator &pool, ShaderTarget target ) const override
 	{
 		auto f = fac->compute( varyings, pool );
-		shaders[ sampler.sample() < f ? 1 : 0 ]->execute(
+		( sampler.sample() < f ? shader_b : shader_a )->execute(
 		  varyings, sampler, pool, target );
 	}
 
 	void writeNode( json &j ) const override
 	{
 		fac->writeNode( j[ "Mixed" ][ "fac" ] );
-		shaders[ 0 ]->writeNode( j[ "Mixed" ][ "shaders" ][ 0 ] );
-		shaders[ 1 ]->writeNode( j[ "Mixed" ][ "shaders" ][ 1 ] );
+		shader_a->writeNode( j[ "Mixed" ][ "shaders" ][ 0 ] );
+		shader_b->writeNode( j[ "Mixed" ][ "shaders" ][ 1 ] );
 	}
 
 private:
 	poly::object<Scala<float>> fac;
-	poly::object<Shader> shaders[ 2 ];
+	poly::object<Shader> shader_a, shader_b;
 };
 
 }  // namespace ext

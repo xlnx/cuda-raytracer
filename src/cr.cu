@@ -4,7 +4,7 @@
 #include <core/kernel/custom.hpp>
 #include <core/kernel/bruteForce.hpp>
 #include <core/tracer/cpuMulticore.hpp>
-#include <core/tracer/cudaSingleGPU.hpp>
+//#include <core/tracer/cudaSingleGPU.hpp>
 #include <core/renderer/factory.hpp>
 #include <vis/renderer.hpp>
 #include <cxxopts/cxxopts.hpp>
@@ -47,7 +47,7 @@ int main( int argc, char **argv )
 			TemplateFactory<
 			  templates2<CPUMultiCoreTracer
 #ifdef KOISHI_USE_CUDA
-						  , CudaSingleGPUTracer
+			//			  , CudaSingleGPUTracer
 #endif
 						>,
 			  types<

@@ -14,38 +14,6 @@ namespace vec
 {
 #endif
 
-#if defined( KOISHI_USE_CUDA )
-
-#define KOISHI_HOST \
-	__host__
-#define KOISHI_DEVICE \
-	__device__
-#define KOISHI_HOST_DEVICE \
-	__host__ __device__
-#define KOISHI_NOINLINE \
-	__noinline__
-
-#define KOISHI_MATH_NAMESP
-
-#define KOISHI_RESTRICT __restrict__
-
-#else
-
-#define KOISHI_HOST
-
-#define KOISHI_DEVICE
-
-#define KOISHI_HOST_DEVICE
-
-#define KOISHI_NOINLINE
-
-#define KOISHI_MATH_NAMESP \
-	std
-
-#define KOISHI_RESTRICT
-
-#endif
-
 namespace __func
 {
 template <typename T, typename = typename std::enable_if<

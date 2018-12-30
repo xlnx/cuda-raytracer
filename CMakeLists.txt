@@ -6,7 +6,7 @@ option( CUDA "use cuda as default target" OFF )
 option( GL "use opengl as default visualizer" OFF )
 option( DEBUG_LEVEL "debug level" 0 )
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-parentheses -Wno-comment -Wvirtual-move-assign -Wno-stringop-overflow -Wno-unknown-warning-option -Wno-unused-command-line-argument -Wno-switch -lpthread")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++14 -Wno-parentheses -Wno-comment -Wvirtual-move-assign -Wno-stringop-overflow -Wno-unknown-warning-option -Wno-unused-command-line-argument -Wno-switch -Wno-narrowing -lpthread")
 set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -pg -DDEBUG -g")
 set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O3")
 
@@ -59,17 +59,20 @@ if (${CUDA} STREQUAL "ON")
 	)
 	link_libraries(curand)
 	set(CUDA_NVCC_FLAGS ${CMAKE_NVCC_FLAGS} 
-		-std=c++14 
+		-std=c++14
+	#	-v
 		--expt-extended-lambda
 		--use_fast_math
 		--keep-device-functions
 		-keep
 		-maxrregcount
 		32
-		-w  
+	#	-w  
 		-lineinfo
+		-Xcudafe
+		--display_error_number
 		-Xcudafe 
-		--diag_suppress="set_but_not_used,code_is_unreachable"
+		--diag_suppress="set_but_not_used,declared_but_not_referenced,code_is_unreachable,esa_on_defaulted_function_ignored,2943,2908,61,191,2361,554,2905,997,611"
 	)
 	# cuda_add_executable(cr ${SOURCES})
 else ()

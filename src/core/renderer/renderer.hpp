@@ -73,9 +73,6 @@ struct Renderer : RendererBase
 	}
 
 private:
-	using uchar = unsigned char;
-	std::vector<float3> buffer;
-	poly::vector<Ray> rays;
 	uint w, h;
 };
 
