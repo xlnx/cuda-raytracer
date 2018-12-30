@@ -719,6 +719,31 @@ KOISHI_COMPWISE_OP( __func::rsqrt, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 
 KOISHI_COMPWISE_OP( KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
 
+#undef KOISHI_COMPWISE_OP
+#define KOISHI_COMPWISE_OP( isinf, ... )                                                                                                                                                 \
+	template <typename T, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec1<T>::value>::type>                            \
+	KOISHI_HOST_DEVICE bool hasinf( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return isinf( a.x );                                                                                                                                                             \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec2<T>::value>::type>                   \
+	KOISHI_HOST_DEVICE bool hasinf( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return isinf( a.x ) || isinf( a.y );                                                                                                                                             \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec3<T>::value>::type>          \
+	KOISHI_HOST_DEVICE bool hasinf( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return isinf( a.x ) || isinf( a.y ) || isinf( a.z );                                                                                                                             \
+	}                                                                                                                                                                                    \
+	template <typename T, int = 0, int = 0, int = 0, int = 0, typename = typename std::enable_if<koishi::trait::is_in<T, __VA_ARGS__>::value && koishi::trait::is_vec4<T>::value>::type> \
+	KOISHI_HOST_DEVICE bool hasinf( const T &a )                                                                                                                                         \
+	{                                                                                                                                                                                    \
+		return isinf( a.x ) || isinf( a.y ) || isinf( a.z ) || isinf( a.w );                                                                                                             \
+	}
+
+KOISHI_COMPWISE_OP( KOISHI_MATH_NAMESP::isinf, KOISHI_VEC_FLOAT, KOISHI_VEC_DOUBLE )
+
 #undef KOISHI_MATH_NAMESP
 
 #undef KOISHI_COMPWISE_OP

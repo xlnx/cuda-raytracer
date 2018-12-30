@@ -14,7 +14,7 @@ namespace core
 {
 struct Scene : emittable
 {
-	Scene( const std::string &path );
+	Scene( SceneConfig &config );
 
 	poly::vector<poly::object<Primitive>> primitives;
 	poly::vector<poly::object<Light>> lights;

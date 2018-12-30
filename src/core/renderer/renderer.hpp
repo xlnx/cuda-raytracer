@@ -4,6 +4,7 @@
 #include <vector>
 #include <fstream>
 #include <util/image.hpp>
+#include <util/config.hpp>
 #include <core/basic/basic.hpp>
 #include <core/meta/scene.hpp>
 #include <core/misc/lens.hpp>
@@ -35,7 +36,10 @@ struct Renderer : RendererBase
 	void render( const std::string &path, const std::string &dest, uint spp ) override
 	{
 		KINFO( renderer, "Render start" );
-		if ( core::Scene scene = path )
+		KINFO( renderer, "Loading config '" + path + "'" );
+		RendererConfig config;
+		std::ifstream( path ) >> config;
+		if ( core::Scene scene = config.scene )
 		{
 			if ( !scene.camera.size() )
 			{

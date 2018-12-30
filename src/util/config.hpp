@@ -44,4 +44,9 @@ struct SceneConfig : serializable<SceneConfig>
 	Property( TConfig, shaders );
 };
 
+struct RendererConfig : serializable<RendererConfig>
+{
+	Property( SceneConfig, scene );
+};
+
 }  // namespace koishi
