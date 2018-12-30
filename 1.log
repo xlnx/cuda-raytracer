@@ -1,0 +1,15 @@
+[  1%] Building NVCC (Device) object CMakeFiles/t_cyclicQueue.dir/src/ext/shader/t_cyclicQueue_generated_shader.impl.cu.o
+[  3%] Building NVCC (Device) object CMakeFiles/t_math.dir/src/ext/shader/t_math_generated_shader.impl.cu.o
+[  3%] Building NVCC (Device) object CMakeFiles/t_intersect.dir/src/ext/shader/t_intersect_generated_shader.impl.cu.o
+[  3%] Building NVCC (Device) object CMakeFiles/t_kernel.dir/src/ext/shader/t_kernel_generated_shader.impl.cu.o
+CMakeFiles/t_intersect.dir/build.make:4616: recipe for target 'CMakeFiles/t_intersect.dir/src/ext/shader/t_intersect_generated_shader.impl.cu.o' failed
+CMakeFiles/Makefile2:104: recipe for target 'CMakeFiles/t_intersect.dir/all' failed
+[  3%] Building NVCC (Device) object CMakeFiles/t_kernel.dir/src/util/t_kernel_generated_image.cu.o
+CMakeFiles/t_kernel.dir/build.make:4596: recipe for target 'CMakeFiles/t_kernel.dir/src/ext/shader/t_kernel_generated_shader.impl.cu.o' failed
+[  4%] Building NVCC (Device) object CMakeFiles/t_cyclicQueue.dir/src/vis/t_cyclicQueue_generated_renderer.cu.o
+CMakeFiles/t_math.dir/build.make:4626: recipe for target 'CMakeFiles/t_math.dir/src/ext/shader/t_math_generated_shader.impl.cu.o' failed
+CMakeFiles/Makefile2:141: recipe for target 'CMakeFiles/t_math.dir/all' failed
+CMakeFiles/t_cyclicQueue.dir/build.make:1951: recipe for target 'CMakeFiles/t_cyclicQueue.dir/src/ext/shader/t_cyclicQueue_generated_shader.impl.cu.o' failed
+CMakeFiles/Makefile2:67: recipe for target 'CMakeFiles/t_cyclicQueue.dir/all' failed
+CMakeFiles/Makefile2:178: recipe for target 'CMakeFiles/t_kernel.dir/all' failed
+Makefile:94: recipe for target 'all' failed

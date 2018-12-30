@@ -424,14 +424,14 @@ private:
 #ifdef KOISHI_USE_CUDA
 	void copyBetweenDevice( const ref &other )
 	{
-		this->is_device_ptr = !this->is_device_ptr;
-		if ( this->is_device_ptr != obj.is_device_ptr )
-		{
-			new ( obj ) object<T>( *obj );
-			obj->decay = true;
-		}
-		value = obj->value;
-		this->device_value = obj->device_value;
+//		this->is_device_ptr = !this->is_device_ptr;
+//		if ( this->is_device_ptr != obj->is_device_ptr )
+//		{
+//			new ( const_cast<const object<T> *>(obj) ) object<T>( *obj );
+//			(*obj)->decay = true;
+//		}
+//		value = (*obj)->value;
+//		this->device_value = (*obj)->device_value;
 	}
 #endif
 
