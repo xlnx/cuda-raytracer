@@ -8,7 +8,6 @@
 #include <util/debug.hpp>
 #include "allocator.hpp"
 #include "factory.hpp"
-#include "function.hpp"
 #include "queue.hpp"
 #include "ray.hpp"
 

@@ -1,17 +1,22 @@
 #pragma once
 
 #include <core/basic/basic.hpp>
-#include <core/misc/sampler.hpp>
-#include <core/meta/scene.hpp>
+#include "kernel.hpp"
 
 namespace koishi
 {
 namespace core
 {
-PolyFunction( Radiance, Host, Device )(
-  ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
-	->float3 {
-		auto ray = r;
+struct RadianceKernel : Kernel
+{
+	RadianceKernel( const Properties &props ) :
+	  Kernel( props )
+	{
+	}
+
+	float3 execute( Ray ray, const Scene &scene, Allocator &pool,
+					Sampler &rng, const ProfileSlice &prof ) override
+	{
 		Varyings varyings;
 		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
 		constexpr auto maxBounce =					 //1;
@@ -42,7 +47,14 @@ PolyFunction( Radiance, Host, Device )(
 				beta *= varyings.f * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
 				ray = varyings.emitRay( varyings.global( varyings.wi ) );
 			}
-			pool.clear();
+
+			if ( prof.enabled( bounce ) )
+			{
+				prof[ bounce ].rayOrigin = ray.o;
+				prof[ bounce ].rayHit = varyings.p;
+				prof[ bounce ].rayDir = ray.d;
+				// prof[ bounce ].
+			}
 
 			auto rr = max( beta.x, max( beta.y, beta.z ) );
 			if ( rr < 1. && bounce > 3 )
@@ -52,11 +64,13 @@ PolyFunction( Radiance, Host, Device )(
 				beta /= 1 - q;
 			}
 
+			pool.clear();
 			varyings = Varyings();
 		}
 
 		return L;
-	} );
+	}
+};
 
 }  // namespace core
 

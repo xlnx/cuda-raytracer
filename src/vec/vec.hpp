@@ -6,13 +6,13 @@
 #if defined( KOISHI_USE_CUDA )
 
 #define KOISHI_HOST \
-        __host__
+	__host__
 #define KOISHI_DEVICE \
-        __device__
+	__device__
 #define KOISHI_HOST_DEVICE \
-        __host__ __device__
+	__host__ __device__
 #define KOISHI_NOINLINE \
-        __noinline__
+	__noinline__
 
 #define KOISHI_MATH_NAMESP
 
@@ -29,7 +29,7 @@
 #define KOISHI_NOINLINE
 
 #define KOISHI_MATH_NAMESP \
-        std
+	std
 
 #define KOISHI_RESTRICT
 
@@ -58,30 +58,32 @@ KOISHI_DEF_VEC( uint );
 
 #endif
 
-#define KOISHI_DEF_VEC( T )                                         \
-	struct normalized_##T##1 : T##1                                 \
-	{                                                               \
+#define KOISHI_DEF_VEC( T )                                                            \
+	struct normalized_##T##1 : T##1                                                    \
+	{                                                                                  \
 		KOISHI_HOST_DEVICE normalized_##T##1() = default;                              \
 		KOISHI_HOST_DEVICE explicit normalized_##T##1( const T##1 & v ) : T##1( v ) {} \
-	};                                                              \
-	struct normalized_##T##2 : T##2                                 \
-	{                                                               \
+	};                                                                                 \
+	struct normalized_##T##2 : T##2                                                    \
+	{                                                                                  \
 		KOISHI_HOST_DEVICE normalized_##T##2() = default;                              \
 		KOISHI_HOST_DEVICE explicit normalized_##T##2( const T##2 & v ) : T##2( v ) {} \
-	};                                                              \
-	struct normalized_##T##3 : T##3                                 \
-	{                                                               \
+	};                                                                                 \
+	struct normalized_##T##3 : T##3                                                    \
+	{                                                                                  \
 		KOISHI_HOST_DEVICE normalized_##T##3() = default;                              \
 		KOISHI_HOST_DEVICE explicit normalized_##T##3( const T##3 & v ) : T##3( v ) {} \
-	};                                                              \
-	struct normalized_##T##4 : T##4                                 \
-	{                                                               \
+	};                                                                                 \
+	struct normalized_##T##4 : T##4                                                    \
+	{                                                                                  \
 		KOISHI_HOST_DEVICE normalized_##T##4() = default;                              \
 		KOISHI_HOST_DEVICE explicit normalized_##T##4( const T##4 & v ) : T##4( v ) {} \
 	}
 
 KOISHI_DEF_VEC( float );
 KOISHI_DEF_VEC( double );
+KOISHI_DEF_VEC( int );
+KOISHI_DEF_VEC( uint );
 
 #undef KOISHI_DEF_VEC
 
@@ -197,6 +199,8 @@ struct unnormalized_type;
 
 KOISHI_DEF_VEC( float );
 KOISHI_DEF_VEC( double );
+KOISHI_DEF_VEC( int );
+KOISHI_DEF_VEC( uint );
 
 #define KOISHI_VEC_FLOAT float1, float2, float3, float4, normalized_float1, normalized_float2, normalized_float3, normalized_float4
 #define KOISHI_VEC_DOUBLE double1, double2, double3, double4, normalized_double1, normalized_double2, normalized_double3, normalized_double4

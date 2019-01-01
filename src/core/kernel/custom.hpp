@@ -1,22 +1,27 @@
 #pragma once
 
 #include <core/basic/basic.hpp>
-#include <core/misc/sampler.hpp>
-#include <core/meta/scene.hpp>
+#include "kernel.hpp"
 
 namespace koishi
 {
 namespace core
 {
-PolyFunction( Custom, Host, Device )(
-  ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
-	->float3 {
+struct CustomKernel : Kernel
+{
+	CustomKernel( const Properties &props ) :
+	  Kernel( props )
+	{
+	}
+
+	float3 execute( Ray ray, const Scene &scene, Allocator &pool,
+					Sampler &rng, const ProfileSlice &prof ) override
+	{
 		float3 L = { 0, 0, 0 };
-		auto ray = r;
 
 		Varyings varyings;
 
-		if ( scene.intersect( r, varyings, pool ) )
+		if ( scene.intersect( ray, varyings, pool ) )
 		{
 			auto &shader = scene.shaders[ varyings.shaderId ];
 
@@ -41,7 +46,8 @@ PolyFunction( Custom, Host, Device )(
 		pool.clear();
 
 		return L;
-	} );
+	}
+};
 
 }  // namespace core
 

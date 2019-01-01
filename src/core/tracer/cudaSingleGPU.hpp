@@ -5,6 +5,7 @@
 #include <core/misc/lens.hpp>
 #include <core/misc/sampler.hpp>
 #include <core/meta/scene.hpp>
+#include <core/meta/profiler.hpp>
 
 namespace koishi
 {
@@ -42,7 +43,8 @@ PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 	} );
 
 template <typename Radiance, typename Alloc>
-__global__ void integrate( poly::vector<float3> &buffer, const poly::object<Lens> &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
+__global__ void integrate( poly::vector<float3> &buffer, const poly::object<Lens> &lens, SamplerGenerator &rng_gen,
+						   const Scene &scene, uint spp, uint unroll )
 {
 	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, lens, rng_gen, scene, spp, unroll );
 }
@@ -50,7 +52,8 @@ __global__ void integrate( poly::vector<float3> &buffer, const poly::object<Lens
 template <typename Radiance, typename Alloc = HybridAllocator>
 PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
 
-  ( util::Image<3> & image, poly::object<Lens> &lens, SamplerGenerator &rng_gen, Scene &scene, uint spp )
+  ( util::Image<3> & image, poly::object<Lens> &lens, SamplerGenerator &rng_gen,
+	Scene &scene, uint spp, poly::object<Profiler> &profiler )
 	->void {
 		uint w = image.width();
 		uint h = image.height();

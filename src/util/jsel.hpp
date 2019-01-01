@@ -57,7 +57,11 @@ struct serializable<T, as_object> : __flag::IsSerializable
 
 	serializable()
 	{
-		get_state() = get_state() == 0 ? 1 : 2;
+		switch ( get_state() )
+		{
+		case 0: get_state() = 2, T(), get_state() = 3; break;
+		case 2: get_state() = 1; break;
+		}
 	}
 	void serialize( nlohmann::json &j ) const
 	{
@@ -191,7 +195,11 @@ struct serializable<T, as_array> : __flag::IsSerializable
 
 	serializable()
 	{
-		get_state() = get_state() == 0 ? 1 : 2;
+		switch ( get_state() )
+		{
+		case 0: get_state() = 2, T(), get_state() = 3; break;
+		case 2: get_state() = 1; break;
+		}
 	}
 	void serialize( nlohmann::json &j ) const
 	{

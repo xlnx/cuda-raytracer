@@ -15,11 +15,10 @@ namespace koishi
 {
 namespace core
 {
-Scene::Scene( SceneConfig &config )
+Scene::Scene( const Properties &props )
 {
-	// auto pos = path.find_last_of( "." );
-	// if ( pos != path.npos && path.substr( pos ) == ".json" )
-	// {
+	Configuration config = json( props );
+
 	std::vector<std::string> shaderNames;
 
 	bool imported = false;

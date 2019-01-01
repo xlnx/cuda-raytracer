@@ -14,7 +14,15 @@ namespace core
 {
 struct Scene : emittable
 {
-	Scene( SceneConfig &config );
+	struct Configuration : serializable<Configuration>
+	{
+		using TConfig = std::map<std::string, Config>;
+		Property( std::vector<CameraConfig>, camera, {} );
+		Property( std::vector<Config>, assets );
+		Property( TConfig, shaders );
+	};
+
+	Scene( const Properties &props );
 
 	poly::vector<poly::object<Primitive>> primitives;
 	poly::vector<poly::object<Light>> lights;

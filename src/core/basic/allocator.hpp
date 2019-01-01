@@ -8,7 +8,6 @@
 #include <vector>
 #include <util/debug.hpp>
 #include <vec/vmath.hpp>
-#include "function.hpp"
 
 namespace koishi
 {
@@ -64,10 +63,8 @@ KOISHI_HOST_DEVICE inline void dealloc( Allocator &al, T *ptr )
 	al.dealloc( reinterpret_cast<char *>( ptr ) );
 }
 
-struct HybridAllocator : Allocator, Require<Device>, Require<Host>
+struct HybridAllocator : Allocator
 {
-	PolyStruct( HybridAllocator );
-
 	KOISHI_HOST_DEVICE HybridAllocator( char *block, uint block_size ) :
 	  base( block ),
 	  finish( block + block_size ),

@@ -36,7 +36,7 @@ struct CameraConfig : serializable<CameraConfig>, emittable
 
 using Properties = std::map<std::string, json>;
 
-struct Config : serializable<Config, as_array>, emittable
+struct Config : serializable<Config, as_array>
 {
 	Property( std::string, name );
 	Property( Properties, props, {} );
@@ -47,19 +47,6 @@ struct Config : serializable<Config, as_array>, emittable
 	  props( props )
 	{
 	}
-};
-
-struct SceneConfig : serializable<SceneConfig>
-{
-	using TConfig = std::map<std::string, Config>;
-	Property( std::vector<CameraConfig>, camera, {} );
-	Property( std::vector<Config>, assets );
-	Property( TConfig, shaders );
-};
-
-struct RendererConfig : serializable<RendererConfig>
-{
-	Property( SceneConfig, scene );
 };
 
 }  // namespace koishi

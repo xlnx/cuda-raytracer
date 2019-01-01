@@ -2,10 +2,11 @@
 #include <core/kernel/radiance.hpp>
 #include <core/kernel/normal.hpp>
 #include <core/kernel/custom.hpp>
-#include <core/kernel/bruteForce.hpp>
+// #include <core/kernel/bruteForce.hpp>
 #include <core/tracer/cpuMulticore.hpp>
 //#include <core/tracer/cudaSingleGPU.hpp>
-#include <core/renderer/factory.hpp>
+// #include <core/renderer/factory.hpp>
+#include <core/renderer/renderer.hpp>
 #include <vis/renderer.hpp>
 #include <cxxopts/cxxopts.hpp>
 
@@ -43,51 +44,27 @@ int main( int argc, char **argv )
 		}
 		else
 		{
-			// clang-format off
-			TemplateFactory<
-			  templates2<CPUMultiCoreTracer
-#ifdef KOISHI_USE_CUDA
-			//			  , CudaSingleGPUTracer
-#endif
-						>,
-			  types<
-				Radiance, Normal, BruteForce, Custom
-			  >,
-			  types<
-				HybridAllocator
-			  >
-			>
-			  factory;
-			// clang-format on
-
 			if ( opt.count( "l" ) )
 			{
-				for ( auto &e : factory.getValidTypes() )
-				{
-					KLOG( e );
-				}
+				// for ( auto &e : factory.getValidTypes() )
+				// {
+				// 	KLOG( e );
+				// }
 			}
 			else
 			{
-				auto tracer = opt[ "t" ].as<std::string>();
-				auto kernel = opt[ "k" ].as<std::string>();
-				auto alloc = opt[ "a" ].as<std::string>();
-
-				auto targetClass = tracer + "<" + kernel + ", " + alloc + ">";
-
 				uint w = 1024, h = 768;
 				auto resolution = opt[ "resolution" ].as<std::string>();
 				sscanf( resolution.c_str(), "%ux%u", &w, &h );
 
-				auto r = factory.create( targetClass, w, h );
+				Renderer renderer( w, h );
 
 				auto spp = opt[ "s" ].as<uint>();
 				auto out = opt[ "o" ].as<std::string>();
 
 				KLOG( "Sample", spp, "points per pixel" );
-				KLOG( "Using renderer:", targetClass );
 
-				r->render( argv[ 1 ], out, spp );
+				renderer.render( argv[ 1 ], out, spp );
 			}
 		}
 	}

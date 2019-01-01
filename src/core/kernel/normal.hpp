@@ -1,16 +1,22 @@
 #pragma once
 
 #include <core/basic/basic.hpp>
-#include <core/misc/sampler.hpp>
-#include <core/meta/scene.hpp>
+#include "kernel.hpp"
 
 namespace koishi
 {
 namespace core
 {
-PolyFunction( Normal, Host, Device )(
-  ( const Ray &r, const Scene &scene, Allocator &pool, Sampler &rng )
-	->float3 {
+struct NormalKernel : Kernel
+{
+	NormalKernel( const Properties &props ) :
+	  Kernel( props )
+	{
+	}
+
+	float3 execute( Ray r, const Scene &scene, Allocator &pool,
+					Sampler &rng, const ProfileSlice &prof ) override
+	{
 		float3 L = { 0, 0, 0 };
 		Varyings varyings;
 
@@ -21,7 +27,8 @@ PolyFunction( Normal, Host, Device )(
 		pool.clear();
 
 		return L;
-	} );
+	}
+};
 
 }  // namespace core
 
