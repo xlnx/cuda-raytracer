@@ -10,10 +10,7 @@ namespace core
 template <typename T>
 struct Scala : Node
 {
-	Scala( const Properties &props ) :
-	  Node( props )
-	{
-	}
+	using Node::Node;
 
 	KOISHI_HOST_DEVICE virtual T compute(
 	  const Varyings &varyings, Allocator &pool ) const = 0;

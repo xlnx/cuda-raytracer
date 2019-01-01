@@ -229,11 +229,15 @@ private:
 
 public:
 #ifdef __CUDA_ARCH__
-#  define KOISHI_DATA_PTR device_value
+#define KOISHI_DATA_PTR device_value
 #else
-#  define KOISHI_DATA_PTR value
+#define KOISHI_DATA_PTR value
 #endif
-	KOISHI_HOST_DEVICE reference operator[]( size_type idx ) { return KOISHI_DATA_PTR[ idx ]; }
+
+	KOISHI_HOST_DEVICE reference operator[]( size_type idx )
+	{
+		return KOISHI_DATA_PTR[ idx ];
+	}
 	KOISHI_HOST_DEVICE const_reference operator[]( size_type idx ) const { return KOISHI_DATA_PTR[ idx ]; }
 
 	KOISHI_HOST_DEVICE reference front() { return *KOISHI_DATA_PTR; }
@@ -242,8 +246,8 @@ public:
 	KOISHI_HOST_DEVICE reference back() { return KOISHI_DATA_PTR[ curr - 1 ]; }
 	KOISHI_HOST_DEVICE const_reference back() const { return KOISHI_DATA_PTR[ curr - 1 ]; }
 
-	KOISHI_HOST pointer data() { return KOISHI_DATA_PTR; }
-	KOISHI_HOST const_pointer data() const { return KOISHI_DATA_PTR; }
+	KOISHI_HOST_DEVICE pointer data() { return KOISHI_DATA_PTR; }
+	KOISHI_HOST_DEVICE const_pointer data() const { return KOISHI_DATA_PTR; }
 
 	KOISHI_HOST_DEVICE iterator begin() { return KOISHI_DATA_PTR; }
 	KOISHI_HOST_DEVICE const_iterator begin() const { return KOISHI_DATA_PTR; }
@@ -359,8 +363,8 @@ public:
 private:
 	std::size_t total = MIN_SIZE;
 	size_type curr = 0;
-	T *KOISHI_RESTRICT value = (pointer)std::malloc( sizeof( T ) * total );
-	T *KOISHI_RESTRICT device_value = nullptr;
+	T *value = (pointer)std::malloc( sizeof( T ) * total );
+	T *device_value = nullptr;
 	bool is_device_ptr = false;
 };
 

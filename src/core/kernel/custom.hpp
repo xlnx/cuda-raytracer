@@ -15,7 +15,7 @@ struct CustomKernel : Kernel
 	}
 
 	float3 execute( Ray ray, const Scene &scene, Allocator &pool,
-					Sampler &rng, const ProfileSlice &prof ) override
+					Sampler &rng, ProfileSlice *prof ) override
 	{
 		float3 L = { 0, 0, 0 };
 

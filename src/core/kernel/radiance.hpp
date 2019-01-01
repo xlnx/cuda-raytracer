@@ -9,66 +9,47 @@ namespace core
 {
 struct RadianceKernel : Kernel
 {
-	RadianceKernel( const Properties &props ) :
-	  Kernel( props )
+	struct Slice : ProfileSlice
 	{
-	}
-
-	float3 execute( Ray ray, const Scene &scene, Allocator &pool,
-					Sampler &rng, const ProfileSlice &prof ) override
-	{
-		Varyings varyings;
-		float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
-		constexpr auto maxBounce =					 //1;
-		  1024;
-		// 1024;
-
-		for ( auto bounce = 0; scene.intersect( ray, varyings, pool ) &&
-							   bounce != maxBounce;
-			  ++bounce )
+		struct BounceRecord
 		{
-			auto &shader = scene.shaders[ varyings.shaderId ];
+			Ray ray;
+			float3 p, f, L;
+		};
 
-			// evaluate direct lighting
-			if ( scene.lights.size() )
-			{
-				float3 li;
-				uint idx = min( (uint)floor( rng.sample() * scene.lights.size() ),
-								( uint )( scene.lights.size() - 1 ) );
-				float lpdf = 1.f / scene.lights.size();
-				varyings.wi = scene.lights[ idx ]->sample( scene, varyings, rng.sample2(), li, pool );
-				shader->execute( varyings, rng, pool, compute_f_by_wi_wo );
-				L += beta * varyings.f * li * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) ) / lpdf;
-			}
-			L += beta * varyings.emission;
-			// emit new light for indirect lighting, according to BSDF
-			{
-				shader->execute( varyings, rng, pool, sample_wi_f_by_wo );
-				beta *= varyings.f * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
-				ray = varyings.emitRay( varyings.global( varyings.wi ) );
-			}
-
-			if ( prof.enabled( bounce ) )
-			{
-				prof[ bounce ].rayOrigin = ray.o;
-				prof[ bounce ].rayHit = varyings.p;
-				prof[ bounce ].rayDir = ray.d;
-				// prof[ bounce ].
-			}
-
-			auto rr = max( beta.x, max( beta.y, beta.z ) );
-			if ( rr < 1. && bounce > 3 )
-			{
-				auto q = max( .05f, 1 - rr );
-				if ( rng.sample() < q ) break;
-				beta /= 1 - q;
-			}
-
-			pool.clear();
-			varyings = Varyings();
+		Slice( const Properties &props ) :
+		  ProfileSlice( props ),
+		  bounces( get( props, "depth", 8u ) )
+		{
 		}
 
-		return L;
+		void writeSlice( std::ostream &os ) const override
+		{
+			os << "bounce: " << bounce << " / " << bounces.size() << std::endl;
+			for ( int i = 0; i != std::min( bounce, bounces.size() ); ++i )
+			{
+				os << "ray: " << bounces[ i ].ray.o << bounces[ i ].ray.d << std::endl;
+				os << "hit: " << bounces[ i ].p << std::endl;
+				os << "f: " << bounces[ i ].f << std::endl;
+				os << "L: " << bounces[ i ].L << std::endl;
+			}
+		}
+		void readSlice( std::istream &is ) const override
+		{
+		}
+
+		std::size_t bounce;
+		poly::vector<BounceRecord> bounces;
+	};
+
+	using Kernel::Kernel;
+
+	KOISHI_HOST_DEVICE float3 execute( Ray ray, const Scene &scene, Allocator &pool,
+									   Sampler &rng, ProfileSlice *prof ) override;
+
+	virtual poly::object<ProfileSlice> profileSlice( const Properties &props ) const override
+	{
+		return poly::make_object<Slice>( props );
 	}
 };
 

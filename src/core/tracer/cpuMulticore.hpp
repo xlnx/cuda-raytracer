@@ -13,13 +13,10 @@ namespace core
 {
 struct CPUMulticoreTracer : Tracer
 {
-	CPUMulticoreTracer( const Properties &props );
+	using Tracer::Tracer;
 
 	void execute( util::Image<3> &image, poly::object<Lens> &lens, SamplerGenerator &rng_gen,
 				  Scene &scene, uint spp, Profiler &profiler ) override;
-
-private:
-	poly::object<Kernel> kernel;
 };
 
 }  // namespace core

@@ -25,7 +25,7 @@ void Renderer::render( const std::string &path, const std::string &dest, uint sp
 		auto &camera = scene.camera[ 0 ];
 
 		util::Image<3> image( w, h );
-		KLOG( "Target resolution:", w, "x", h );
+		KLOG( "Target resolution:", w, "x", h, ",", spp, "spp" );
 
 		poly::object<Lens> lens;
 		switch ( camera.lens )
@@ -38,16 +38,31 @@ void Renderer::render( const std::string &path, const std::string &dest, uint sp
 		}
 		SamplerGenerator rng_gen;
 		auto tracer = Factory<Tracer>::create( config.tracer );
-		Profiler profiler( config.profiler, w, h, spp );
-		profiler
+		Profiler profiler( config.profiler, tracer->getKernel(), w, h, spp );
 
-		  KLOG( "Start intergrating" );
+		KLOG( "Start intergrating" );
 		tracer->execute( image, lens, rng_gen, scene, spp, profiler );
 		KLOG( "Finished intergrating" );
 
 		KINFO( renderer, "Writting image to file" );
 		image.dump( dest );
 		KINFO( renderer, "Written to '" + dest + "'" );
+
+		if ( profiler.enabled() )
+		{
+			auto area = profiler.getArea();
+			for ( int j = area.y; j != area.w; ++j )
+			{
+				image.at( area.x, j ) = image.at( area.z, j ) = float3{ 1, 0, 0 };
+			}
+			for ( int i = area.x; i != area.z; ++i )
+			{
+				image.at( i, area.y ) = image.at( i, area.w ) = float3{ 1, 0, 0 };
+			}
+			KINFO( renderer, "Writting image to file" );
+			image.dump( dest + "prof.png" );
+			KINFO( renderer, "Written to '" + dest + ".prof.png'" );
+		}
 	}
 	KINFO( renderer, "Render finished successfully" );
 }

@@ -16,10 +16,7 @@ enum ShaderTarget
 
 struct Shader : Node
 {
-	Shader( const Properties &props ) :
-	  Node( props )
-	{
-	}
+	using Node::Node;
 
 	KOISHI_HOST_DEVICE virtual void execute(
 	  Varyings &varyings, Sampler &sampler, Allocator &pool, ShaderTarget target = target_default ) const = 0;

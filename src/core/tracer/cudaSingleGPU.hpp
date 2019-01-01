@@ -5,7 +5,6 @@
 #include <core/misc/lens.hpp>
 #include <core/misc/sampler.hpp>
 #include <core/meta/scene.hpp>
-#include <core/meta/profiler.hpp>
 
 namespace koishi
 {

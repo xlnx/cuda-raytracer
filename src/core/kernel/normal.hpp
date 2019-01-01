@@ -15,7 +15,7 @@ struct NormalKernel : Kernel
 	}
 
 	float3 execute( Ray r, const Scene &scene, Allocator &pool,
-					Sampler &rng, const ProfileSlice &prof ) override
+					Sampler &rng, ProfileSlice *prof ) override
 	{
 		float3 L = { 0, 0, 0 };
 		Varyings varyings;

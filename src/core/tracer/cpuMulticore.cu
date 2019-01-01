@@ -4,13 +4,6 @@ namespace koishi
 {
 namespace core
 {
-CPUMulticoreTracer::CPUMulticoreTracer( const Properties &props ) :
-  Tracer( props ),
-  kernel( Factory<Kernel>::create( get<Config>(
-	props, "kernel", Config( "Radiance", {} ) ) ) )
-{
-}
-
 void CPUMulticoreTracer::execute( util::Image<3> &image, poly::object<Lens> &lens, SamplerGenerator &rng_gen,
 								  Scene &scene, uint spp, Profiler &profiler )
 {
@@ -21,7 +14,7 @@ void CPUMulticoreTracer::execute( util::Image<3> &image, poly::object<Lens> &len
 #ifndef DEBUG
 	  -1u;
 #else
-	  1u;
+	  2u;
 #endif
 
 	auto nthreads = std::thread::hardware_concurrency() - 1;
@@ -60,7 +53,7 @@ void CPUMulticoreTracer::execute( util::Image<3> &image, poly::object<Lens> &len
 				float3 rad = { 0, 0, 0 };
 				for ( uint k = 0; k != spp; ++k )
 				{
-					auto r = kernel->execute(
+					auto r = kern->execute(
 					  lens->sample( i, j, k ), scene, pool, rng,
 					  profiler.at( i, j, k ) );
 					if ( !hasnan( r ) && !hasinf( r ) )
