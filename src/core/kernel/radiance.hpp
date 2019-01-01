@@ -25,13 +25,16 @@ struct RadianceKernel : Kernel
 
 		void writeSlice( std::ostream &os ) const override
 		{
-			os << "bounce: " << bounce << " / " << bounces.size() << std::endl;
-			for ( int i = 0; i != std::min( bounce, bounces.size() ); ++i )
+			if ( L.x >= 1 && L.y >= 1 && L.z >= 1 )
 			{
-				os << "ray: " << bounces[ i ].ray.o << bounces[ i ].ray.d << std::endl;
-				os << "hit: " << bounces[ i ].p << std::endl;
-				os << "f: " << bounces[ i ].f << std::endl;
-				os << "L: " << bounces[ i ].L << std::endl;
+				os << "bounce: " << bounce << " / " << bounces.size() << std::endl;
+				for ( int i = 0; i != std::min( bounce, bounces.size() ); ++i )
+				{
+					os << "ray: " << bounces[ i ].ray.o << bounces[ i ].ray.d << std::endl;
+					os << "hit: " << bounces[ i ].p << std::endl;
+					os << "f: " << bounces[ i ].f << std::endl;
+					os << "L: " << bounces[ i ].L << std::endl;
+				}
 			}
 		}
 		void readSlice( std::istream &is ) const override
@@ -39,6 +42,7 @@ struct RadianceKernel : Kernel
 		}
 
 		std::size_t bounce;
+		float3 L;
 		poly::vector<BounceRecord> bounces;
 	};
 

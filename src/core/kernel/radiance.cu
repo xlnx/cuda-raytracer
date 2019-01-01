@@ -67,6 +67,7 @@ KOISHI_HOST_DEVICE float3 RadianceKernel::execute( Ray ray, const Scene &scene, 
 	if ( slice )
 	{
 		slice->bounce = bounce;
+		slice->L = L;
 	}
 
 	return L;

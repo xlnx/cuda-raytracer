@@ -52,20 +52,23 @@ Profiler::Profiler( const Properties &props, const poly::object<Kernel> &kernel,
 
 Profiler::~Profiler()
 {
-	KINFO( profiler, "Writting profile" );
-	std::ofstream of( output );
-	for ( uint y = 0; y != areaSize.y; ++y )
+	if ( enable )
 	{
-		for ( uint x = 0; x != areaSize.x; ++x )
+		KINFO( profiler, "Writting profile" );
+		std::ofstream of( output );
+		for ( uint y = 0; y != areaSize.y; ++y )
 		{
-			for ( uint k = 0; k != spp; ++k )
+			for ( uint x = 0; x != areaSize.x; ++x )
 			{
-				of << "at " << uint3{ x + area.x, y + area.y, k } << ": ";
-				slices[ ( areaSize.x * y + x ) * spp + k ]->writeSlice( of );
+				for ( uint k = 0; k != spp; ++k )
+				{
+					of << "at " << uint3{ x + area.x, y + area.y, k } << ": ";
+					slices[ ( areaSize.x * y + x ) * spp + k ]->writeSlice( of );
+				}
 			}
 		}
+		KINFO( profiler, "Written to '" + output + "'" );
 	}
-	KINFO( profiler, "Written to '" + output + "'" );
 }
 
 }  // namespace core
