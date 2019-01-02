@@ -14,7 +14,8 @@ struct RadianceKernel : Kernel
 		struct BounceRecord
 		{
 			Ray ray;
-			float3 p, f, L;
+			float3 p, f, L, beta;
+			uint shaderId;
 		};
 
 		Slice( const Properties &props ) :
@@ -34,6 +35,8 @@ struct RadianceKernel : Kernel
 					os << "hit: " << bounces[ i ].p << std::endl;
 					os << "f: " << bounces[ i ].f << std::endl;
 					os << "L: " << bounces[ i ].L << std::endl;
+					os << "beta: " << bounces[ i ].beta << std::endl;
+					os << "shader: " << bounces[ i ].shaderId << std::endl;
 				}
 			}
 		}

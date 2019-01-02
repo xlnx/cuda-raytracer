@@ -50,7 +50,7 @@ Profiler::Profiler( const Properties &props, const poly::object<Kernel> &kernel,
 	}
 }
 
-Profiler::~Profiler()
+Profiler::~Profiler() noexcept
 {
 	if ( enable )
 	{

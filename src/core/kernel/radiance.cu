@@ -33,12 +33,6 @@ KOISHI_HOST_DEVICE float3 RadianceKernel::execute( Ray ray, const Scene &scene, 
 			L += beta * varyings.f * li * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) ) / lpdf;
 		}
 		L += beta * varyings.emission;
-		// emit new light for indirect lighting, according to BSDF
-		{
-			shader->execute( varyings, rng, pool, sample_wi_f_by_wo );
-			beta *= varyings.f * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
-			ray = varyings.emitRay( varyings.global( varyings.wi ) );
-		}
 
 		if ( slice )
 		{
@@ -49,7 +43,16 @@ KOISHI_HOST_DEVICE float3 RadianceKernel::execute( Ray ray, const Scene &scene, 
 				b.p = varyings.p;
 				b.f = varyings.f;
 				b.L = L;
+				b.beta = beta;
+				b.shaderId = varyings.shaderId;
 			}
+		}
+
+		// emit new light for indirect lighting, according to BSDF
+		{
+			shader->execute( varyings, rng, pool, sample_wi_f_by_wo );
+			beta *= varyings.f * fabs( dot( varyings.wi, float3{ 0, 0, 1 } ) );
+			ray = varyings.emitRay( varyings.global( varyings.wi ) );
 		}
 
 		auto rr = max( beta.x, max( beta.y, beta.z ) );
