@@ -31,8 +31,8 @@ struct Lens : emittable
 protected:
 	uint w, h, spp, pw;
 
-	float3 o;
-	normalized_float3 n, u, v;
+	float3 o, n;
+	normalized_float3 u, v;
 
 	float3 du, dv;
 };
@@ -48,7 +48,7 @@ struct OrthographicLens : Lens
 	{
 		auto d = u * ( float( x ) - w * .5 ) + v * ( float( y ) - h * .5 );
 		d += du * ( k % pw ) + dv * ( k / pw );
-		return Ray{ o + d * 4.f / w, n };
+		return Ray{ o + d * 4.f / w, normalize( n ) };
 	}
 };
 
