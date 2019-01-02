@@ -47,22 +47,6 @@ void Renderer::render( const std::string &path, const std::string &dest, uint sp
 		KINFO( renderer, "Writting image to file" );
 		image.dump( dest );
 		KINFO( renderer, "Written to '" + dest + "'" );
-
-		if ( profiler.enabled() )
-		{
-			auto area = profiler.getArea();
-			for ( int j = area.y; j != area.w; ++j )
-			{
-				image.at( area.x, j ) = image.at( area.z, j ) = float3{ 1, 0, 0 };
-			}
-			for ( int i = area.x; i != area.z; ++i )
-			{
-				image.at( i, area.y ) = image.at( i, area.w ) = float3{ 1, 0, 0 };
-			}
-			KINFO( renderer, "Writting image to file" );
-			image.dump( dest + "prof.png" );
-			KINFO( renderer, "Written to '" + dest + ".prof.png'" );
-		}
 	}
 	KINFO( renderer, "Render finished successfully" );
 }

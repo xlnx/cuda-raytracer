@@ -14,7 +14,8 @@ struct RadianceKernel : Kernel
 		struct BounceRecord
 		{
 			Ray ray;
-			float3 p, f, L, beta;
+			float3 f, L;
+			float theta;
 			uint shaderId;
 		};
 
@@ -26,16 +27,15 @@ struct RadianceKernel : Kernel
 
 		void writeSlice( std::ostream &os ) const override
 		{
-			if ( L.x >= 1 && L.y >= 1 && L.z >= 1 )
+			if ( L.x >= 1e2 && L.y >= 1e2 && L.z >= 1e2 )
 			{
 				os << "bounce: " << bounce << " / " << bounces.size() << std::endl;
 				for ( int i = 0; i != std::min( bounce, bounces.size() ); ++i )
 				{
 					os << "ray: " << bounces[ i ].ray.o << bounces[ i ].ray.d << std::endl;
-					os << "hit: " << bounces[ i ].p << std::endl;
 					os << "f: " << bounces[ i ].f << std::endl;
+					os << "theta: " << bounces[ i ].theta << std::endl;
 					os << "L: " << bounces[ i ].L << std::endl;
-					os << "beta: " << bounces[ i ].beta << std::endl;
 					os << "shader: " << bounces[ i ].shaderId << std::endl;
 				}
 			}

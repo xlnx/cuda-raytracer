@@ -7,8 +7,8 @@ namespace core
 void CPUMulticoreTracer::execute( util::Image<3> &image, poly::object<Lens> &lens, SamplerGenerator &rng_gen,
 								  Scene &scene, uint spp, Profiler &profiler )
 {
-	uint w = image.width();
-	uint h = image.height();
+    uint4 area = profiler.enabled() ? profiler.getArea() : 
+        uint4{ 0, 0, image.width(), image.height() };
 
 	static constexpr uint MaxThreads =
 #ifndef DEBUG
@@ -28,7 +28,7 @@ void CPUMulticoreTracer::execute( util::Image<3> &image, poly::object<Lens> &len
 	std::vector<std::pair<int, int>> status( nthreads );
 	std::atomic<int> g_nthreads( nthreads );
 
-	auto tracer_thread = [nthreads, spp, h, w, &scene, &image, &lens, &profiler,
+	auto tracer_thread = [nthreads, spp, area, &scene, &image, &lens, &profiler,
 						  &rng, &status, &g_nthreads, this]( uint id ) {
 		static constexpr uint b = 1, kb = 1024 * b, mb = 1024 * kb;
 		static constexpr uint block_size = 480 * b;
@@ -39,15 +39,15 @@ void CPUMulticoreTracer::execute( util::Image<3> &image, poly::object<Lens> &len
 
 		status[ id ].second = 0;
 		status[ id ].first = 0;
-		for ( uint j = id; j < h; j += nthreads )
+		for ( uint j = id + area.y; j < area.w; j += nthreads )
 		{
-			status[ id ].second += w;
+			status[ id ].second += area.z - area.x;
 		}
 		g_nthreads--;
 
-		for ( uint j = id; j < h; j += nthreads )
+		for ( uint j = id + area.y; j < area.w; j += nthreads )
 		{
-			for ( uint i = 0; i != w; ++i )
+			for ( uint i = area.x; i != area.z; ++i )
 			{
 				uint valid = 0;
 				float3 rad = { 0, 0, 0 };

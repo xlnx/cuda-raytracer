@@ -62,7 +62,7 @@ Profiler::~Profiler() noexcept
 			{
 				for ( uint k = 0; k != spp; ++k )
 				{
-					of << "at " << uint3{ x + area.x, y + area.y, k } << ": ";
+					of << "at " << uint3{ x + area.x, y + area.y, k } << ": " << std::endl;
 					slices[ ( areaSize.x * y + x ) * spp + k ]->writeSlice( of );
 				}
 			}

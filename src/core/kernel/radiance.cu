@@ -40,10 +40,10 @@ KOISHI_HOST_DEVICE float3 RadianceKernel::execute( Ray ray, const Scene &scene, 
 			{
 				auto &b = slice->bounces[ bounce ];
 				b.ray = ray;
-				b.p = varyings.p;
+                b.theta = acos( dot( varyings.wo, reflect( 
+                                varyings.wi, solid(float3{ 0, 0, 1 } ) ) ) );
 				b.f = varyings.f;
 				b.L = L;
-				b.beta = beta;
 				b.shaderId = varyings.shaderId;
 			}
 		}
