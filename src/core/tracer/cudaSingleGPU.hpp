@@ -1,10 +1,7 @@
 #pragma once
 
-#include <util/image.hpp>
 #include <core/basic/basic.hpp>
-#include <core/misc/lens.hpp>
-#include <core/misc/sampler.hpp>
-#include <core/meta/scene.hpp>
+#include "tracer.hpp"
 
 namespace koishi
 {
@@ -15,45 +12,46 @@ namespace core
 constexpr int b = 1, kb = 1024 * b, mb = 1024 * kb;
 constexpr int stackPoolSize = 1 * kb;  // keep 4 bytes per indice, dfs based bvh intersection queue won't exceed 32 ints due to the indice space limit of 2^32
 
-template <typename Radiance, typename Alloc>
-PolyFunction( DoIntegrate, Require<Radiance, Alloc, Device> )(
 
-  ( poly::vector<float3> & buffer, const poly::object<Lens> &lens, SamplerGenerator &rng_gen, const Scene &scene, uint spp, uint unroll )
-	->void {
-		char stackPool[ stackPoolSize ];
-		Alloc pool( stackPool, stackPoolSize );
-		auto rng = rng_gen.create();
-
-		uint x = blockIdx.x * blockDim.x + threadIdx.x;
-		uint y = blockIdx.y * blockDim.y + threadIdx.y;
-		int line = blockDim.x * gridDim.x;
-		int index = x + y * line;
-
-		float invSpp = 1.0 / spp;
-
-		float3 sum{ 0, 0, 0 };
-
-		for ( uint i = 0; i < spp; ++i )
-		{
-			sum += call<Radiance>( lens->sample( x, y, i ), scene, pool, rng );
-		}
-
-		buffer[ index ] = sum * invSpp;
-	} );
-
-template <typename Radiance, typename Alloc>
-__global__ void integrate( poly::vector<float3> &buffer, const poly::object<Lens> &lens, SamplerGenerator &rng_gen,
+__global__ void integrate( poly::object<Kernel> &kern, poly::vector<float3> &buffer, const poly::object<Lens> &lens, SamplerGenerator &rng_gen,
 						   const Scene &scene, uint spp, uint unroll )
 {
-	Device::call<DoIntegrate<Radiance, Alloc>>( buffer, lens, rng_gen, scene, spp, unroll );
+    char stackPool[ stackPoolSize ];
+	HybridAllocator pool( stackPool, stackPoolSize );
+	auto rng = rng_gen.create();
+
+	uint x = blockIdx.x * blockDim.x + threadIdx.x;
+	uint y = blockIdx.y * blockDim.y + threadIdx.y;
+	int line = blockDim.x * gridDim.x;
+	int index = x + y * line;
+
+    float invSpp = 1.0 / spp;
+
+	float3 sum{ 0, 0, 0 };
+
+    for ( uint i = 0; i < spp; ++i )
+	{
+		sum += kern->execute( lens->sample( x, y, i ), scene, pool, rng, nullptr );
+	}
+
+	buffer[ index ] = sum * invSpp;
 }
 
-template <typename Radiance, typename Alloc = HybridAllocator>
-PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc, Device>> )(
+struct CudaSingleGPUTracer : Tracer
+{
+    struct Configuration : serializable<Configuration>
+    {
+      //  Property();
+    };
 
-  ( util::Image<3> & image, poly::object<Lens> &lens, SamplerGenerator &rng_gen,
-	Scene &scene, uint spp, poly::object<Profiler> &profiler )
-	->void {
+    CudaSingleGPUTracer( const Properties &props ):
+      Tracer( props )
+    {
+    }
+
+    void execute( util::Image<3> & image, poly::object<Lens> &lens, SamplerGenerator &rng_gen,
+	              Scene &scene, uint spp, poly::object<Profiler> &profiler )
+	{
 		uint w = image.width();
 		uint h = image.height();
 
@@ -80,10 +78,10 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 		uint unroll = spp & -spp;  // use the lowbit of spp as unrool stride, thus spp % unroll = 0
 		KLOG( "Unrolling stride", unroll );
 
-		poly::kernel( integrate<Radiance, Alloc>,
+		poly::kernel( integrate,
 					  dim3( w / blockDim, h / blockDim ),
 					  dim3( blockDim, blockDim ),
-					  sharedMemPerBlock )( buffer, lens, rng_gen, scene, spp, unroll );
+					  sharedMemPerBlock )( this->kern, buffer, lens, rng_gen, scene, spp, unroll );
 
 		for ( uint j = 0; j != h; ++j )
 		{
@@ -92,7 +90,8 @@ PolyFunction( CudaSingleGPUTracer, Require<Host, On<Radiance, Device>, On<Alloc,
 				image.at( i, j ) = buffer[ i + j * w ];
 			}
 		}
-	} );
+	}
+};
 
 #endif
 

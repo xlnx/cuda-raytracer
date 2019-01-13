@@ -51,7 +51,7 @@ public:
 
 struct Varyings : LocalVaryings
 {
-	solid wi = solid( float3{ 0, 0, 0 } );
+	solid wi; // = normalized_float3( float3{ 0, 0, 0 } );
 	float3 f{ 0, 0, 0 };
 
 	float3 emission{ 0, 0, 0 };
