@@ -1,11 +1,4 @@
 #include <cstdio>
-#include <core/kernel/radiance.hpp>
-#include <core/kernel/normal.hpp>
-#include <core/kernel/custom.hpp>
-// #include <core/kernel/bruteForce.hpp>
-#include <core/tracer/cpuMulticore.hpp>
-//#include <core/tracer/cudaSingleGPU.hpp>
-// #include <core/renderer/factory.hpp>
 #include <core/renderer/renderer.hpp>
 #include <vis/renderer.hpp>
 #include <cxxopts/cxxopts.hpp>

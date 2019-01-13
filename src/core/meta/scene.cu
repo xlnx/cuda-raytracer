@@ -33,7 +33,8 @@ Scene::Scene( const Properties &props )
 			imported = true;
 			util::tick();
 			auto path = get<std::string>( asset.props, "path" );
-			auto cconf = get<CameraConfig>( asset.props, "camera" );
+			CameraConfig cconf;
+			cconf = get( asset.props, "camera", cconf );
 			auto diff = primitives.size();
 			Assimp::Importer importer;
 			auto scene = importer.ReadFile( path, aiProcess_Triangulate |
@@ -73,60 +74,60 @@ Scene::Scene( const Properties &props )
 						camera.emplace_back( cc );
 					}
 				}
-				if ( scene->HasLights() )
-				{
-					for ( auto i = 0u; i != scene->mNumLights; ++i )
-					{
-						auto &conf = scene->mLights[ i ];
-						auto trans = scene->mRootNode->FindNode( conf->mName )->mTransformation;
-						auto rot = trans;
-						rot.a4 = rot.b4 = rot.c4 = 0.f;
-						rot.d4 = 1.f;
-						if ( conf->mType == aiLightSource_AREA )
-						{
-							auto dir = conf->mDirection;
-							auto p = conf->mPosition;
-							auto u = dir ^ conf->mUp;
-							u.Normalize();
-							auto v = u ^ dir;
-							v.Normalize();
-							conf->mSize *= .5;
+				// if ( scene->HasLights() )
+				// {
+				// 	for ( auto i = 0u; i != scene->mNumLights; ++i )
+				// 	{
+				// 		auto &conf = scene->mLights[ i ];
+				// 		auto trans = scene->mRootNode->FindNode( conf->mName )->mTransformation;
+				// 		auto rot = trans;
+				// 		rot.a4 = rot.b4 = rot.c4 = 0.f;
+				// 		rot.d4 = 1.f;
+				// 		if ( conf->mType == aiLightSource_AREA )
+				// 		{
+				// 			auto dir = conf->mDirection;
+				// 			auto p = conf->mPosition;
+				// 			auto u = dir ^ conf->mUp;
+				// 			u.Normalize();
+				// 			auto v = u ^ dir;
+				// 			v.Normalize();
+				// 			conf->mSize *= .5;
 
-							std::vector<aiVector3D> avs = {
-								trans * ( p + conf->mSize.x * u + conf->mSize.y * v ),
-								trans * ( p + conf->mSize.x * u - conf->mSize.y * v ),
-								trans * ( p - conf->mSize.x * u - conf->mSize.y * v ),
-								trans * ( p - conf->mSize.x * u + conf->mSize.y * v )
-							};
-							poly::vector<float3> vertices = {
-								{ avs[ 0 ].x, avs[ 0 ].y, avs[ 0 ].z },
-								{ avs[ 1 ].x, avs[ 1 ].y, avs[ 1 ].z },
-								{ avs[ 2 ].x, avs[ 2 ].y, avs[ 2 ].z },
-								{ avs[ 3 ].x, avs[ 3 ].y, avs[ 3 ].z }
-							};
-							poly::vector<float3> normals = {
-								{ dir.x, dir.y, dir.z },
-								{ dir.x, dir.y, dir.z },
-								{ dir.x, dir.y, dir.z },
-								{ dir.x, dir.y, dir.z }
-							};
-							std::vector<uint3> indices = {
-								{ 0, 1, 2 },
-								{ 0, 2, 3 }
-							};
-							// MeshConfig def;
-							// def.emission = float3{ 100, 100, 100 };
-							for ( auto &m : core::PolyMesh(
-											  std::move( vertices ),
-											  std::move( normals ),
-											  indices )
-											  .mesh )
-							{
-								primitives.emplace_back( poly::make_object<Mesh>( std::move( m ) ) );
-							}
-						}
-					}
-				}
+				// 			std::vector<aiVector3D> avs = {
+				// 				trans * ( p + conf->mSize.x * u + conf->mSize.y * v ),
+				// 				trans * ( p + conf->mSize.x * u - conf->mSize.y * v ),
+				// 				trans * ( p - conf->mSize.x * u - conf->mSize.y * v ),
+				// 				trans * ( p - conf->mSize.x * u + conf->mSize.y * v )
+				// 			};
+				// 			poly::vector<float3> vertices = {
+				// 				{ avs[ 0 ].x, avs[ 0 ].y, avs[ 0 ].z },
+				// 				{ avs[ 1 ].x, avs[ 1 ].y, avs[ 1 ].z },
+				// 				{ avs[ 2 ].x, avs[ 2 ].y, avs[ 2 ].z },
+				// 				{ avs[ 3 ].x, avs[ 3 ].y, avs[ 3 ].z }
+				// 			};
+				// 			poly::vector<float3> normals = {
+				// 				{ dir.x, dir.y, dir.z },
+				// 				{ dir.x, dir.y, dir.z },
+				// 				{ dir.x, dir.y, dir.z },
+				// 				{ dir.x, dir.y, dir.z }
+				// 			};
+				// 			std::vector<uint3> indices = {
+				// 				{ 0, 1, 2 },
+				// 				{ 0, 2, 3 }
+				// 			};
+				// 			// MeshConfig def;
+				// 			// def.emission = float3{ 100, 100, 100 };
+				// 			for ( auto &m : core::PolyMesh(
+				// 							  std::move( vertices ),
+				// 							  std::move( normals ),
+				// 							  indices )
+				// 							  .mesh )
+				// 			{
+				// 				primitives.emplace_back( poly::make_object<Mesh>( std::move( m ) ) );
+				// 			}
+				// 		}
+				// }
+				// }
 			}
 			importer.FreeScene();
 			diff = primitives.size() - diff;

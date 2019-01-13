@@ -9,6 +9,11 @@ namespace core
 {
 struct RadianceKernel : Kernel
 {
+	struct Configuration : serializable<Configuration>
+	{
+		Property( uint, maxBounce, 16u );
+	};
+
 	struct Slice : ProfileSlice
 	{
 		struct BounceRecord
@@ -49,7 +54,7 @@ struct RadianceKernel : Kernel
 		poly::vector<BounceRecord> bounces;
 	};
 
-	using Kernel::Kernel;
+	RadianceKernel( const Properties &props );
 
 	KOISHI_HOST_DEVICE float3 execute( Ray ray, const Scene &scene, Allocator &pool,
 									   Sampler &rng, ProfileSlice *prof ) override;
@@ -58,6 +63,9 @@ struct RadianceKernel : Kernel
 	{
 		return poly::make_object<Slice>( props );
 	}
+
+private:
+	uint maxBounce;
 };
 
 }  // namespace core

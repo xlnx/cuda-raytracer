@@ -4,21 +4,20 @@ namespace koishi
 {
 namespace core
 {
+CPUMulticoreTracer::CPUMulticoreTracer( const Properties &props ) :
+  Tracer( props )
+{
+	Configuration config = json( props );
+	maxThreads = config.maxThreads;
+}
+
 void CPUMulticoreTracer::execute( util::Image<3> &image, poly::object<Lens> &lens, SamplerGenerator &rng_gen,
 								  Scene &scene, uint spp, Profiler &profiler )
 {
-    uint4 area = profiler.enabled() ? profiler.getArea() : 
-        uint4{ 0, 0, image.width(), image.height() };
-
-	static constexpr uint MaxThreads =
-#ifndef DEBUG
-	  -1u;
-#else
-	  2u;
-#endif
+	uint4 area = profiler.enabled() ? profiler.getArea() : uint4{ 0, 0, image.width(), image.height() };
 
 	auto nthreads = std::thread::hardware_concurrency() - 1;
-	if ( MaxThreads < nthreads ) nthreads = MaxThreads;
+	if ( maxThreads < nthreads ) nthreads = maxThreads;
 	KLOG( "Using", nthreads, "threads:" );
 	std::vector<std::thread> ts;
 	KINFO( tracer, "Tracing start" );

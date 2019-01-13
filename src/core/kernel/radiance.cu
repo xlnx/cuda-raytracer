@@ -4,19 +4,23 @@ namespace koishi
 {
 namespace core
 {
+RadianceKernel::RadianceKernel( const Properties &props ) :
+  Kernel( props )
+{
+	Configuration config = json( props );
+	maxBounce = config.maxBounce;
+}
+
 KOISHI_HOST_DEVICE float3 RadianceKernel::execute( Ray ray, const Scene &scene, Allocator &pool,
 												   Sampler &rng, ProfileSlice *prof )
 {
 	Varyings varyings;
 	float3 L = { 0, 0, 0 }, beta = { 1, 1, 1 };  // brdf can contain 3 components
 	auto slice = static_cast<Slice *>( prof );
-	constexpr auto maxBounce =  //1;
-	  1024;
-
 	int bounce = 0;
 
 	for ( ; scene.intersect( ray, varyings, pool ) &&
-			bounce != maxBounce;
+			bounce <= maxBounce;
 		  ++bounce )
 	{
 		auto &shader = scene.shaders[ varyings.shaderId ];

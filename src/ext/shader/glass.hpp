@@ -51,8 +51,8 @@ struct Glass : Shader
 			}
 			break;
 			case compute_f_by_wi_wo:
-				varyings.f = float3{ 0, 0, 0 };
-				// varyings.f = color * distribution->f( normalize( varyings.wo + varyings.wi * ior ) );
+				// varyings.f = float3{ 0, 0, 0 };
+				varyings.f = color * distribution->f( normalize( varyings.wo + varyings.wi * ior ) );
 				break;
 			}
 		}

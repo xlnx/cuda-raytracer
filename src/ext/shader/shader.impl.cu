@@ -1,4 +1,5 @@
 #include <ext/util.hpp>
+#include "blackhole.hpp"
 #include "lambert.hpp"
 #include "glossy.hpp"
 #include "glass.hpp"
@@ -13,6 +14,7 @@ namespace ext
 {
 static volatile int bxdf_impl[] = {
 	Factory<Shader>::reg<Emission>( "Emission" ),
+	Factory<Shader>::reg<Blackhole>( "Blackhole" ),
 	Factory<Shader>::reg<Lambert>( "Lambert" ),
 	Factory<Shader>::reg<Glossy>( "GlossyBSDF" ),
 	Factory<Shader>::reg<Refraction>( "RefractionBSDF" ),
